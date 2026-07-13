@@ -5,6 +5,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { MediaKind, kindFromUrl } from "@/lib/media";
 import Lightbox from "@/app/components/shared/Lightbox";
+import { useMusic } from "@/app/components/shared/useMusic";
+import { MusicFab, MUSIC_SRC } from "@/app/components/oliva/InvitationOliva";
 
 const DESIGN_ID = "oliva";
 
@@ -54,6 +56,8 @@ export default function GaleriaPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Misma canción que la invitación: si llegó sonando, aquí sigue hasta pausar
+  const { playing, toggle } = useMusic(MUSIC_SRC);
 
   useEffect(() => {
     applyTheme();
@@ -326,6 +330,8 @@ export default function GaleriaPage() {
           </div>
         )}
       </div>
+
+      <MusicFab playing={playing} onToggle={toggle} />
 
       {/* Footer */}
       <div

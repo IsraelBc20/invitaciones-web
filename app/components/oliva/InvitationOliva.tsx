@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useMediaUpload } from "@/app/components/shared/useMediaUpload";
 import UploadPreview from "@/app/components/shared/UploadPreview";
+import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 
 const DESIGN_ID = "oliva";
+
+// Canción del diseño; la galería importa esta constante para que el mismo
+// audio siga sonando al navegar entre invitación y galería.
+export const MUSIC_SRC = "/music.mp3";
 
 // ─── Paleta floral (SVG) ──────────────────────────────────────────────────────
 
@@ -266,7 +272,7 @@ function Gif({ src, alt, size = 110 }: { src: string; alt: string; size?: number
 
 // ─── MusicFab ─────────────────────────────────────────────────────────────────
 
-function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
+export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
   return (
     <button
       className={`music-fab ${playing ? "is-on" : "is-off"}`}
@@ -556,7 +562,7 @@ function DateSection() {
 // ─── Countdown ───────────────────────────────────────────────────────────────
 
 function CountdownSection() {
-  const target = new Date("2026-09-12T15:00:00").getTime();
+  const target = new Date("2026-09-12T16:00:00").getTime();
   const [diff, setDiff] = useState<number | null>(null);
 
   useEffect(() => {
@@ -639,7 +645,7 @@ function VenueSection() {
               marginTop: 10,
             }}
           >
-            3:00 p.m.
+            4:00 p.m.
           </div>
           <p
             style={{
@@ -706,10 +712,10 @@ function VenueSection() {
 
 function ItinerarySection() {
   const items = [
-    { time: "3:00 p.m.", label: "Ceremonia civil", img: "/it-ceremonia.gif" },
-    { time: "4:30 p.m.", label: "Brindis", img: "/it-brindis.gif" },
-    { time: "5:00 p.m.", label: "Comida", img: "/it-comida.gif" },
-    { time: "6:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
+    { time: "4:00 p.m.", label: "Ceremonia civil", img: "/it-ceremonia.gif" },
+    { time: "5:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
+    { time: "6:00 p.m.", label: "Comida", img: "/it-comida.gif" },
+    { time: "7:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
   ];
 
   return (
@@ -1268,13 +1274,14 @@ function PhotoUpload() {
 
       <Reveal delay={3}>
         <div style={{ textAlign: "center", marginTop: 22 }}>
-          <a
+          {/* Link (no <a>): la navegación client-side mantiene la música sonando */}
+          <Link
             href="/oliva/galeria"
             className="small-caps"
             style={{ color: "var(--brown)", textDecoration: "none", fontSize: 11 }}
           >
             Ver galería de fotos →
-          </a>
+          </Link>
         </div>
       </Reveal>
     </section>
@@ -1481,38 +1488,20 @@ function DemoBanner() {
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function InvitationOliva({ demo = false }: { demo?: boolean }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [opened, setOpened] = useState(false);
-  const [playing, setPlaying] = useState(false);
+  const { playing, play, toggle } = useMusic(MUSIC_SRC);
 
   const handleOpen = () => {
     setOpened(true);
-    const a = audioRef.current;
-    if (a) {
-      a.volume = 0.5;
-      a.play().then(() => setPlaying(true)).catch(() => {});
-    }
+    play();
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const togglePlay = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (playing) {
-      a.pause();
-      setPlaying(false);
-    } else {
-      a.play().then(() => setPlaying(true)).catch(() => {});
-    }
   };
 
   return (
     <div id="invitation-root">
-      <audio ref={audioRef} src="/music.mp3" loop preload="auto" />
-
       {demo && <DemoBanner />}
       {!opened && <IntroGate onOpen={handleOpen} />}
-      {opened && <MusicFab playing={playing} onToggle={togglePlay} />}
+      {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
         <NamesSection />
@@ -1540,7 +1529,7 @@ export default function InvitationOliva({ demo = false }: { demo?: boolean }) {
           <div className="small-caps" style={{ fontSize: 10 }}>
             Israel &amp; Marisol · Huaral 2026
           </div>
-          <a
+          <Link
             href="/oliva/galeria"
             className="small-caps"
             style={{
@@ -1552,7 +1541,7 @@ export default function InvitationOliva({ demo = false }: { demo?: boolean }) {
             }}
           >
             Ver galería de fotos →
-          </a>
+          </Link>
         </footer>
       </main>
     </div>

@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useMediaUpload } from "@/app/components/shared/useMediaUpload";
 import UploadPreview from "@/app/components/shared/UploadPreview";
+import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 
 const DESIGN_ID = "playa";
 
+// Canción del diseño; la galería importa esta constante para que el mismo
+// audio siga sonando al navegar entre invitación y galería.
+export const MUSIC_SRC = "/Enamorarte_Mil_Veces.mp3";
+
 // Paleta del diseño Playa (tomada del HTML de referencia de Canva)
 const BG = "#f6f2ee";
-// Tonos alternados por sección para dar dinamismo al scroll (claro → medio → oscuro)
+// Tonos alternados por sección para dar dinamismo al scroll (claro ↔ medio)
 const BG_MID = "#f0eae4";
-const BG_DARK = "#e1d3c7";
 const PINK = "#f6e6f2";
 const GREEN = "#304c3a";
 const BLUE = "#6f8f9d";
@@ -25,7 +30,7 @@ const DISPLAY = "'Cormorant Garamond', Georgia, serif";
 // el tono a ~40° y el hue-rotate lo gira hasta ~140°, el matiz de ese verde).
 const GIF_FILTER = "sepia(1) saturate(0.9) hue-rotate(100deg) brightness(0.58)";
 
-const WEDDING_ISO = "2026-09-12T15:00:00";
+const WEDDING_ISO = "2026-09-12T16:00:00";
 // Coordenadas exactas del local (Av. Circunvalación Norte 404, Huaral)
 const COORDS = "-11.489522,-77.206264";
 const MAPS_URL = `https://www.google.com/maps?q=${COORDS}`;
@@ -339,6 +344,20 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
         >
           Ingresar a mi invitación
         </button>
+
+        <div
+          style={{
+            ...smallCaps,
+            fontSize: 10,
+            letterSpacing: "0.18em",
+            color: "rgb(246, 242, 238)",
+            opacity: 0.85,
+            marginTop: -12,
+            textShadow: "0 1px 8px rgba(0,0,0,0.4)",
+          }}
+        >
+          Sube el volumen para una mejor experiencia
+        </div>
       </div>
     </div>
   );
@@ -476,7 +495,9 @@ function NosotrosSection() {
           }}
         >
           Nos cruzamos por primera vez en 2009, quizás demasiado jóvenes para entender lo que
-          significaba. El tiempo siguió su camino, y nosotros el nuestro.
+          significaba.
+          <br/>
+          El tiempo siguió su camino, y nosotros el nuestro.
         </p>
         <p
           style={{
@@ -696,7 +717,7 @@ function UbicacionSection() {
   );
 
   return (
-    <section style={{ background: BG_DARK, padding: "50px 34px 70px", textAlign: "center" }}>
+    <section style={{ background: BG_MID, padding: "50px 34px 70px", textAlign: "center" }}>
       <Reveal kind="reveal-scale" delay={1}>
         <div style={{ position: "relative", display: "inline-block", marginTop: 30 }}>
           <div
@@ -733,7 +754,7 @@ function UbicacionSection() {
 
       <Reveal delay={2}>
         {info("Dirección", "Av. Circunvalación Norte 404 - Huaral")}
-        {info("Hora", "3:00 p.m.")}
+        {info("Hora", "4:00 p.m.")}
       </Reveal>
 
       <Reveal delay={3}>
@@ -783,14 +804,14 @@ function UbicacionSection() {
 
 // ─── Itinerario ──────────────────────────────────────────────────────────────
 // Mismo timeline alternado que el diseño oliva, pero con la paleta y
-// tipografías de Playa. Los horarios parten de la ceremonia de las 3:00 p.m.
+// tipografías de Playa. Los horarios parten de la ceremonia de las 4:00 p.m.
 
 function ItinerarioSection() {
   const items = [
-    { time: "3:00 p.m.", label: "Ceremonia civil", img: "/it-ceremonia.gif" },
-    { time: "4:30 p.m.", label: "Brindis", img: "/it-brindis.gif" },
-    { time: "5:00 p.m.", label: "Comida", img: "/it-comida.gif" },
-    { time: "6:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
+    { time: "4:00 p.m.", label: "Ceremonia civil", img: "/it-ceremonia.gif" },
+    { time: "5:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
+    { time: "6:00 p.m.", label: "Comida", img: "/it-comida.gif" },
+    { time: "7:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
   ];
 
   return (
@@ -804,16 +825,21 @@ function ItinerarioSection() {
       }}
     >
       <Tape
-        src="/playa/deco-hojas.png"
-        width={110}
-        rotate={5}
-        style={{ position: "absolute", top: 18, right: -44 }}
+        src="/playa/ramo.png"
+        width={120}
+        rotate={8}
+        style={{ position: "absolute", top: 14, right: -46 }}
       />
       <Tape
-        src="/playa/deco-rama.png"
-        width={110}
-        rotate={-5}
-        style={{ position: "absolute", bottom: 26, left: -44 }}
+        src="/playa/ramo.png"
+        width={120}
+        style={{
+          position: "absolute",
+          bottom: 20,
+          left: -46,
+          // Espejado para que no se vea idéntico al de arriba
+          transform: "scaleX(-1) rotate(6deg)",
+        }}
       />
 
       <Reveal>
@@ -1305,12 +1331,13 @@ function PhotoUpload() {
 
       <Reveal delay={2}>
         <div style={{ marginTop: 22 }}>
-          <a
+          {/* Link (no <a>): la navegación client-side mantiene la música sonando */}
+          <Link
             href="/playa/galeria"
             style={{ ...smallCaps, fontSize: 11, color: BLUE, textDecoration: "none" }}
           >
             Ver galería de fotos →
-          </a>
+          </Link>
         </div>
       </Reveal>
     </section>
@@ -1358,7 +1385,7 @@ function ConfirmarSection() {
 
 // ─── MusicFab ────────────────────────────────────────────────────────────────
 
-function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
+export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={onToggle}
@@ -1405,39 +1432,20 @@ function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: () => voi
 }
 
 export default function InvitationPlaya({ demo = false }: { demo?: boolean }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [opened, setOpened] = useState(false);
-  const [playing, setPlaying] = useState(false);
+  const { playing, play, toggle } = useMusic(MUSIC_SRC);
 
   const handleOpen = () => {
     setOpened(true);
-    const a = audioRef.current;
-    if (a) {
-      a.volume = 0.5;
-      a.play().then(() => setPlaying(true)).catch(() => {});
-    }
+    play();
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const togglePlay = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (playing) {
-      a.pause();
-      setPlaying(false);
-    } else {
-      a.play().then(() => setPlaying(true)).catch(() => {});
-    }
   };
 
   return (
     <div id="invitation-root">
-      {/* Misma canción que oliva por ahora; se cambiará más adelante */}
-      <audio ref={audioRef} src="/music.mp3" loop preload="auto" />
-
       {demo && <DemoBanner />}
       {!opened && <IntroGate onOpen={handleOpen} />}
-      {opened && <MusicFab playing={playing} onToggle={togglePlay} />}
+      {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
         <PortadaSection opened={opened} />
@@ -1454,19 +1462,19 @@ export default function InvitationPlaya({ demo = false }: { demo?: boolean }) {
         <RegalosSection />
         <PhotoUpload />
         <ConfirmarSection />
-        <FullPhoto src="/playa/final.jpg" alt="Israel y Marisol frente al mar" bg={BG_DARK} />
+        <FullPhoto src="/playa/final.jpg" alt="Israel y Marisol frente al mar" bg={BG} />
 
         <footer
           style={{
             padding: "30px 28px 44px",
             textAlign: "center",
-            background: BG_DARK,
+            background: BG,
           }}
         >
           <div style={{ ...smallCaps, fontSize: 10, color: BLUE }}>
             Israel &amp; Marisol · Huaral 2026
           </div>
-          <a
+          <Link
             href="/playa/galeria"
             style={{
               ...smallCaps,
@@ -1478,7 +1486,7 @@ export default function InvitationPlaya({ demo = false }: { demo?: boolean }) {
             }}
           >
             Ver galería de fotos →
-          </a>
+          </Link>
         </footer>
       </main>
     </div>

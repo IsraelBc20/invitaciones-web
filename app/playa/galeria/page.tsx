@@ -5,6 +5,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { MediaKind, kindFromUrl } from "@/lib/media";
 import Lightbox from "@/app/components/shared/Lightbox";
+import { useMusic } from "@/app/components/shared/useMusic";
+import { MusicFab, MUSIC_SRC } from "@/app/components/playa/InvitationPlaya";
 
 const DESIGN_ID = "playa";
 
@@ -31,7 +33,7 @@ function kindOf(item: MediaItem): MediaKind {
 function applyTheme() {
   const r = document.documentElement.style;
   r.setProperty("--bg", "#f6f2ee");
-  r.setProperty("--bg-2", "#e1d3c7");
+  r.setProperty("--bg-2", "#f0eae4");
   r.setProperty("--ink", "#304c3a");
   r.setProperty("--ink-soft", "#6f8f9d");
   r.setProperty("--accent", "#6f8f9d");
@@ -54,6 +56,8 @@ export default function GaleriaPlayaPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Misma canción que la invitación: si llegó sonando, aquí sigue hasta pausar
+  const { playing, toggle } = useMusic(MUSIC_SRC);
 
   useEffect(() => {
     applyTheme();
@@ -326,12 +330,14 @@ export default function GaleriaPlayaPage() {
         )}
       </div>
 
+      <MusicFab playing={playing} onToggle={toggle} />
+
       {/* Footer */}
       <div
         style={{
           padding: "28px",
           textAlign: "center",
-          background: "#e1d3c7",
+          background: "#304c3a",
           fontFamily: "var(--font-sans)",
           fontSize: 10,
           letterSpacing: "0.3em",
