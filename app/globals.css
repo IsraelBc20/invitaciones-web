@@ -151,12 +151,12 @@ p {
 /* ── Photo placeholder ───────────────────────────────────────────────────── */
 .photo-placeholder {
   background:
-    repeating-linear-gradient(135deg, rgba(90, 65, 40, 0.05) 0 6px, transparent 6px 12px),
-    linear-gradient(180deg, #e9dbc4 0%, #d6c1a1 100%);
+    repeating-linear-gradient(135deg, rgba(246, 242, 238, 0.05) 0 6px, transparent 6px 12px),
+    linear-gradient(180deg, #7f9a87 0%, #5d7a66 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(110, 85, 55, 0.6);
+  color: rgba(246, 242, 238, 0.85);
   font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.18em;

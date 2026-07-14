@@ -225,21 +225,42 @@ function Reveal({
   );
 }
 
-// ─── Photo placeholder ────────────────────────────────────────────────────────
+// ─── Photo (real desde /photos/ con placeholder elegante de respaldo) ────────
+// Cada hueco espera un archivo con nombre fijo en public/photos/ (p. ej.
+// foto-pareja-hero.jpg). Si el archivo existe se muestra la foto real; si no,
+// un placeholder en tonos oliva con ícono de cámara y el nombre esperado.
+// Basta con copiar las fotos reales con esos nombres para que se reemplacen.
+
+function CameraIcon({ size = 34 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" aria-hidden="true">
+      <path
+        d="M4 8h2.2l1.2-2h9.2l1.2 2H20a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"
+        stroke="rgba(246,242,238,0.85)"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="13" r="3.4" stroke="rgba(246,242,238,0.85)" strokeWidth="1.3" />
+    </svg>
+  );
+}
 
 function Photo({
-  label = "foto",
+  file,
   ratio = "4 / 5",
   rounded = "14px",
   style,
   frame = true,
 }: {
-  label?: string;
+  file: string;
   ratio?: string;
   rounded?: string;
   style?: React.CSSProperties;
   frame?: boolean;
 }) {
+  const [loaded, setLoaded] = useState(false);
+  const [missing, setMissing] = useState(false);
+
   return (
     <div
       style={{
@@ -252,9 +273,41 @@ function Photo({
         ...style,
       }}
     >
-      <div className="photo-placeholder" style={{ width: "100%", height: "100%" }}>
-        <span>{label}</span>
-      </div>
+      {!loaded && (
+        <div
+          className="photo-placeholder"
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+          }}
+        >
+          <CameraIcon />
+          <span style={{ fontSize: 10, letterSpacing: "0.14em" }}>{file}</span>
+        </div>
+      )}
+      {!missing && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={`/photos/${file}`}
+          alt="Israel y Marisol"
+          onLoad={() => setLoaded(true)}
+          onError={() => setMissing(true)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: loaded ? 1 : 0,
+            transition: "opacity 0.4s ease",
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -455,7 +508,7 @@ function NamesSection() {
 
       <Reveal kind="reveal-scale" delay={3}>
         <div style={{ marginTop: 34 }}>
-          <Photo label="Foto principal · pareja" ratio="4 / 5" rounded="200px 200px 14px 14px" />
+          <Photo file="foto-pareja-hero.jpg" ratio="4 / 5" rounded="200px 200px 14px 14px" />
         </div>
       </Reveal>
     </section>
@@ -851,7 +904,7 @@ function NosotrosSection() {
 
       <Reveal kind="reveal-scale" delay={1}>
         <div style={{ marginTop: 30, position: "relative" }}>
-          <Photo label="foto · pareja" ratio="3 / 4" />
+          <Photo file="foto-colegio.jpg" ratio="3 / 4" />
           <div
             style={{
               position: "absolute",
@@ -896,11 +949,31 @@ function NosotrosSection() {
 
       <Reveal kind="reveal-scale" delay={3}>
         <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Photo label="foto · colegio" ratio="3 / 4" />
+          <Photo file="foto-juntos.jpg" ratio="3 / 4" />
           <div style={{ paddingTop: 26 }}>
-            <Photo label="foto · reencuentro" ratio="3 / 4" />
+            <Photo file="foto-momento.jpg" ratio="3 / 4" />
           </div>
         </div>
+      </Reveal>
+
+      <Reveal kind="reveal-scale" delay={2}>
+        <div style={{ marginTop: 40, display: "flex", justifyContent: "center" }}>
+          <div style={{ width: "72%" }}>
+            <Photo file="foto-pareja-circular.jpg" ratio="1 / 1" rounded="50%" />
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+// ─── Foto a página completa (edge-to-edge) ───────────────────────────────────
+
+function FullBleedSection() {
+  return (
+    <section style={{ position: "relative" }}>
+      <Reveal kind="reveal-scale">
+        <Photo file="foto-full-bleed.jpg" ratio="4 / 5" rounded="0" frame={false} />
       </Reveal>
     </section>
   );
@@ -913,10 +986,10 @@ function CollageSection() {
     <section className="s" style={{ paddingTop: 40, paddingBottom: 30 }}>
       <Reveal kind="reveal-scale">
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
-          <Photo label="foto" ratio="3 / 4" />
+          <Photo file="foto-collage-grande.jpg" ratio="3 / 4" />
           <div style={{ display: "grid", gridTemplateRows: "1fr 1fr", gap: 10 }}>
-            <Photo label="foto" ratio="1 / 1" />
-            <Photo label="foto" ratio="1 / 1" />
+            <Photo file="foto-collage-chica-1.jpg" ratio="1 / 1" />
+            <Photo file="foto-collage-chica-2.jpg" ratio="1 / 1" />
           </div>
         </div>
       </Reveal>
@@ -1063,7 +1136,7 @@ function GiftSection() {
 
 // ─── Comparte tus fotos y videos (Supabase) ──────────────────────────────────
 
-function PhotoUpload() {
+function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
   const {
     uploaderName,
     setUploaderName,
@@ -1276,7 +1349,7 @@ function PhotoUpload() {
         <div style={{ textAlign: "center", marginTop: 22 }}>
           {/* Link (no <a>): la navegación client-side mantiene la música sonando */}
           <Link
-            href="/oliva/galeria"
+            href={galeriaHref}
             className="small-caps"
             style={{ color: "var(--brown)", textDecoration: "none", fontSize: 11 }}
           >
@@ -1487,9 +1560,17 @@ function DemoBanner() {
 
 // ─── Componente principal ────────────────────────────────────────────────────
 
-export default function InvitationOliva({ demo = false }: { demo?: boolean }) {
+export default function InvitationOliva({
+  demo = false,
+  galeriaHref = "/oliva/galeria",
+}: {
+  demo?: boolean;
+  // Las rutas de clientes pasan su propia galería (p. ej.
+  // /oliva/israel-y-marisol/galeria) para que el "Volver" cierre el círculo.
+  galeriaHref?: string;
+}) {
   const [opened, setOpened] = useState(false);
-  const { playing, play, toggle } = useMusic(MUSIC_SRC);
+  const { playing, play, toggle } = useMusic(MUSIC_SRC, DESIGN_ID);
 
   const handleOpen = () => {
     setOpened(true);
@@ -1512,10 +1593,11 @@ export default function InvitationOliva({ demo = false }: { demo?: boolean }) {
         <ItinerarySection />
         <DressCode />
         <NosotrosSection />
+        <FullBleedSection />
         <CollageSection />
         <ThanksSection />
         <GiftSection />
-        <PhotoUpload />
+        <PhotoUpload galeriaHref={galeriaHref} />
         <RSVPSection />
         <TeEsperamos />
 
@@ -1530,7 +1612,7 @@ export default function InvitationOliva({ demo = false }: { demo?: boolean }) {
             Israel &amp; Marisol · Huaral 2026
           </div>
           <Link
-            href="/oliva/galeria"
+            href={galeriaHref}
             className="small-caps"
             style={{
               color: "var(--brown)",

@@ -1116,7 +1116,7 @@ function RegalosSection() {
 
 // ─── Comparte tus fotos y videos (Supabase) ──────────────────────────────────
 
-function PhotoUpload() {
+function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
   const {
     uploaderName,
     setUploaderName,
@@ -1333,7 +1333,7 @@ function PhotoUpload() {
         <div style={{ marginTop: 22 }}>
           {/* Link (no <a>): la navegación client-side mantiene la música sonando */}
           <Link
-            href="/playa/galeria"
+            href={galeriaHref}
             style={{ ...smallCaps, fontSize: 11, color: BLUE, textDecoration: "none" }}
           >
             Ver galería de fotos →
@@ -1431,9 +1431,17 @@ export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: ()
   );
 }
 
-export default function InvitationPlaya({ demo = false }: { demo?: boolean }) {
+export default function InvitationPlaya({
+  demo = false,
+  galeriaHref = "/playa/galeria",
+}: {
+  demo?: boolean;
+  // Las rutas de clientes pasan su propia galería (p. ej.
+  // /playa/israel-y-marisol/galeria) para que el "Volver" cierre el círculo.
+  galeriaHref?: string;
+}) {
   const [opened, setOpened] = useState(false);
-  const { playing, play, toggle } = useMusic(MUSIC_SRC);
+  const { playing, play, toggle } = useMusic(MUSIC_SRC, DESIGN_ID);
 
   const handleOpen = () => {
     setOpened(true);
@@ -1460,7 +1468,7 @@ export default function InvitationPlaya({ demo = false }: { demo?: boolean }) {
         <ItinerarioSection />
         <DressCodeSection />
         <RegalosSection />
-        <PhotoUpload />
+        <PhotoUpload galeriaHref={galeriaHref} />
         <ConfirmarSection />
         <FullPhoto src="/playa/final.jpg" alt="Israel y Marisol frente al mar" bg={BG} />
 
@@ -1475,7 +1483,7 @@ export default function InvitationPlaya({ demo = false }: { demo?: boolean }) {
             Israel &amp; Marisol · Huaral 2026
           </div>
           <Link
-            href="/playa/galeria"
+            href={galeriaHref}
             style={{
               ...smallCaps,
               color: GREEN,
