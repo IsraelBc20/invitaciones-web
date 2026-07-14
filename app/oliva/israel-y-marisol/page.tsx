@@ -9,5 +9,11 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <InvitationOliva galeriaHref="/oliva/israel-y-marisol/galeria" />;
+  return (
+    <InvitationOliva
+      galeriaHref="/oliva/israel-y-marisol/galeria"
+      photosPath="/oliva/israel-y-marisol/photos"
+      musicSrc="/oliva/israel-y-marisol/music.mp3"
+    />
+  );
 }

@@ -9,5 +9,11 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <InvitationPlaya galeriaHref="/playa/israel-y-marisol/galeria" />;
+  return (
+    <InvitationPlaya
+      galeriaHref="/playa/israel-y-marisol/galeria"
+      photosPath="/playa/israel-y-marisol/photos"
+      musicSrc="/playa/israel-y-marisol/music.mp3"
+    />
+  );
 }

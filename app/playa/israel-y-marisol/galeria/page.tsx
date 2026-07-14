@@ -7,5 +7,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <GalleryPlaya backHref="/playa/israel-y-marisol" />;
+  return (
+    <GalleryPlaya
+      backHref="/playa/israel-y-marisol"
+      musicSrc="/playa/israel-y-marisol/music.mp3"
+    />
+  );
 }

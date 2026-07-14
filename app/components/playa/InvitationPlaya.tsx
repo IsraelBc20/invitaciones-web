@@ -9,9 +9,13 @@ import { ACCEPT_ATTR } from "@/lib/media";
 
 const DESIGN_ID = "playa";
 
-// Canción del diseño; la galería importa esta constante para que el mismo
-// audio siga sonando al navegar entre invitación y galería.
-export const MUSIC_SRC = "/Enamorarte_Mil_Veces.mp3";
+// Assets del DEMO (/playa). Las decoraciones (deco-*, ramo, etc.) viven en
+// /playa-demo/ y son parte del diseño (las usan también los clientes); las
+// fotos de la pareja viven en /playa-demo/photos/ y las rutas de clientes las
+// reemplazan vía props `photosPath` y `musicSrc` (public/playa/<cliente>/).
+// La galería importa MUSIC_SRC como default.
+export const MUSIC_SRC = "/playa-demo/music.mp3";
+export const DEMO_PHOTOS_PATH = "/playa-demo/photos";
 
 // Paleta del diseño Playa (tomada del HTML de referencia de Canva)
 const BG = "#f6f2ee";
@@ -117,7 +121,7 @@ function EnterReveal({
 /* eslint-disable @next/next/no-img-element */
 
 function Tape({
-  src = "/playa/deco-monograma.png",
+  src = "/playa-demo/deco-monograma.png",
   width = 96,
   rotate = 0,
   style,
@@ -144,6 +148,94 @@ function Tape({
         ...style,
       }}
     />
+  );
+}
+
+// ─── Foto de la pareja (desde photosPath, con placeholder de respaldo) ───────
+// Equivalente al Photo de oliva pero con la estética de Playa: intenta cargar
+// `${base}/${file}` (demo: /playa-demo/photos; cliente: su carpeta) y si el
+// archivo no existe muestra un recuadro con cámara y el nombre esperado.
+// Basta con copiar la foto real con ese nombre para que se reemplace sola.
+
+function Foto({
+  file,
+  base,
+  alt,
+  ratio = "4 / 5",
+  style,
+  imgStyle,
+}: {
+  file: string;
+  base: string;
+  alt: string;
+  ratio?: string;
+  style?: React.CSSProperties;
+  imgStyle?: React.CSSProperties;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [missing, setMissing] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Si la imagen del HTML SSR terminó de cargar (o falló) antes de que React
+  // hidratara, los eventos onLoad/onError ya pasaron y no se capturan: al
+  // montar se lee el estado real del <img>.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img || !img.complete) return;
+    if (img.naturalWidth > 0) setLoaded(true);
+    else setMissing(true);
+  }, []);
+
+  return (
+    <div style={{ position: "relative", width: "100%", ...style }}>
+      {!loaded && (
+        <div
+          style={{
+            width: "100%",
+            aspectRatio: ratio,
+            background: `linear-gradient(180deg, ${BLUE} 0%, ${GREEN} 140%)`,
+            boxShadow: "0 18px 40px -18px rgba(48,76,58,0.45)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            color: "rgba(246,242,238,0.88)",
+          }}
+        >
+          <svg viewBox="0 0 24 24" width={34} height={34} fill="none" aria-hidden="true">
+            <path
+              d="M4 8h2.2l1.2-2h9.2l1.2 2H20a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinejoin="round"
+            />
+            <circle cx="12" cy="13" r="3.4" stroke="currentColor" strokeWidth="1.3" />
+          </svg>
+          <span
+            style={{ fontFamily: BODY, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" }}
+          >
+            {file}
+          </span>
+        </div>
+      )}
+      {!missing && (
+        <img
+          ref={imgRef}
+          src={`${base}/${file}`}
+          alt={alt}
+          onLoad={() => setLoaded(true)}
+          onError={() => setMissing(true)}
+          style={{
+            width: "100%",
+            display: "block",
+            ...imgStyle,
+            // Mientras no cargue queda invisible encima del placeholder
+            ...(loaded ? {} : { position: "absolute", inset: 0, height: "100%", opacity: 0 }),
+          }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -284,7 +376,7 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
         style={{
           position: "absolute",
           inset: -16,
-          backgroundImage: "url('/playa/regalos-bg.jpg')",
+          backgroundImage: "url('/playa-demo/regalos-bg.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           filter: "blur(4px)",
@@ -365,7 +457,7 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
 
 // ─── Portada ─────────────────────────────────────────────────────────────────
 
-function PortadaSection({ opened }: { opened: boolean }) {
+function PortadaSection({ opened, photosPath }: { opened: boolean; photosPath: string }) {
   // Entrada al ingresar: nombres → portada → texto de bienvenida, con stagger.
   // La fecha entra al final de la secuencia (está en el primer viewport, así
   // que el scroll-reveal normal la mostraría de golpe junto con el resto).
@@ -387,10 +479,12 @@ function PortadaSection({ opened }: { opened: boolean }) {
       </EnterReveal>
       <EnterReveal active={opened} kind="reveal-scale" delay={180}>
         <div style={{ position: "relative", marginTop: 22 }}>
-          <img
-            src="/playa/portada.jpg"
+          <Foto
+            file="portada.jpg"
+            base={photosPath}
             alt="Israel y Marisol en la playa"
-            style={{ width: "100%", display: "block", boxShadow: "0 18px 40px -18px rgba(48,76,58,0.45)" }}
+            ratio="4 / 3"
+            imgStyle={{ boxShadow: "0 18px 40px -18px rgba(48,76,58,0.45)" }}
           />
           <EnterReveal
             active={opened}
@@ -423,42 +517,54 @@ function PortadaSection({ opened }: { opened: boolean }) {
 
 // ─── Foto a página completa ──────────────────────────────────────────────────
 
-function FullPhoto({ src, alt, bg = PINK }: { src: string; alt: string; bg?: string }) {
+function FullPhoto({
+  file,
+  base,
+  alt,
+  ratio = "4 / 5",
+  bg = PINK,
+}: {
+  file: string;
+  base: string;
+  alt: string;
+  ratio?: string;
+  bg?: string;
+}) {
   return (
     <section style={{ background: bg }}>
-      <img src={src} alt={alt} style={{ width: "100%", display: "block" }} />
+      <Foto file={file} base={base} alt={alt} ratio={ratio} />
     </section>
   );
 }
 
 // ─── Nosotros ────────────────────────────────────────────────────────────────
 
-function NosotrosSection() {
+function NosotrosSection({ photosPath }: { photosPath: string }) {
   return (
     <section style={{ background: BG_MID, padding: "56px 34px 70px", textAlign: "center", position: "relative", overflow: "hidden" }}>
       <Reveal kind="reveal-scale">
         <div style={{ position: "relative", width: "78%", margin: "0 auto" }}>
-          <img
-            src="/playa/nosotros-1.jpg"
+          <Foto
+            file="nosotros-1.jpg"
+            base={photosPath}
             alt="Israel y Marisol"
-            style={{
-              width: "100%",
+            ratio="3 / 4"
+            imgStyle={{
               aspectRatio: "3 / 4",
               objectFit: "cover",
               // La pareja está en el tercio izquierdo del original apaisado
               objectPosition: "left center",
-              display: "block",
               boxShadow: "0 18px 40px -18px rgba(48,76,58,0.45)",
             }}
           />
           <Tape
-            src="/playa/deco-rama.png"
+            src="/playa-demo/deco-rama.png"
             width={100}
             rotate={-5}
             style={{ position: "absolute", top: -13, left: -26 }}
           />
           <Tape
-            src="/playa/deco-hojas.png"
+            src="/playa-demo/deco-hojas.png"
             width={100}
             rotate={4}
             style={{ position: "absolute", bottom: -13, right: -24 }}
@@ -519,19 +625,20 @@ function NosotrosSection() {
 
       <Reveal kind="reveal-scale" delay={2}>
         <div style={{ position: "relative", marginTop: 56, display: "inline-block" }}>
-          <img
-            src="/playa/nosotros-2.jpg"
+          <Foto
+            file="nosotros-2.jpg"
+            base={photosPath}
             alt="Israel y Marisol"
-            style={{
-              width: 260,
+            ratio="3 / 4"
+            style={{ width: 260 }}
+            imgStyle={{
               aspectRatio: "3 / 4",
               objectFit: "cover",
-              display: "block",
               boxShadow: "0 18px 40px -18px rgba(48,76,58,0.45)",
             }}
           />
           <Tape
-            src="/playa/deco-monograma.png"
+            src="/playa-demo/deco-monograma.png"
             width={98}
             style={{
               position: "absolute",
@@ -559,7 +666,7 @@ function getTimeLeft() {
   };
 }
 
-function InvitacionSection() {
+function InvitacionSection({ photosPath }: { photosPath: string }) {
   // Arranca en null y se calcula recién en el cliente: el valor depende de
   // Date.now() y renderizarlo en SSR causa un hydration mismatch (bug del 10 jul).
   const [t, setT] = useState<ReturnType<typeof getTimeLeft> | null>(null);
@@ -666,18 +773,16 @@ function InvitacionSection() {
 
       <Reveal kind="reveal-scale" delay={2}>
         <div style={{ position: "relative", width: "88%", margin: "60px auto 0" }}>
-          <img
-            src="/playa/pareja-2.jpg"
+          <Foto
+            file="pareja-2.jpg"
+            base={photosPath}
             alt="Israel y Marisol"
-            style={{
-              width: "100%",
-              display: "block",
-              boxShadow: "0 18px 40px -18px rgba(48,76,58,0.45)",
-            }}
+            ratio="4 / 5"
+            imgStyle={{ boxShadow: "0 18px 40px -18px rgba(48,76,58,0.45)" }}
           />
           {/* Cinta adhesiva "pegando" la foto: mitad sobre el borde superior */}
           <Tape
-            src="/playa/deco-ave.png"
+            src="/playa-demo/deco-ave.png"
             width={92}
             style={{
               position: "absolute",
@@ -728,13 +833,13 @@ function UbicacionSection() {
             }}
           >
             <img
-              src="/playa/foto-arco.png"
+              src="/playa-demo/foto-arco.png"
               alt="Boceto de Israel y Marisol frente al mar"
               style={{ width: 280, display: "block" }}
             />
           </div>
           <Tape
-            src="/playa/deco-monograma.png"
+            src="/playa-demo/deco-monograma.png"
             width={92}
             style={{
               position: "absolute",
@@ -744,7 +849,7 @@ function UbicacionSection() {
             }}
           />
           <Tape
-            src="/playa/deco-monograma.png"
+            src="/playa-demo/deco-monograma.png"
             width={92}
             rotate={5}
             style={{ position: "absolute", bottom: -14, right: -20 }}
@@ -825,13 +930,13 @@ function ItinerarioSection() {
       }}
     >
       <Tape
-        src="/playa/ramo.png"
+        src="/playa-demo/ramo.png"
         width={120}
         rotate={8}
         style={{ position: "absolute", top: 14, right: -46 }}
       />
       <Tape
-        src="/playa/ramo.png"
+        src="/playa-demo/ramo.png"
         width={120}
         style={{
           position: "absolute",
@@ -1021,7 +1126,7 @@ function RegalosSection() {
   return (
     <section style={{ position: "relative", background: "#000", overflow: "hidden" }}>
       <img
-        src="/playa/regalos-bg.jpg"
+        src="/playa-demo/regalos-bg.jpg"
         alt=""
         aria-hidden="true"
         style={{
@@ -1089,7 +1194,7 @@ function RegalosSection() {
 
         <Reveal kind="reveal-scale" delay={2}>
           <img
-            src="/playa/qr-yape.png"
+            src="/playa-demo/qr-yape.png"
             alt="QR de Yape de Israel"
             style={{ width: 220, display: "block", margin: "26px auto 0" }}
           />
@@ -1367,7 +1472,7 @@ function ConfirmarSection() {
       </Reveal>
       <Reveal kind="reveal-scale" delay={1}>
         <img
-          src="/playa/sobre-confirmar.png"
+          src="/playa-demo/sobre-confirmar.png"
           alt="Perritos de Israel y Marisol"
           style={{ width: 270, display: "block", margin: "26px auto 0" }}
         />
@@ -1434,14 +1539,20 @@ export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: ()
 export default function InvitationPlaya({
   demo = false,
   galeriaHref = "/playa/galeria",
+  photosPath = DEMO_PHOTOS_PATH,
+  musicSrc = MUSIC_SRC,
 }: {
   demo?: boolean;
   // Las rutas de clientes pasan su propia galería (p. ej.
-  // /playa/israel-y-marisol/galeria) para que el "Volver" cierre el círculo.
+  // /playa/israel-y-marisol/galeria) para que el "Volver" cierre el círculo,
+  // y sus propios assets (public/playa/<cliente>/photos y .../music.mp3).
+  // El demo usa los defaults de /playa-demo/. Las decoraciones son fijas.
   galeriaHref?: string;
+  photosPath?: string;
+  musicSrc?: string;
 }) {
   const [opened, setOpened] = useState(false);
-  const { playing, play, toggle } = useMusic(MUSIC_SRC, DESIGN_ID);
+  const { playing, play, toggle } = useMusic(musicSrc, DESIGN_ID);
 
   const handleOpen = () => {
     setOpened(true);
@@ -1456,21 +1567,21 @@ export default function InvitationPlaya({
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        <PortadaSection opened={opened} />
+        <PortadaSection opened={opened} photosPath={photosPath} />
         {/* Asoma en el primer viewport: entra al final de la secuencia de
             ingreso en vez de aparecer de golpe (no tiene scroll-reveal propio) */}
         <EnterReveal active={opened} delay={760}>
-          <FullPhoto src="/playa/pareja-1.jpg" alt="Israel y Marisol" />
+          <FullPhoto file="pareja-1.jpg" base={photosPath} alt="Israel y Marisol" />
         </EnterReveal>
-        <NosotrosSection />
-        <InvitacionSection />
+        <NosotrosSection photosPath={photosPath} />
+        <InvitacionSection photosPath={photosPath} />
         <UbicacionSection />
         <ItinerarioSection />
         <DressCodeSection />
         <RegalosSection />
         <PhotoUpload galeriaHref={galeriaHref} />
         <ConfirmarSection />
-        <FullPhoto src="/playa/final.jpg" alt="Israel y Marisol frente al mar" bg={BG} />
+        <FullPhoto file="final.jpg" base={photosPath} alt="Israel y Marisol frente al mar" bg={BG} />
 
         <footer
           style={{

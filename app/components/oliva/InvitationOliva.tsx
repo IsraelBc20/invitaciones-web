@@ -9,9 +9,12 @@ import { ACCEPT_ATTR } from "@/lib/media";
 
 const DESIGN_ID = "oliva";
 
-// Canción del diseño; la galería importa esta constante para que el mismo
-// audio siga sonando al navegar entre invitación y galería.
-export const MUSIC_SRC = "/music.mp3";
+// Assets del DEMO (/oliva). Las rutas de clientes pasan sus propias rutas vía
+// props `musicSrc` y `photosPath` (sus assets viven en
+// public/oliva/<cliente>/). La galería importa MUSIC_SRC como default para
+// que el mismo audio siga sonando al navegar entre invitación y galería.
+export const MUSIC_SRC = "/oliva-demo/music.mp3";
+export const DEMO_PHOTOS_PATH = "/oliva-demo/photos";
 
 // ─── Paleta floral (SVG) ──────────────────────────────────────────────────────
 
@@ -225,10 +228,11 @@ function Reveal({
   );
 }
 
-// ─── Photo (real desde /photos/ con placeholder elegante de respaldo) ────────
-// Cada hueco espera un archivo con nombre fijo en public/photos/ (p. ej.
-// foto-pareja-hero.jpg). Si el archivo existe se muestra la foto real; si no,
-// un placeholder en tonos oliva con ícono de cámara y el nombre esperado.
+// ─── Photo (real desde `base` con placeholder elegante de respaldo) ──────────
+// Cada hueco espera un archivo con nombre fijo dentro de `base` (la carpeta
+// photosPath de la invitación: /oliva-demo/photos en el demo, la del cliente
+// en sus rutas). Si el archivo existe se muestra la foto real; si no, un
+// placeholder en tonos oliva con ícono de cámara y el nombre esperado.
 // Basta con copiar las fotos reales con esos nombres para que se reemplacen.
 
 function CameraIcon({ size = 34 }: { size?: number }) {
@@ -247,12 +251,14 @@ function CameraIcon({ size = 34 }: { size?: number }) {
 
 function Photo({
   file,
+  base,
   ratio = "4 / 5",
   rounded = "14px",
   style,
   frame = true,
 }: {
   file: string;
+  base: string;
   ratio?: string;
   rounded?: string;
   style?: React.CSSProperties;
@@ -260,6 +266,17 @@ function Photo({
 }) {
   const [loaded, setLoaded] = useState(false);
   const [missing, setMissing] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Si la imagen del HTML SSR terminó de cargar (o falló) antes de que React
+  // hidratara, los eventos onLoad/onError ya pasaron y no se capturan: al
+  // montar se lee el estado real del <img>.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img || !img.complete) return;
+    if (img.naturalWidth > 0) setLoaded(true);
+    else setMissing(true);
+  }, []);
 
   return (
     <div
@@ -293,7 +310,8 @@ function Photo({
       {!missing && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          src={`/photos/${file}`}
+          ref={imgRef}
+          src={`${base}/${file}`}
           alt="Israel y Marisol"
           onLoad={() => setLoaded(true)}
           onError={() => setMissing(true)}
@@ -476,7 +494,7 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
 
 // ─── Nombres + ¡Nos casamos! ─────────────────────────────────────────────────
 
-function NamesSection() {
+function NamesSection({ photosPath }: { photosPath: string }) {
   return (
     <section
       className="s"
@@ -508,7 +526,7 @@ function NamesSection() {
 
       <Reveal kind="reveal-scale" delay={3}>
         <div style={{ marginTop: 34 }}>
-          <Photo file="foto-pareja-hero.jpg" ratio="4 / 5" rounded="200px 200px 14px 14px" />
+          <Photo file="foto-pareja-hero.jpg" base={photosPath} ratio="4 / 5" rounded="200px 200px 14px 14px" />
         </div>
       </Reveal>
     </section>
@@ -890,7 +908,7 @@ function DressCode() {
 
 // ─── Nosotros ─────────────────────────────────────────────────────────────────
 
-function NosotrosSection() {
+function NosotrosSection({ photosPath }: { photosPath: string }) {
   return (
     <section
       className="s"
@@ -904,7 +922,7 @@ function NosotrosSection() {
 
       <Reveal kind="reveal-scale" delay={1}>
         <div style={{ marginTop: 30, position: "relative" }}>
-          <Photo file="foto-colegio.jpg" ratio="3 / 4" />
+          <Photo file="foto-colegio.jpg" base={photosPath} ratio="3 / 4" />
           <div
             style={{
               position: "absolute",
@@ -949,9 +967,9 @@ function NosotrosSection() {
 
       <Reveal kind="reveal-scale" delay={3}>
         <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Photo file="foto-juntos.jpg" ratio="3 / 4" />
+          <Photo file="foto-juntos.jpg" base={photosPath} ratio="3 / 4" />
           <div style={{ paddingTop: 26 }}>
-            <Photo file="foto-momento.jpg" ratio="3 / 4" />
+            <Photo file="foto-momento.jpg" base={photosPath} ratio="3 / 4" />
           </div>
         </div>
       </Reveal>
@@ -959,7 +977,7 @@ function NosotrosSection() {
       <Reveal kind="reveal-scale" delay={2}>
         <div style={{ marginTop: 40, display: "flex", justifyContent: "center" }}>
           <div style={{ width: "72%" }}>
-            <Photo file="foto-pareja-circular.jpg" ratio="1 / 1" rounded="50%" />
+            <Photo file="foto-pareja-circular.jpg" base={photosPath} ratio="1 / 1" rounded="50%" />
           </div>
         </div>
       </Reveal>
@@ -969,11 +987,11 @@ function NosotrosSection() {
 
 // ─── Foto a página completa (edge-to-edge) ───────────────────────────────────
 
-function FullBleedSection() {
+function FullBleedSection({ photosPath }: { photosPath: string }) {
   return (
     <section style={{ position: "relative" }}>
       <Reveal kind="reveal-scale">
-        <Photo file="foto-full-bleed.jpg" ratio="4 / 5" rounded="0" frame={false} />
+        <Photo file="foto-full-bleed.jpg" base={photosPath} ratio="4 / 5" rounded="0" frame={false} />
       </Reveal>
     </section>
   );
@@ -981,15 +999,15 @@ function FullBleedSection() {
 
 // ─── Collage / galería de recuerdos ──────────────────────────────────────────
 
-function CollageSection() {
+function CollageSection({ photosPath }: { photosPath: string }) {
   return (
     <section className="s" style={{ paddingTop: 40, paddingBottom: 30 }}>
       <Reveal kind="reveal-scale">
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
-          <Photo file="foto-collage-grande.jpg" ratio="3 / 4" />
+          <Photo file="foto-collage-grande.jpg" base={photosPath} ratio="3 / 4" />
           <div style={{ display: "grid", gridTemplateRows: "1fr 1fr", gap: 10 }}>
-            <Photo file="foto-collage-chica-1.jpg" ratio="1 / 1" />
-            <Photo file="foto-collage-chica-2.jpg" ratio="1 / 1" />
+            <Photo file="foto-collage-chica-1.jpg" base={photosPath} ratio="1 / 1" />
+            <Photo file="foto-collage-chica-2.jpg" base={photosPath} ratio="1 / 1" />
           </div>
         </div>
       </Reveal>
@@ -1563,14 +1581,20 @@ function DemoBanner() {
 export default function InvitationOliva({
   demo = false,
   galeriaHref = "/oliva/galeria",
+  photosPath = DEMO_PHOTOS_PATH,
+  musicSrc = MUSIC_SRC,
 }: {
   demo?: boolean;
   // Las rutas de clientes pasan su propia galería (p. ej.
-  // /oliva/israel-y-marisol/galeria) para que el "Volver" cierre el círculo.
+  // /oliva/israel-y-marisol/galeria) para que el "Volver" cierre el círculo,
+  // y sus propios assets (public/oliva/<cliente>/photos y .../music.mp3).
+  // El demo usa los defaults de /oliva-demo/.
   galeriaHref?: string;
+  photosPath?: string;
+  musicSrc?: string;
 }) {
   const [opened, setOpened] = useState(false);
-  const { playing, play, toggle } = useMusic(MUSIC_SRC, DESIGN_ID);
+  const { playing, play, toggle } = useMusic(musicSrc, DESIGN_ID);
 
   const handleOpen = () => {
     setOpened(true);
@@ -1585,16 +1609,16 @@ export default function InvitationOliva({
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        <NamesSection />
+        <NamesSection photosPath={photosPath} />
         <QuoteSection />
         <DateSection />
         <CountdownSection />
         <VenueSection />
         <ItinerarySection />
         <DressCode />
-        <NosotrosSection />
-        <FullBleedSection />
-        <CollageSection />
+        <NosotrosSection photosPath={photosPath} />
+        <FullBleedSection photosPath={photosPath} />
+        <CollageSection photosPath={photosPath} />
         <ThanksSection />
         <GiftSection />
         <PhotoUpload galeriaHref={galeriaHref} />

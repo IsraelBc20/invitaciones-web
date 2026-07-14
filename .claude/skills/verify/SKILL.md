@@ -16,6 +16,8 @@ Rutas: `/` catálogo · `/oliva` invitación demo (banner "Esta es una demo") ·
 
 - Playwright no está en el proyecto: instalarlo en el scratchpad (`npm i playwright`) y usar `chromium.launch({ channel: 'msedge' })` — Edge está en `C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`.
 - **Gotchas obligatorios:**
+  - **El compositor de Edge headless a veces se cuelga** (14 jul 2026): `requestAnimationFrame` deja de disparar y TODOS los `page.click` quedan eternamente en "waiting for element to be visible, enabled and stable" (aun sin animaciones). Diagnóstico: `page.evaluate` con un rAF + timeout — si no dispara, es esto. Arreglo verificado: lanzar con `args: ['--disable-gpu', '--disable-renderer-backgrounding', '--disable-background-timer-throttling']` y, para más robustez, clicks programáticos `locator.evaluate(el => el.click())` en vez de `page.click`.
+  - El HTML SSR aparece antes de que React hidrate: esperar `waitForLoadState('load')` + ~1s antes de clicks o de despachar eventos sintéticos (contextmenu/keydown), o los handlers aún no existen y el test da falso negativo.
   - `waitUntil: 'networkidle'` nunca se cumple en dev (HMR websocket). Usar `domcontentloaded` + `waitForSelector`.
   - La página tiene animaciones CSS infinitas (pétalos, pulso): los clicks fallan por "element is not stable" y los screenshots hacen timeout. Tras cada `goto`, inyectar `page.addStyleTag({ content: '*{animation:none!important}' })` y usar `animations: 'disabled'` en screenshots.
   - La portada bloquea todo: click en "Ingresar a mi invitación" antes de interactuar.

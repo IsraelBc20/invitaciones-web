@@ -1,6 +1,6 @@
-Fotos reales de los novios para el diseño Oliva (/oliva).
-Copiar aquí los archivos con estos nombres exactos y se reemplazan
-automaticamente los placeholders:
+Fotos del DEMO oliva (/oliva). Las rutas de clientes usan su propia carpeta
+public/oliva/<cliente>/photos/ con estos mismos nombres fijos (mientras un
+archivo no exista se muestra un placeholder con el nombre esperado):
 
   foto-pareja-hero.jpg      Hero principal          4:5  (720x900)
   foto-colegio.jpg          Historia bloque 1       3:4  (748x998)

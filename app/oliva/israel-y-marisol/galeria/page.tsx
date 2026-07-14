@@ -7,5 +7,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <GalleryOliva backHref="/oliva/israel-y-marisol" />;
+  return (
+    <GalleryOliva
+      backHref="/oliva/israel-y-marisol"
+      musicSrc="/oliva/israel-y-marisol/music.mp3"
+    />
+  );
 }

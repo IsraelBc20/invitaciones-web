@@ -55,13 +55,21 @@ function formatDate(iso: string) {
   });
 }
 
-export default function GalleryOliva({ backHref = "/oliva" }: { backHref?: string }) {
+export default function GalleryOliva({
+  backHref = "/oliva",
+  musicSrc = MUSIC_SRC,
+}: {
+  backHref?: string;
+  // La galería de un cliente pasa la misma canción que su invitación
+  // (p. ej. /oliva/israel-y-marisol/music.mp3) para que el audio continúe.
+  musicSrc?: string;
+}) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   // Misma canción que la invitación: si llegó sonando, aquí sigue hasta pausar
-  const { playing, toggle } = useMusic(MUSIC_SRC, DESIGN_ID);
+  const { playing, toggle } = useMusic(musicSrc, DESIGN_ID);
 
   useEffect(() => {
     applyTheme();
