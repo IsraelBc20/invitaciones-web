@@ -15,7 +15,8 @@ import { MusicFab, MUSIC_SRC } from "@/app/components/tortuga-tropical/Invitatio
 
 const DESIGN_ID = "tortuga-tropical";
 
-const DISPLAY = "'Italiana', 'Marcellus', Georgia, serif";
+// Perandory: fuente original del diseño (ver comentario en InvitationTortuga.tsx)
+const DISPLAY = "'Perandory', 'Cinzel', Georgia, serif";
 const BODY = "'DM Sans', 'Segoe UI', Arial, sans-serif";
 
 interface MediaItem {
@@ -232,8 +233,23 @@ export default function GalleryTortuga({
             Cargando recuerdos...
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 28px" }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>🐢</div>
+          <div
+            style={{
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              padding: "80px 28px",
+            }}
+          >
+            <img
+              src="/tortuga-tropical-demo/photos/tortuga-galeria.png"
+              alt="Sin fotos aún"
+              draggable={false}
+              style={{ width: 120, marginBottom: 16, margin: "0 auto 16px", display: "block" }}
+            />
             <h3
               style={{
                 fontFamily: DISPLAY,

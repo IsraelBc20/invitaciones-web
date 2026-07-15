@@ -31,11 +31,11 @@ const CORAL = "#f56646"; // sección "¿Nos acompañas?"
 const COUNT_BG = "#e6f2f0"; // caja del contador (mismo aqua de la tarjeta de fecha)
 const COUNT_INK = "#02516f"; // números y etiquetas del contador
 
-// Cormorant Garamond 600 sustituye a "Perandory" del original (fuente de pago
-// de Canva, no está en Google Fonts); Bodoni Moda a "Bodoni FLF". Los títulos
-// grandes y números del contador van en weight 600 para acercarse al trazo
-// de Perandory.
-const DISPLAY = "'Cormorant Garamond', 'Italiana', Georgia, serif";
+// Perandory es la fuente original del Canva (el .otf vive en public/fonts/ y su
+// @font-face está en globals.css). Cae en Cinzel/Georgia si no carga. Cambiar
+// aquí (y el DISPLAY de GalleryTortuga.tsx) para tocar todos los títulos de
+// sección. Bodoni Moda sustituye a "Bodoni FLF".
+const DISPLAY = "'Perandory', 'Cinzel', Georgia, serif";
 const BODY = "'DM Sans', 'Segoe UI', Arial, sans-serif";
 const ACCENT = "'Bodoni Moda', 'Bodoni MT', Georgia, serif";
 
@@ -301,7 +301,8 @@ function MapButton({
         letterSpacing: "0.13em",
         textTransform: "uppercase",
         textDecoration: "none",
-        padding: "10px 24px",
+        border: "none",
+        padding: "12px 24px",
         borderRadius: 8,
         boxShadow: "0 6px 14px -10px rgba(2,83,111,0.45)",
       }}
@@ -396,7 +397,15 @@ function DemoBanner() {
 
 // ─── Intro (portada de entrada, como oliva y playa) ──────────────────────────
 
-function IntroGate({ onOpen }: { onOpen: () => void }) {
+function IntroGate({
+  onOpen,
+  photosPath,
+  demo,
+}: {
+  onOpen: () => void;
+  photosPath: string;
+  demo: boolean;
+}) {
   return (
     <div
       style={{
@@ -415,27 +424,51 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
         textAlign: "center",
       }}
     >
-      {/* Degradado marino de fondo */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `radial-gradient(120% 90% at 50% 0%, ${TEAL_DARK} 0%, ${INK} 62%, #01374a 100%)`,
-        }}
-      />
-      <Deco
-        file="deco-tortuga.png"
-        width={90}
-        opacity={0.9}
-        style={{ position: "absolute", top: 46, right: 30 }}
-      />
-      <Deco
-        file="deco-hoja.png"
-        width={210}
-        opacity={0.18}
-        style={{ position: "absolute", bottom: -40, left: -60 }}
-      />
+      {demo ? (
+        <>
+          {/* Degradado marino + decoraciones (solo demo) */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: `radial-gradient(120% 90% at 50% 0%, ${TEAL_DARK} 0%, ${INK} 62%, #01374a 100%)`,
+            }}
+          />
+          <Deco
+            file="deco-tortuga.png"
+            width={90}
+            opacity={0.9}
+            style={{ position: "absolute", top: 46, right: 30 }}
+          />
+          <Deco
+            file="deco-hoja.png"
+            width={210}
+            opacity={0.18}
+            style={{ position: "absolute", bottom: -40, left: -60 }}
+          />
+        </>
+      ) : (
+        <>
+          {/* intro.png a pantalla completa (solo cliente) + overlay oscuro para
+              que nombres y botón se lean bien sobre la foto */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `url('${photosPath}/intro.png')`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+          <div
+            aria-hidden="true"
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }}
+          />
+        </>
+      )}
 
       <div
         style={{
@@ -528,30 +561,30 @@ function PortadaSection({ opened, photosPath }: { opened: boolean; photosPath: s
         </h1>
       </EnterReveal>
 
+      {/* Subtítulo DEBAJO del título (ya no superpuesto sobre la foto) */}
+      <EnterReveal active={opened} delay={90}>
+        <div
+          style={{
+            fontFamily: DISPLAY,
+            fontSize: "clamp(16px, 4vw, 22px)",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: INK,
+            textAlign: "center",
+            marginTop: 8,
+          }}
+        >
+          ¡Se casan!
+        </div>
+      </EnterReveal>
+
       <EnterReveal active={opened} kind="reveal-scale" delay={180}>
         {/* Negative margin breakout: compensa el padding 18px de la sección
             para que la foto corra de borde a borde de la pantalla */}
         <div style={{ position: "relative", marginTop: 20, marginLeft: -18, marginRight: -18 }}>
-          {/* Foto limpia como el Canva: rectangular, sin radio, sin sombra ni marco */}
+          {/* Foto limpia como el Canva: rectangular, sin radio, sin sombra ni
+              marco; SIN texto superpuesto (¡Se casan! ahora va debajo del título) */}
           <Foto file="portada.png" base={photosPath} alt="Israel y Marisol" ratio="4 / 3" />
-          <EnterReveal
-            active={opened}
-            delay={380}
-            style={{ position: "absolute", top: 18, left: 0, right: 0 }}
-          >
-            <div
-              style={{
-                fontFamily: BODY,
-                fontSize: 20,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: BG,
-                textShadow: "0 1px 10px rgba(0,0,0,0.45)",
-              }}
-            >
-              ¡Se casan!
-            </div>
-          </EnterReveal>
           <Deco
             file="deco-tortuga.png"
             width={70}
@@ -810,7 +843,9 @@ function CeremoniaSection() {
             style={{
               fontFamily: DISPLAY,
               fontWeight: 600,
-              fontSize: 38,
+              // clamp + nowrap: siempre en UNA sola línea (hasta 390px)
+              fontSize: "clamp(16px, 5vw, 32px)",
+              whiteSpace: "nowrap",
               letterSpacing: "0.02em",
               color: INK,
               textTransform: "uppercase",
@@ -837,8 +872,12 @@ function CeremoniaSection() {
               gap: 14,
             }}
           >
-            <MapButton href={MAPS_URL}>Ver en maps</MapButton>
-            <MapButton href={MAPS_DIR_URL}>Cómo llegar</MapButton>
+            <MapButton href={MAPS_URL} bg={TEAL_BRIGHT}>
+              Ver en maps
+            </MapButton>
+            <MapButton href={MAPS_DIR_URL} bg={TEAL_DARK}>
+              Cómo llegar
+            </MapButton>
           </div>
         </Reveal>
 
@@ -911,17 +950,26 @@ function ItinerarioSection() {
           />
         </div>
 
-        {/* Timeline centrado: línea vertical exactamente al medio, íconos a la
-            izquierda y textos a la derecha; cada ítem lleva un punto sobre la
-            línea y un conector horizontal hacia el texto */}
-        <div style={{ position: "relative", zIndex: 1, padding: "16px 24px 30px" }}>
-          {/* Línea vertical del timeline, exactamente al centro */}
+        {/* Timeline compacto y CENTRADO en la pantalla (max-width 320, margin
+            auto). Cada fila: [ícono 80px] [línea+punto+conector 24px] [texto
+            flex:1]. La línea vertical corre por el centro de la columna media
+            (a 92px = 80 + 12), con los íconos visibles a su izquierda. */}
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            maxWidth: 320,
+            margin: "0 auto",
+            padding: "16px 0 30px",
+          }}
+        >
+          {/* Línea vertical: centro de la columna media (80px ícono + 12px) */}
           <div
             style={{
               position: "absolute",
               top: 22,
               bottom: 56,
-              left: "50%",
+              left: 92,
               width: 2,
               marginLeft: -1,
               background: INK,
@@ -931,7 +979,7 @@ function ItinerarioSection() {
           <Deco
             file="deco-tortuga.png"
             width={58}
-            style={{ position: "absolute", top: 6, left: "50%", transform: "translateX(-50%)" }}
+            style={{ position: "absolute", top: 6, left: 92, transform: "translateX(-50%)" }}
           />
           {items.map((item, i) => (
             <Reveal key={item.label} kind="reveal-left" delay={1}>
@@ -943,79 +991,86 @@ function ItinerarioSection() {
                   marginTop: i === 0 ? 66 : 34,
                 }}
               >
-                {/* Columna izquierda: ícono alineado hacia la línea central.
-                    Ancho fijo al 50% (no flex:1): con texto largo a la derecha
-                    el reparto flexible se desequilibra y el punto se sale de
-                    la línea central */}
+                {/* Columna íconos: ancho fijo 80px, ícono alineado hacia la línea */}
                 <div
                   style={{
-                    flex: "0 0 calc(50% - 5px)",
-                    minWidth: 0,
+                    flex: "0 0 80px",
                     display: "flex",
+                    alignItems: "center",
                     justifyContent: "flex-end",
-                    paddingRight: 16,
+                    paddingRight: 12,
                     boxSizing: "border-box",
                   }}
                 >
                   <img
                     src={item.img}
                     alt={item.label}
-                    width={62}
-                    height={62}
-                    style={{ display: "block", filter: GIF_FILTER }}
+                    width={64}
+                    height={64}
+                    style={{ display: "block", objectFit: "contain", filter: GIF_FILTER }}
                   />
                 </div>
 
-                {/* Punto exactamente sobre la línea vertical */}
+                {/* Columna media (24px): punto sobre la línea + conector al texto */}
                 <div
                   style={{
-                    width: 10,
-                    height: 10,
-                    background: INK,
-                    borderRadius: "50%",
+                    position: "relative",
+                    width: 24,
                     flexShrink: 0,
-                  }}
-                />
-
-                {/* Columna derecha: conector horizontal + texto */}
-                <div
-                  style={{
-                    flex: "0 0 calc(50% - 5px)",
-                    minWidth: 0,
                     display: "flex",
                     alignItems: "center",
-                    boxSizing: "border-box",
+                    justifyContent: "center",
                   }}
                 >
                   <div
-                    style={{ width: 24, height: 2, background: INK, flexShrink: 0, marginLeft: -1 }}
+                    style={{
+                      position: "absolute",
+                      left: "50%",
+                      right: -4,
+                      top: "50%",
+                      height: 2,
+                      background: INK,
+                      transform: "translateY(-50%)",
+                    }}
                   />
-                  <div style={{ paddingLeft: 8, textAlign: "left" }}>
-                    <div
-                      style={{
-                        fontFamily: DISPLAY,
-                        fontWeight: 600,
-                        fontSize: 22,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        color: INK,
-                        lineHeight: 1.1,
-                      }}
-                    >
-                      {item.label}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: ACCENT,
-                        fontWeight: 700,
-                        fontSize: 14,
-                        letterSpacing: "0.05em",
-                        color: INK,
-                        marginTop: 4,
-                      }}
-                    >
-                      {item.time}
-                    </div>
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      background: INK,
+                      borderRadius: "50%",
+                      position: "relative",
+                      zIndex: 1,
+                    }}
+                  />
+                </div>
+
+                {/* Columna texto: flex 1 */}
+                <div style={{ flex: 1, minWidth: 0, paddingLeft: 8, textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontFamily: DISPLAY,
+                      fontWeight: 600,
+                      fontSize: 22,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: INK,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {item.label}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: ACCENT,
+                      fontWeight: 700,
+                      fontSize: 14,
+                      letterSpacing: "0.05em",
+                      color: INK,
+                      marginTop: 4,
+                    }}
+                  >
+                    {item.time}
                   </div>
                 </div>
               </div>
@@ -1383,39 +1438,33 @@ function AgradecimientosSection() {
   );
 }
 
-// ─── Regalos (rediseño 15 jul 2026 según captura del Canva) ──────────────────
-// fondo-regalos.png del cliente como fondo de TODA la sección (sin overlay ni
-// opacity; si el archivo no existe —caso del demo— queda el teal sólido de
-// respaldo) y layout de dos columnas: izquierda (60%) título + texto + cuentas,
-// derecha (40%) QR de yape sobre tarjeta blanca. El QR es del diseño y viene
-// siempre de /tortuga-tropical-demo/photos/, en demo y en clientes.
+// ─── Regalos (15 jul 2026: una sola imagen ya compuesta) ─────────────────────
+// El usuario compone la sección completa (textos + QR + diseño) en un solo PNG,
+// fondo-regalos.png, y aquí solo se muestra de borde a borde (sin padding,
+// margin ni border-radius), como la portada. Si el PNG no existe (caso del
+// demo) se muestra un placeholder de dos columnas con DATOS FICTICIOS, para que
+// futuros clientes vean cómo lucirá la sección.
 
 function RegalosSection({ photosPath }: { photosPath: string }) {
-  const light: React.CSSProperties = {
-    fontFamily: BODY,
-    fontSize: 14,
-    lineHeight: 1.6,
-    color: BG,
-    textShadow: "0 1px 3px rgba(0,0,0,0.4)",
-  };
+  const [missing, setMissing] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth === 0) setMissing(true);
+  }, []);
 
-  return (
-    <section style={{ position: "relative", background: TEAL }}>
-      <div aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
-        <FotoBg file="fondo-regalos.png" base={photosPath} />
-      </div>
-
-      <div
-        style={{
-          position: "relative",
-          padding: "54px 22px 60px",
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        {/* Columna izquierda (60%): título, texto y cuentas */}
-        <div style={{ flex: "0 0 60%", boxSizing: "border-box", paddingRight: 10, textAlign: "left" }}>
-          <Reveal>
+  if (missing) {
+    const body: React.CSSProperties = {
+      fontFamily: BODY,
+      fontSize: 14,
+      lineHeight: 1.6,
+      color: BG,
+    };
+    return (
+      <section style={{ background: "#6f9fa8", padding: "54px 22px 34px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start" }}>
+          {/* Columna izquierda: título + texto + cuentas ficticias */}
+          <div style={{ flex: "0 0 60%", boxSizing: "border-box", paddingRight: 10, textAlign: "left" }}>
             <h2
               style={{
                 fontFamily: DISPLAY,
@@ -1424,68 +1473,71 @@ function RegalosSection({ photosPath }: { photosPath: string }) {
                 letterSpacing: "0.07em",
                 color: BG,
                 textTransform: "uppercase",
-                textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                margin: 0,
               }}
             >
-              regalos
+              Regalos
             </h2>
-            <p style={{ ...light, marginTop: 12 }}>
+            <p style={{ ...body, marginTop: 12 }}>
               Lo más valioso para nosotros es tenerte a ti este día. Pero si deseas hacernos un
               regalo, con mucho cariño lo recibiremos a través de:
             </p>
-          </Reveal>
-          <Reveal delay={1}>
-            <p style={{ ...light, marginTop: 18 }}>
-              Cuenta Soles Interbank:
+            <p style={{ ...body, marginTop: 18 }}>
+              Cuenta Soles Banco XYZ:
               <br />
-              8983327160054
+              123456789012
             </p>
-            <p style={{ ...light, marginTop: 12 }}>
-              Cuenta Interbancaria Interbank:
+            <p style={{ ...body, marginTop: 12 }}>
+              Cuenta Interbancaria:
               <br />
-              00389801332716005445
+              00123456789012345678
             </p>
-          </Reveal>
-        </div>
+          </div>
 
-        {/* Columna derecha (40%): QR de yape sobre tarjeta blanca */}
-        <div style={{ flex: "0 0 40%", boxSizing: "border-box", textAlign: "center" }}>
-          <Reveal kind="reveal-scale" delay={1}>
+          {/* Columna derecha: recuadro placeholder del QR */}
+          <div style={{ flex: "0 0 40%", boxSizing: "border-box", textAlign: "center", marginTop: 60 }}>
             <div
               style={{
+                width: 130,
+                height: 130,
+                margin: "0 auto",
                 background: "#ffffff",
                 borderRadius: 8,
-                padding: 8,
-                width: 130,
-                margin: "0 auto",
-                boxShadow: "0 12px 26px -12px rgba(0,0,0,0.45)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#6f9fa8",
+                fontFamily: BODY,
+                fontWeight: 700,
+                fontSize: 14,
+                textAlign: "center",
               }}
             >
-              {/* El PNG trae los módulos en crema #f6f2ee sobre transparente y
-                  la mitad derecha vacía (1920×1080): brightness(0) los vuelve
-                  negros (escaneables sobre blanco) y el object-fit recorta al
-                  cuadrado izquierdo donde vive el QR */}
-              <img
-                src={`${DEMO_PHOTOS_PATH}/qr-yape.png`}
-                alt="QR de Yape"
-                draggable={false}
-                style={{
-                  width: "100%",
-                  aspectRatio: "1 / 1",
-                  objectFit: "cover",
-                  objectPosition: "left center",
-                  filter: "brightness(0)",
-                  display: "block",
-                  borderRadius: 4,
-                }}
-              />
+              QR de Yape
             </div>
-            <p style={{ ...light, fontSize: 12.5, marginTop: 12 }}>
+            <p style={{ ...body, fontSize: 12.5, marginTop: 12 }}>
               O también puedes escanear este QR para yape.
             </p>
-          </Reveal>
+          </div>
         </div>
-      </div>
+
+        <p style={{ ...body, fontSize: 11, opacity: 0.7, marginTop: 24, textAlign: "center" }}>
+          * Datos de ejemplo. Tu invitación tendrá tus datos reales.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <img
+        ref={imgRef}
+        src={`${photosPath}/fondo-regalos.png`}
+        alt="Regalos"
+        draggable={false}
+        onError={() => setMissing(true)}
+        style={{ width: "100%", display: "block", margin: 0, padding: 0 }}
+      />
     </section>
   );
 }
@@ -1562,7 +1614,7 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
           alt="Cámara fotográfica"
           width={104}
           height={104}
-          style={{ display: "block", margin: "0 auto 10px", filter: GIF_FILTER }}
+          style={{ display: "block", margin: "0 auto 10px" }}
         />
         <h2
           style={{
@@ -1733,6 +1785,21 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
 function ConfirmarSection() {
   return (
     <section style={{ position: "relative", background: CORAL, overflow: "hidden" }}>
+      {/* fondo-nosotros.png (flores crema) como capa de fondo con opacity 0.45
+          para que se vea SUTIL y el contenido quede legible sobre el coral.
+          Capa propia (::before no existe en estilos inline). */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `url('${DEMO_PHOTOS_PATH}/fondo-nosotros.png')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.45,
+        }}
+      />
       {/* Patrón de tortugas sobre el coral, como el Canva (opacidad 0.35) */}
       <Deco
         file="tortugas-fondo.png"
@@ -1803,67 +1870,105 @@ function ConfirmarSection() {
 
 // ─── Cierre ──────────────────────────────────────────────────────────────────
 
-function CierreSection({ photosPath }: { photosPath: string }) {
+function CierreSection({
+  photosPath,
+  galeriaHref,
+}: {
+  photosPath: string;
+  galeriaHref: string;
+}) {
   return (
-    <section style={{ background: BG, padding: "56px 30px 0", textAlign: "center" }}>
+    <section style={{ background: BG }}>
+      {/* Texto de cierre (con padding lateral); título, imagen y bloque azul van
+          a ancho completo debajo */}
+      <div style={{ padding: "56px 30px 8px", textAlign: "center" }}>
+        <Reveal>
+          <div
+            style={{
+              fontFamily: DISPLAY,
+              fontWeight: 600,
+              fontSize: 84,
+              lineHeight: 1,
+              letterSpacing: "0.07em",
+              color: INK,
+            }}
+          >
+            I &amp; M
+          </div>
+        </Reveal>
+        <Reveal delay={1}>
+          <p
+            style={{
+              fontFamily: BODY,
+              fontSize: 15.5,
+              lineHeight: 1.65,
+              color: INK,
+              marginTop: 18,
+              maxWidth: 310,
+              marginLeft: "auto",
+              marginRight: "auto",
+            }}
+          >
+            Con mucha ilusión queremos vivir este momento rodeados de personas que han formado parte
+            de nuestra historia.
+            <br />
+            Será un honor contar con tu presencia.
+          </p>
+        </Reveal>
+        <Reveal delay={2}>
+          <Deco file="deco-pez.png" width={72} style={{ margin: "18px auto 0" }} />
+        </Reveal>
+      </div>
+
+      {/* 1. Título ¡TE ESPERAMOS! ARRIBA de la imagen */}
       <Reveal>
-        <div
+        <h2
           style={{
             fontFamily: DISPLAY,
-            fontWeight: 600,
-            fontSize: 84,
-            lineHeight: 1,
-            letterSpacing: "0.07em",
+            fontSize: "clamp(24px, 7vw, 48px)",
+            whiteSpace: "nowrap",
+            letterSpacing: "0.06em",
             color: INK,
-          }}
-        >
-          I &amp; M
-        </div>
-      </Reveal>
-      <Reveal delay={1}>
-        <p
-          style={{
-            fontFamily: BODY,
-            fontSize: 15.5,
-            lineHeight: 1.65,
-            color: INK,
-            marginTop: 18,
-            maxWidth: 310,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          Con mucha ilusión queremos vivir este momento rodeados de personas que han formado parte
-          de nuestra historia.
-          <br />
-          Será un honor contar con tu presencia.
-        </p>
-      </Reveal>
-      <Reveal delay={2}>
-        <div
-          style={{
-            fontFamily: DISPLAY,
-            fontWeight: 600,
-            fontSize: 40,
-            letterSpacing: "0.07em",
-            color: INK,
-            marginTop: 26,
+            textAlign: "center",
             textTransform: "uppercase",
+            padding: "32px 24px 24px",
+            margin: 0,
           }}
         >
           ¡Te esperamos!
-        </div>
-        <Deco file="deco-pez.png" width={72} style={{ margin: "18px auto 0" }} />
+        </h2>
       </Reveal>
-      <Reveal kind="reveal-scale" delay={2}>
+
+      {/* 2. Imagen final a ANCHO COMPLETO (dos tortugas tejidas), sin márgenes ni
+          border-radius; alto natural cuando el PNG exista */}
+      <Reveal kind="reveal-scale" delay={1}>
         <Foto
-          file="final.jpg"
+          file="final.png"
           base={photosPath}
           alt="Israel y Marisol"
-          ratio="4 / 5"
-          style={{ marginTop: 30 }}
+          ratio="1 / 1"
+          imgStyle={{ aspectRatio: "auto" }}
         />
       </Reveal>
+
+      {/* 3. Bloque de cierre azul petróleo, PEGADO a la imagen: nombres + galería */}
+      <div style={{ background: "#02516f", padding: 24, textAlign: "center" }}>
+        <div style={{ fontFamily: BODY, fontSize: 16, color: BG, margin: "0 0 12px" }}>
+          Israel &amp; Marisol · 2026
+        </div>
+        <Link
+          href={galeriaHref}
+          style={{
+            display: "inline-block",
+            fontFamily: BODY,
+            fontSize: 14,
+            color: BG,
+            textDecoration: "underline",
+          }}
+        >
+          Ver galería de fotos →
+        </Link>
+      </div>
     </section>
   );
 }
@@ -1946,7 +2051,7 @@ export default function InvitationTortuga({
   return (
     <div id="invitation-root">
       {demo && <DemoBanner />}
-      {!opened && <IntroGate onOpen={handleOpen} />}
+      {!opened && <IntroGate onOpen={handleOpen} photosPath={photosPath} demo={demo} />}
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
@@ -1971,26 +2076,7 @@ export default function InvitationTortuga({
         <RegalosSection photosPath={photosPath} />
         <PhotoUpload galeriaHref={galeriaHref} />
         <ConfirmarSection />
-        <CierreSection photosPath={photosPath} />
-
-        <footer style={{ padding: "30px 28px 44px", textAlign: "center", background: BG }}>
-          <div style={{ ...smallCaps, fontSize: 10, color: TEAL }}>
-            Israel &amp; Marisol · Huaral 2026
-          </div>
-          <Link
-            href={galeriaHref}
-            style={{
-              ...smallCaps,
-              color: INK,
-              textDecoration: "none",
-              fontSize: 10,
-              marginTop: 10,
-              display: "inline-block",
-            }}
-          >
-            Ver galería de fotos →
-          </Link>
-        </footer>
+        <CierreSection photosPath={photosPath} galeriaHref={galeriaHref} />
       </main>
     </div>
   );

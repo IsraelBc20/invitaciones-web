@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Perandory: fuente de títulos del diseño Tortuga Tropical (la original del
+   Canva). El .otf vive en public/fonts/. */
+@font-face {
+  font-family: "Perandory";
+  src: url("/fonts/perandory-regular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #f6f2ee;
   --bg-2: #ece6df;

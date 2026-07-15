@@ -61,7 +61,7 @@ function getAudio(src: string, group: string) {
   audioGroup = group;
   audio.loop = true;
   audio.preload = "auto";
-  audio.volume = 0.5;
+  audio.volume = 0.7;
   emit();
   return audio;
 }
