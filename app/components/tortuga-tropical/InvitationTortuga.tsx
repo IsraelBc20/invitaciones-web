@@ -861,7 +861,7 @@ function CeremoniaSection() {
 
 // ─── Itinerario (línea vertical con GIFs recoloreados a azul) ────────────────
 
-function ItinerarioSection({ photosPath }: { photosPath: string }) {
+function ItinerarioSection() {
   const items = [
     { time: "4:00 p.m.", label: "Ceremonia", img: "/it-ceremonia.gif" },
     { time: "5:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
@@ -896,9 +896,11 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
           ancho) para que el título quede sobre el crema, no sobre la mancha */}
       <div style={{ position: "relative", marginTop: 84 }}>
         <div aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+          {/* La acuarela es decorativa del DISEÑO: viene siempre del demo,
+              también en las rutas de clientes (no de photosPath) */}
           <FotoBg
             file="fondo-itinerario.png"
-            base={photosPath}
+            base={DEMO_PHOTOS_PATH}
             imgStyle={{
               position: "absolute",
               top: "50%",
@@ -1166,9 +1168,9 @@ function NosotrosSection({ photosPath }: { photosPath: string }) {
         position: "relative",
       }}
     >
-      {/* Patrón de tortugas sutil sobre TODA la sección. Capa propia (en vez
-          de ::before, que no existe en estilos inline) para que la opacidad
-          baja no afecte al contenido */}
+      {/* Patrón de tortugas sobre TODA la sección. Capa propia (en vez de
+          ::before, que no existe en estilos inline). SIN opacity CSS: el PNG
+          ya trae su propia transparencia editada por el usuario */}
       <div
         aria-hidden="true"
         style={{
@@ -1177,7 +1179,6 @@ function NosotrosSection({ photosPath }: { photosPath: string }) {
           backgroundImage: `url('${DEMO_PHOTOS_PATH}/tortuga-fondo.png')`,
           backgroundRepeat: "repeat",
           backgroundSize: "200px auto",
-          opacity: 0.18,
         }}
       />
 
@@ -1382,89 +1383,108 @@ function AgradecimientosSection() {
   );
 }
 
-// ─── Regalos (foto de fondo + cuentas + QR en caja dorada) ───────────────────
+// ─── Regalos (rediseño 15 jul 2026 según captura del Canva) ──────────────────
+// fondo-regalos.png del cliente como fondo de TODA la sección (sin overlay ni
+// opacity; si el archivo no existe —caso del demo— queda el teal sólido de
+// respaldo) y layout de dos columnas: izquierda (60%) título + texto + cuentas,
+// derecha (40%) QR de yape sobre tarjeta blanca. El QR es del diseño y viene
+// siempre de /tortuga-tropical-demo/photos/, en demo y en clientes.
 
 function RegalosSection({ photosPath }: { photosPath: string }) {
-  const acct: React.CSSProperties = {
+  const light: React.CSSProperties = {
     fontFamily: BODY,
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 1.6,
     color: BG,
+    textShadow: "0 1px 3px rgba(0,0,0,0.4)",
   };
 
   return (
-    <section style={{ position: "relative", background: INK, overflow: "hidden" }}>
-      <div aria-hidden="true" style={{ position: "absolute", inset: 0, opacity: 0.45 }}>
-        <FotoBg file="regalos.jpg" base={photosPath} />
+    <section style={{ position: "relative", background: TEAL }}>
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0 }}>
+        <FotoBg file="fondo-regalos.png" base={photosPath} />
       </div>
-      <Deco
-        file="deco-estrella.png"
-        width={100}
-        style={{ position: "absolute", top: 130, right: 14, opacity: 0.9 }}
-      />
 
-      <div style={{ position: "relative", padding: "56px 34px 64px", textAlign: "left" }}>
-        <Reveal>
-          <h2
-            style={{
-              fontFamily: DISPLAY,
-              fontWeight: 600,
-              fontSize: 44,
-              letterSpacing: "0.07em",
-              // Sobre el fondo azul oscuro con foto el azul petróleo no se
-              // leería: el título va en crema, como el Canva
-              color: BG,
-              textTransform: "uppercase",
-            }}
-          >
-            regalos
-          </h2>
-          <p style={{ ...acct, marginTop: 14 }}>
-            Lo más valioso para nosotros es tenerte presente este día.
-            <br />
-            Pero si deseas hacernos un regalo, con mucho cariño lo recibiremos a través de:
-          </p>
-        </Reveal>
-
-        <Reveal delay={1}>
-          <div style={{ marginTop: 22 }}>
-            <p style={acct}>
+      <div
+        style={{
+          position: "relative",
+          padding: "54px 22px 60px",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        {/* Columna izquierda (60%): título, texto y cuentas */}
+        <div style={{ flex: "0 0 60%", boxSizing: "border-box", paddingRight: 10, textAlign: "left" }}>
+          <Reveal>
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 600,
+                fontSize: 42,
+                letterSpacing: "0.07em",
+                color: BG,
+                textTransform: "uppercase",
+                textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+              }}
+            >
+              regalos
+            </h2>
+            <p style={{ ...light, marginTop: 12 }}>
+              Lo más valioso para nosotros es tenerte a ti este día. Pero si deseas hacernos un
+              regalo, con mucho cariño lo recibiremos a través de:
+            </p>
+          </Reveal>
+          <Reveal delay={1}>
+            <p style={{ ...light, marginTop: 18 }}>
               Cuenta Soles Interbank:
               <br />
               8983327160054
             </p>
-            <p style={{ ...acct, marginTop: 14 }}>
+            <p style={{ ...light, marginTop: 12 }}>
               Cuenta Interbancaria Interbank:
               <br />
               00389801332716005445
             </p>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
 
-        <Reveal kind="reveal-scale" delay={2}>
-          <p
-            style={{
-              ...acct,
-              fontSize: 12.5,
-              textAlign: "center",
-              marginTop: 26,
-            }}
-          >
-            O también puedes escanear este QR para yape.
-          </p>
-          <div
-            style={{
-              background: GOLD,
-              borderRadius: 16,
-              padding: 16,
-              width: 230,
-              margin: "14px auto 0",
-              boxShadow: "0 16px 34px -16px rgba(0,0,0,0.45)",
-            }}
-          >
-            <Deco file="qr-yape.png" width={198} style={{ width: "100%", borderRadius: 8 }} />
-          </div>
-        </Reveal>
+        {/* Columna derecha (40%): QR de yape sobre tarjeta blanca */}
+        <div style={{ flex: "0 0 40%", boxSizing: "border-box", textAlign: "center" }}>
+          <Reveal kind="reveal-scale" delay={1}>
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: 8,
+                padding: 8,
+                width: 130,
+                margin: "0 auto",
+                boxShadow: "0 12px 26px -12px rgba(0,0,0,0.45)",
+              }}
+            >
+              {/* El PNG trae los módulos en crema #f6f2ee sobre transparente y
+                  la mitad derecha vacía (1920×1080): brightness(0) los vuelve
+                  negros (escaneables sobre blanco) y el object-fit recorta al
+                  cuadrado izquierdo donde vive el QR */}
+              <img
+                src={`${DEMO_PHOTOS_PATH}/qr-yape.png`}
+                alt="QR de Yape"
+                draggable={false}
+                style={{
+                  width: "100%",
+                  aspectRatio: "1 / 1",
+                  objectFit: "cover",
+                  objectPosition: "left center",
+                  filter: "brightness(0)",
+                  display: "block",
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+            <p style={{ ...light, fontSize: 12.5, marginTop: 12 }}>
+              O también puedes escanear este QR para yape.
+            </p>
+          </Reveal>
+        </div>
       </div>
     </section>
   );
@@ -1944,7 +1964,7 @@ export default function InvitationTortuga({
           />
         </div>
         <CeremoniaSection />
-        <ItinerarioSection photosPath={photosPath} />
+        <ItinerarioSection />
         <DressCodeSection />
         <NosotrosSection photosPath={photosPath} />
         <AgradecimientosSection />
