@@ -816,7 +816,11 @@ function CountdownSection() {
 const MAPS_EMBED_URL =
   "https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d487.5!2d-77.206264!3d-11.489522!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMTHCsDI5JzIyLjMiUyA3N8KwMTInMjIuNiJX!5e0!3m2!1ses!2spe!4v1";
 
-function CeremoniaSection() {
+function CeremoniaSection({ demo }: { demo: boolean }) {
+  // El cliente israel-y-marisol tiene ceremonia a las 12:00 p.m.; el demo
+  // conserva la hora plantilla (4:00 p.m.) e ícono un poco más chico.
+  const hora = demo ? "4:00 p.m." : "12:00 p.m.";
+  const muniWidth = demo ? 70 : 85;
   return (
     <section
       style={{
@@ -837,7 +841,7 @@ function CeremoniaSection() {
             alt=""
             aria-hidden="true"
             draggable={false}
-            style={{ width: 70, display: "block", margin: "0 auto" }}
+            style={{ width: muniWidth, display: "block", margin: "0 auto" }}
           />
           <h2
             style={{
@@ -855,7 +859,7 @@ function CeremoniaSection() {
             Ceremonia civil
           </h2>
           <div style={{ fontFamily: BODY, fontWeight: 700, fontSize: 16, color: INK, marginTop: 10 }}>
-            4:00 p.m.
+            {hora}
           </div>
           <div style={{ fontFamily: BODY, fontSize: 16, color: INK, marginTop: 16 }}>
             Av. Circunvalación Norte 404 - Huaral
@@ -900,13 +904,22 @@ function CeremoniaSection() {
 
 // ─── Itinerario (línea vertical con GIFs recoloreados a azul) ────────────────
 
-function ItinerarioSection() {
-  const items = [
-    { time: "4:00 p.m.", label: "Ceremonia", img: "/it-ceremonia.gif" },
-    { time: "5:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
-    { time: "6:00 p.m.", label: "Comida", img: "/it-comida.gif" },
-    { time: "7:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
-  ];
+function ItinerarioSection({ demo }: { demo: boolean }) {
+  // El cliente israel-y-marisol adelanta el itinerario (1–4 p.m.); el demo
+  // conserva los horarios plantilla (4–7 p.m.).
+  const items = demo
+    ? [
+        { time: "4:00 p.m.", label: "Ceremonia", img: "/it-ceremonia.gif" },
+        { time: "5:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
+        { time: "6:00 p.m.", label: "Comida", img: "/it-comida.gif" },
+        { time: "7:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
+      ]
+    : [
+        { time: "1:00 p.m.", label: "Ceremonia", img: "/it-ceremonia.gif" },
+        { time: "2:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
+        { time: "3:00 p.m.", label: "Comida", img: "/it-comida.gif" },
+        { time: "4:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
+      ];
 
   return (
     <section style={{ background: BG, padding: "56px 0 84px" }}>
@@ -1221,19 +1234,33 @@ function NosotrosSection({ photosPath }: { photosPath: string }) {
         padding: "54px 0 0",
         textAlign: "center",
         position: "relative",
+        // overflow hidden + isolation: el patrón de tortugas (capa absolute
+        // inset:0) queda CONTENIDO en esta sección y no se escapa a las
+        // secciones vecinas (arriba DressCode, abajo Agradecimientos)
+        overflow: "hidden",
+        isolation: "isolate",
       }}
     >
-      {/* Patrón de tortugas sobre TODA la sección. Capa propia (en vez de
-          ::before, que no existe en estilos inline). SIN opacity CSS: el PNG
-          ya trae su propia transparencia editada por el usuario */}
-      <div
+      {/* tortuga-fondo.png UNA SOLA VEZ como <img> absoluto (no background-image
+          ni repeat): cubre desde la mitad de la sección (≈fin de nosotros-1)
+          hasta el final (nosotros-4). El overflow:hidden de la sección lo
+          contiene; SIN opacity CSS (el PNG ya trae su transparencia). */}
+      <img
+        src={`${DEMO_PHOTOS_PATH}/tortuga-fondo.png`}
+        alt=""
         aria-hidden="true"
+        draggable={false}
         style={{
           position: "absolute",
-          inset: 0,
-          backgroundImage: `url('${DEMO_PHOTOS_PATH}/tortuga-fondo.png')`,
-          backgroundRepeat: "repeat",
-          backgroundSize: "200px auto",
+          top: "50%",
+          left: 0,
+          width: "100%",
+          height: "50%",
+          objectFit: "cover",
+          objectPosition: "center top",
+          zIndex: 0,
+          pointerEvents: "none",
+          userSelect: "none",
         }}
       />
 
@@ -2068,8 +2095,8 @@ export default function InvitationTortuga({
             style={{ width: 220, maxWidth: "60%", display: "inline-block" }}
           />
         </div>
-        <CeremoniaSection />
-        <ItinerarioSection />
+        <CeremoniaSection demo={demo} />
+        <ItinerarioSection demo={demo} />
         <DressCodeSection />
         <NosotrosSection photosPath={photosPath} />
         <AgradecimientosSection />
