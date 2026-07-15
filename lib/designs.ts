@@ -35,5 +35,16 @@ export const designs: Design[] = [
     colores: ["#6f8f9d", "#f6f2ee", "#304c3a"],
     tags: ["Boda", "Playa", "Tropical"],
   },
+  {
+    id: "tortuga-tropical",
+    nombre: "Tortuga Tropical",
+    descripcion:
+      "Brisa marina en azul petróleo y coral: tortuguitas, cuenta regresiva, itinerario ilustrado, QR de Yape y galería de fotos y videos para invitados.",
+    ruta: "/tortuga-tropical",
+    galeriaRuta: "/tortuga-tropical/galeria",
+    disponible: true,
+    colores: ["#02536f", "#faf3eb", "#f56646"],
+    tags: ["Boda Civil", "Playa", "Tropical"],
+  },
   // Futuros diseños se agregan aquí:
 ];

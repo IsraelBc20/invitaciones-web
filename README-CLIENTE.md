@@ -16,10 +16,18 @@ public/
 │   ├── music.mp3
 │   └── deco-*.png, ramo.png…   ← decoraciones DEL DISEÑO (las usan también
 │                                  los clientes; no se duplican)
+├── tortuga-tropical-demo/      ← assets del DEMO tortuga-tropical
+│   ├── photos/                 ← fotos de la pareja del demo (nombres fijos)
+│   ├── music.mp3
+│   └── deco-*.png, qr-yape.png,
+│       tortugas-fondo.png      ← decoraciones DEL DISEÑO (compartidas)
 ├── oliva/<cliente>/            ← assets de cada cliente oliva
 │   ├── photos/                 ← sus 9 fotos (mismos nombres fijos)
 │   └── music.mp3               ← su canción
-└── playa/<cliente>/
+├── playa/<cliente>/
+│   ├── photos/                 ← sus fotos de pareja (mismos nombres)
+│   └── music.mp3
+└── tortuga-tropical/<cliente>/
     ├── photos/                 ← sus fotos de pareja (mismos nombres)
     └── music.mp3
 ```
@@ -120,6 +128,25 @@ reproduce nada (sin error visible) hasta que se suba el archivo.
 | `nosotros-2.jpg` | Historia, foto chica (3:4) |
 | `pareja-2.jpg` | Foto bajo el countdown |
 | `final.jpg` | Foto de cierre a página completa |
+
+**Diseño tortuga-tropical** (en `public/tortuga-tropical/<cliente>/photos/`):
+
+| Archivo | Ubicación |
+| --- | --- |
+| `portada.jpg` | Foto de portada con "¡Se casan!" (4:3) |
+| `fondo-itinerario.jpg` | Fondo translúcido del itinerario (vertical) |
+| `nosotros-1.jpg` | Primera foto de "nosotros" (1:1) |
+| `nosotros-2.jpg` | Collage, arriba derecha (casi cuadrada) |
+| `nosotros-3.jpg` | Collage, abajo izquierda (casi cuadrada) |
+| `nosotros-4.jpg` | Foto ancha al final de "nosotros" (16:9) |
+| `regalos.jpg` | Fondo de la sección regalos (horizontal) |
+| `final.jpg` | Foto de despedida (4:5) |
+
+Ojo (tortuga-tropical): las decoraciones (`deco-*.png`, `tortugas-fondo.png`)
+y el QR de Yape (`qr-yape.png`) son fijos en `/tortuga-tropical-demo/` y los
+comparten todos los clientes del diseño; la lista completa de nombres está en
+`public/tortuga-tropical-demo/README.txt`. Un cliente nuevo con otro QR
+necesita convertirlo a prop (cambio pequeño en `InvitationTortuga.tsx`).
 
 Ojo (playa): el QR de Yape (`qr-yape.png`), el sobre de confirmar
 (`sobre-confirmar.png`), el boceto del arco (`foto-arco.png`) y el fondo de
