@@ -56,6 +56,14 @@ Negocio de invitaciones digitales. `/` es el catálogo de diseños (fondo verde 
 - Migración fotos+videos (`file_type`, `file_size` — ver `supabase/setup.sql`) **pendiente de ejecutar**; mientras tanto el insert usa el fallback sin esas columnas y la galería deduce el tipo por la extensión de la URL.
 - La anon key no permite DDL; cambios de esquema van por el SQL Editor del dashboard o el conector MCP de Supabase (requiere `/mcp`).
 
+## Control de subida (fecha / demo) — 15 jul 2026
+
+- La sección "Sube tus fotos y videos" se habilita según `app/components/shared/uploadGate.ts` (`useUploadGate(demo)`). Regla:
+  - **Demos** (`demo=true`, los 3 diseños): subida **bloqueada para todos**; se muestra un panel con aviso "comunícate por WhatsApp" (número `+51 993092110`). Es temporal: falta la excepción por IP del dueño (ver Pendientes).
+  - **Invitaciones de clientes** (`demo=false`): subida **bloqueada hasta el 12/09/2026 12:00 p.m. hora Perú** (constante `CLIENT_UPLOAD_OPENS_AT` = `2026-09-12T12:00:00-05:00`, comparada contra `Date.now()` en epoch, así no depende de la zona horaria del visitante); antes de esa hora se muestra un panel "aún no disponible". A partir de esa hora el formulario aparece normal.
+- Es **disuasión de UI** (oculta el formulario), no seguridad real: el bucket de Supabase sigue aceptando inserts con la anon key. Coherente con `ContentProtection`.
+- Cada diseño (`InvitationOliva/Playa/Tortuga`) tiene su propio `UploadBlockedCard` con su estética, alimentado por el `gate` del hook. El check de fecha corre en `useEffect` (`ready` arranca en `false`) para evitar hydration mismatch (ver Gotchas). Si cambias el número de WhatsApp o el texto, edítalo en `uploadGate.ts`.
+
 ## Pendientes
 
 - [ ] **Ejecutar en el SQL Editor la migración fotos+videos** (sección final de `supabase/setup.sql`: `file_type`, `file_size`)
@@ -63,6 +71,7 @@ Negocio de invitaciones digitales. `/` es el catálogo de diseños (fondo verde 
 - [ ] Copiar fotos + `music.mp3` del cliente a `public/oliva/israel-y-marisol/`, `public/playa/israel-y-marisol/` y `public/tortuga-tropical/israel-y-marisol/` (hoy vacíos: sus rutas muestran placeholders y no reproducen música); el demo oliva/playa ya tiene todo en `oliva-demo/` y `playa-demo/`
 - [ ] Copiar los assets que faltan del demo tortuga-tropical a `public/tortuga-tropical-demo/` (al 15 jul 2026 faltan: decoraciones `deco-*` de la raíz, `tortugas-fondo.png` y `qr-yape.png` de la raíz, y las fotos de pareja del demo `nosotros-1..4`, `regalos`, `final` en `photos/`; ya están: música, `aros.png`, y en `photos/` los fondos, flores, tortugas, `municipalidad`, `arreglo-flores` y `portada`)
 - [ ] Borrar archivos de prueba en Supabase (fila en `photos` + archivo en bucket): "Prueba Claude" y "Prueba Rediseño" (raíz), "Prueba Catálogo", "Prueba FotosVideos" ×2 y "Prueba UI" ×2 (en `oliva/`) — verificar también "Draguito" (en `playa/`, subido el 11 jul, puede ser prueba del usuario)
+- [ ] **Excepción de subida en las demos por IP del dueño** (deploy en Vercel): hoy la subida en las demos está bloqueada para TODOS (ver "Control de subida" abajo). Falta permitir que desde la IP del dueño se puedan subir hasta **3 archivos** (fotos+videos) para probar el flujo; desde otra IP se mantiene el aviso de WhatsApp. Requiere una ruta de servidor que lea la IP real (en Vercel llega en `x-forwarded-for`) y la compare con una IP/lista configurada (env `OWNER_IP`); OJO: las IPs domésticas son dinámicas, así que conviene además un enlace/código secreto de respaldo. La lógica central está en `app/components/shared/uploadGate.ts` (`useUploadGate`).
 
 ## Gotchas
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMediaUpload } from "@/app/components/shared/useMediaUpload";
+import { useUploadGate, type UploadGate } from "@/app/components/shared/uploadGate";
 import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
@@ -1221,7 +1222,64 @@ function RegalosSection() {
 
 // ─── Comparte tus fotos y videos (Supabase) ──────────────────────────────────
 
-function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
+// Panel que reemplaza al formulario cuando la subida está bloqueada (demo, o
+// invitación de cliente antes del día de la boda). Ver useUploadGate.
+function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true }> }) {
+  return (
+    <Reveal delay={1}>
+      <div
+        style={{
+          background: "#ffffff",
+          border: `1px dashed ${BLUE}`,
+          padding: "30px 24px",
+          marginTop: 26,
+        }}
+      >
+        <div style={{ fontSize: 32, lineHeight: 1 }}>{gate.kind === "demo" ? "🔒" : "⏳"}</div>
+        <h3
+          style={{
+            fontFamily: DISPLAY,
+            fontStyle: "italic",
+            fontWeight: 400,
+            fontSize: 28,
+            color: GREEN,
+            marginTop: 10,
+          }}
+        >
+          {gate.title}
+        </h3>
+        <p style={{ fontFamily: BODY, fontSize: 15, lineHeight: 1.65, color: GREEN, marginTop: 12 }}>
+          {gate.message}
+        </p>
+        {gate.whatsapp && (
+          <a
+            href={gate.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              marginTop: 20,
+              background: BLUE,
+              color: "#fdfdfe",
+              fontFamily: DISPLAY,
+              fontWeight: 700,
+              fontSize: 15,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              textDecoration: "none",
+              padding: "11px 30px",
+              borderRadius: 4,
+            }}
+          >
+            Escríbenos por WhatsApp
+          </a>
+        )}
+      </div>
+    </Reveal>
+  );
+}
+
+function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean }) {
   const {
     uploaderName,
     setUploaderName,
@@ -1234,6 +1292,7 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
     uploadDone,
     formError,
   } = useMediaUpload(DESIGN_ID);
+  const { ready, gate } = useUploadGate(demo);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1314,6 +1373,7 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
         </p>
       </Reveal>
 
+      {ready && !gate.blocked && (
       <Reveal delay={1}>
         <div
           style={{
@@ -1433,6 +1493,9 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
           </div>
         </div>
       </Reveal>
+      )}
+
+      {ready && gate.blocked && <UploadBlockedCard gate={gate} />}
 
       <Reveal delay={2}>
         <div style={{ marginTop: 22 }}>
@@ -1579,7 +1642,7 @@ export default function InvitationPlaya({
         <ItinerarioSection />
         <DressCodeSection />
         <RegalosSection />
-        <PhotoUpload galeriaHref={galeriaHref} />
+        <PhotoUpload galeriaHref={galeriaHref} demo={demo} />
         <ConfirmarSection />
         <FullPhoto file="final.jpg" base={photosPath} alt="Israel y Marisol frente al mar" bg={BG} />
 

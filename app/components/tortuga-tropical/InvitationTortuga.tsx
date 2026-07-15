@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMediaUpload } from "@/app/components/shared/useMediaUpload";
+import { useUploadGate, type UploadGate } from "@/app/components/shared/uploadGate";
 import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
@@ -1252,10 +1253,10 @@ function NosotrosSection({ photosPath }: { photosPath: string }) {
         draggable={false}
         style={{
           position: "absolute",
-          top: "50%",
+          top: "20%",
           left: 0,
           width: "100%",
-          height: "50%",
+          height: "75%",
           objectFit: "cover",
           objectPosition: "center top",
           zIndex: 0,
@@ -1571,7 +1572,67 @@ function RegalosSection({ photosPath }: { photosPath: string }) {
 
 // ─── Comparte tus fotos y videos (Supabase) ──────────────────────────────────
 
-function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
+// Panel que reemplaza al formulario cuando la subida está bloqueada (demo, o
+// invitación de cliente antes del día de la boda). Ver useUploadGate.
+function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true }> }) {
+  return (
+    <Reveal delay={1}>
+      <div
+        style={{
+          background: "#ffffff",
+          border: `1px dashed ${TEAL}`,
+          borderRadius: 16,
+          padding: "30px 24px",
+          marginTop: 26,
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: 34, lineHeight: 1 }}>
+          {gate.kind === "demo" ? "🔒" : "⏳"}
+        </div>
+        <h3
+          style={{
+            fontFamily: DISPLAY,
+            fontWeight: 600,
+            fontSize: 22,
+            color: INK,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            marginTop: 14,
+          }}
+        >
+          {gate.title}
+        </h3>
+        <p style={{ fontFamily: BODY, fontSize: 14.5, lineHeight: 1.6, color: INK, marginTop: 12 }}>
+          {gate.message}
+        </p>
+        {gate.whatsapp && (
+          <a
+            href={gate.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              marginTop: 20,
+              background: GOLD,
+              color: INK,
+              fontFamily: BODY,
+              fontSize: 15,
+              textDecoration: "none",
+              padding: "11px 28px",
+              borderRadius: 999,
+              boxShadow: "0 12px 26px -12px rgba(0,0,0,0.4)",
+            }}
+          >
+            Escríbenos por WhatsApp
+          </a>
+        )}
+      </div>
+    </Reveal>
+  );
+}
+
+function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean }) {
   const {
     uploaderName,
     setUploaderName,
@@ -1584,6 +1645,7 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
     uploadDone,
     formError,
   } = useMediaUpload(DESIGN_ID);
+  const { ready, gate } = useUploadGate(demo);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1671,6 +1733,7 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
         </p>
       </Reveal>
 
+      {ready && !gate.blocked && (
       <Reveal delay={1}>
         <div
           style={{
@@ -1791,6 +1854,9 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
           </div>
         </div>
       </Reveal>
+      )}
+
+      {ready && gate.blocked && <UploadBlockedCard gate={gate} />}
 
       <Reveal delay={2}>
         <div style={{ marginTop: 22 }}>
@@ -2101,7 +2167,7 @@ export default function InvitationTortuga({
         <NosotrosSection photosPath={photosPath} />
         <AgradecimientosSection />
         <RegalosSection photosPath={photosPath} />
-        <PhotoUpload galeriaHref={galeriaHref} />
+        <PhotoUpload galeriaHref={galeriaHref} demo={demo} />
         <ConfirmarSection />
         <CierreSection photosPath={photosPath} galeriaHref={galeriaHref} />
       </main>

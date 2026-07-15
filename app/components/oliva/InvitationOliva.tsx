@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMediaUpload } from "@/app/components/shared/useMediaUpload";
+import { useUploadGate, type UploadGate } from "@/app/components/shared/uploadGate";
 import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
@@ -1154,7 +1155,45 @@ function GiftSection() {
 
 // ─── Comparte tus fotos y videos (Supabase) ──────────────────────────────────
 
-function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
+// Panel que reemplaza al formulario cuando la subida está bloqueada (demo, o
+// invitación de cliente antes del día de la boda). Ver useUploadGate.
+function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true }> }) {
+  return (
+    <Reveal delay={2}>
+      <div className="upload-card" style={{ marginTop: 26 }}>
+        <div style={{ fontSize: 32, lineHeight: 1 }}>{gate.kind === "demo" ? "🔒" : "⏳"}</div>
+        <h3 className="script" style={{ fontSize: 34, color: "var(--brown)", marginTop: 10 }}>
+          {gate.title}
+        </h3>
+        <p
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontStyle: "italic",
+            fontSize: 16.5,
+            lineHeight: 1.6,
+            color: "var(--ink)",
+            marginTop: 12,
+          }}
+        >
+          {gate.message}
+        </p>
+        {gate.whatsapp && (
+          <a
+            href={gate.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-olive"
+            style={{ marginTop: 20, display: "inline-block", textDecoration: "none" }}
+          >
+            Escríbenos por WhatsApp
+          </a>
+        )}
+      </div>
+    </Reveal>
+  );
+}
+
+function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean }) {
   const {
     uploaderName,
     setUploaderName,
@@ -1167,6 +1206,7 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
     uploadDone,
     formError,
   } = useMediaUpload(DESIGN_ID);
+  const { ready, gate } = useUploadGate(demo);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1238,6 +1278,7 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
         </p>
       </Reveal>
 
+      {ready && !gate.blocked && (
       <Reveal delay={2}>
         <div className="upload-card" style={{ marginTop: 26 }}>
           <div style={{ marginBottom: 20, textAlign: "left" }}>
@@ -1362,6 +1403,9 @@ function PhotoUpload({ galeriaHref }: { galeriaHref: string }) {
           </button>
         </div>
       </Reveal>
+      )}
+
+      {ready && gate.blocked && <UploadBlockedCard gate={gate} />}
 
       <Reveal delay={3}>
         <div style={{ textAlign: "center", marginTop: 22 }}>
@@ -1621,7 +1665,7 @@ export default function InvitationOliva({
         <CollageSection photosPath={photosPath} />
         <ThanksSection />
         <GiftSection />
-        <PhotoUpload galeriaHref={galeriaHref} />
+        <PhotoUpload galeriaHref={galeriaHref} demo={demo} />
         <RSVPSection />
         <TeEsperamos />
 
