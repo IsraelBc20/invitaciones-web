@@ -1355,7 +1355,7 @@ function NosotrosSection({ photosPath }: { photosPath: string }) {
                 alt=""
                 aria-hidden="true"
                 draggable={false}
-                style={{ width: 135, maxWidth: "80%", display: "block" }}
+                style={{ width: 135, maxWidth: "80%", display: "block" , marginRight: "30px"}}
               />
             </div>
             <div style={{ flex: "0 0 50%" }}>
