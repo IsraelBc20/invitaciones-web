@@ -863,7 +863,7 @@ function CeremoniaSection({ demo }: { demo: boolean }) {
             {hora}
           </div>
           <div style={{ fontFamily: BODY, fontSize: 16, color: INK, marginTop: 16 }}>
-            Av. Circunvalación Norte 404 - Huaral
+            Av. Circunvalación Norte 402 - Huaral
           </div>
         </Reveal>
 
