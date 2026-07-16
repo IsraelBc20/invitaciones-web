@@ -1587,8 +1587,16 @@ function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: 34, lineHeight: 1 }}>
-          {gate.kind === "demo" ? "🔒" : "⏳"}
+        <div style={{ fontSize: 34, lineHeight: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+          {gate.kind === "demo" ? (
+            "🔒"
+          ) : (
+            <img 
+              src="/reloj-arena.gif" 
+              alt="Reloj de arena" 
+              style={{ width: 34, height: 34 }} 
+            />
+          )}
         </div>
         <h3
           style={{
