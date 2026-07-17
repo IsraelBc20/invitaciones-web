@@ -13,6 +13,7 @@ export default function Page() {
       // Por ahora la misma canción del demo; cuando el cliente tenga la suya
       // irá en /tortuga-tropical/israel-y-marisol/music.mp3
       musicSrc="/tortuga-tropical-demo/Lo_Mejor_De_Mi_Vida_Eres_Tu.mp3"
+      emptyImage="/tortuga-tropical/israel-y-marisol/photos/foto-galeria.png"
     />
   );
 }

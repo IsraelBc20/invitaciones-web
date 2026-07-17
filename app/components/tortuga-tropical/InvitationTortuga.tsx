@@ -818,9 +818,9 @@ const MAPS_EMBED_URL =
   "https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d487.5!2d-77.206264!3d-11.489522!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMTHCsDI5JzIyLjMiUyA3N8KwMTInMjIuNiJX!5e0!3m2!1ses!2spe!4v1";
 
 function CeremoniaSection({ demo }: { demo: boolean }) {
-  // El cliente israel-y-marisol tiene ceremonia a las 12:00 p.m.; el demo
+  // El cliente israel-y-marisol tiene ceremonia civil a la 1:00 p.m.; el demo
   // conserva la hora plantilla (4:00 p.m.) e ícono un poco más chico.
-  const hora = demo ? "4:00 p.m." : "12:00 p.m.";
+  const hora = demo ? "4:00 p.m." : "1:00 p.m.";
   const muniWidth = demo ? 70 : 85;
   return (
     <section
@@ -906,7 +906,7 @@ function CeremoniaSection({ demo }: { demo: boolean }) {
 // ─── Itinerario (línea vertical con GIFs recoloreados a azul) ────────────────
 
 function ItinerarioSection({ demo }: { demo: boolean }) {
-  // El cliente israel-y-marisol adelanta el itinerario (1–4 p.m.); el demo
+  // El cliente israel-y-marisol adelanta el itinerario (2–5 p.m.); el demo
   // conserva los horarios plantilla (4–7 p.m.).
   const items = demo
     ? [
@@ -916,10 +916,10 @@ function ItinerarioSection({ demo }: { demo: boolean }) {
         { time: "7:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
       ]
     : [
-        { time: "1:00 p.m.", label: "Ceremonia", img: "/it-ceremonia.gif" },
-        { time: "2:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
-        { time: "3:00 p.m.", label: "Comida", img: "/it-comida.gif" },
-        { time: "4:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
+        { time: "2:00 p.m.", label: "Ceremonia", img: "/it-ceremonia.gif" },
+        { time: "3:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
+        { time: "4:00 p.m.", label: "Comida", img: "/it-comida.gif" },
+        { time: "5:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
       ];
 
   return (

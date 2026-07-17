@@ -63,11 +63,15 @@ function formatDate(iso: string) {
 export default function GalleryTortuga({
   backHref = "/tortuga-tropical",
   musicSrc = MUSIC_SRC,
+  emptyImage = "/tortuga-tropical-demo/photos/tortuga-galeria.png",
 }: {
   backHref?: string;
   // La galería de un cliente pasa la misma canción que su invitación
   // (p. ej. /tortuga-tropical/israel-y-marisol/music.mp3) para que el audio continúe.
   musicSrc?: string;
+  // Imagen del estado vacío ("Aún no hay recuerdos"). El demo usa la tortuga
+  // del diseño; cada cliente puede pasar la suya (p. ej. foto-galeria.png).
+  emptyImage?: string;
 }) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -245,7 +249,7 @@ export default function GalleryTortuga({
             }}
           >
             <img
-              src="/tortuga-tropical-demo/photos/tortuga-galeria.png"
+              src={emptyImage}
               alt="Sin fotos aún"
               draggable={false}
               style={{ width: 120, marginBottom: 16, margin: "0 auto 16px", display: "block" }}
