@@ -252,7 +252,7 @@ export default function GalleryTortuga({
               src={emptyImage}
               alt="Sin fotos aún"
               draggable={false}
-              style={{ width: 120, marginBottom: 16, margin: "0 auto 16px", display: "block" }}
+              style={{ width: 500, marginBottom: 16, margin: "0 auto 16px", display: "block" }}
             />
             <h3
               style={{
