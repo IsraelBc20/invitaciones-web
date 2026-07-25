@@ -7,6 +7,7 @@ import { useUploadGate, type UploadGate } from "@/app/components/shared/uploadGa
 import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
+import { supabase } from "@/lib/supabase";
 
 const DESIGN_ID = "tortuga-tropical";
 
@@ -1881,6 +1882,284 @@ function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean
   );
 }
 
+// ─── Ayúdanos con la playlist (Supabase: song_requests) ──────────────────────
+// Solo se monta en la ruta del cliente israel-y-marisol (prop `playlist`), no en
+// el demo ni en otros diseños. El invitado escribe su nombre y hasta 5 canciones;
+// al enviar se inserta una fila en `song_requests` (guest_name, songs[], design,
+// invitation) y la sección se reemplaza por un mensaje de agradecimiento. Sin
+// persistencia: al recargar vuelve el formulario (puede enviar varias veces).
+
+const MAX_SONGS = 5;
+const RED_SOFT = "#e05555";
+
+function PlaylistSection({ photosPath }: { photosPath: string }) {
+  const [name, setName] = useState("");
+  const [songs, setSongs] = useState<string[]>([""]);
+  const [nameError, setNameError] = useState("");
+  const [songError, setSongError] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sentName, setSentName] = useState<string | null>(null);
+
+  const firstSongFilled = songs[0].trim().length > 0;
+  const filledCount = songs.filter((s) => s.trim() !== "").length;
+  const showAdd = firstSongFilled && songs.length < MAX_SONGS;
+  const showSubmit = firstSongFilled;
+
+  const setSong = (i: number, value: string) => {
+    setSongs((prev) => prev.map((s, idx) => (idx === i ? value : s)));
+    if (songError) setSongError("");
+  };
+  const addSong = () => {
+    if (songs.length < MAX_SONGS) setSongs((prev) => [...prev, ""]);
+  };
+
+  const handleSubmit = async () => {
+    setNameError("");
+    setSongError("");
+    setSubmitError("");
+
+    let ok = true;
+    if (name.trim() === "") {
+      setNameError("Por favor escribe tu nombre");
+      ok = false;
+    }
+    const filled = songs.map((s) => s.trim()).filter((s) => s !== "");
+    if (filled.length === 0) {
+      setSongError("Escribe al menos una canción");
+      ok = false;
+    }
+    if (!ok) return;
+
+    setSubmitting(true);
+    const { error } = await supabase.from("song_requests").insert({
+      guest_name: name.trim(),
+      songs: filled,
+      design: "tortuga-tropical",
+      invitation: "israel-y-marisol",
+    });
+    setSubmitting(false);
+
+    if (error) {
+      setSubmitError("Ocurrió un error, intenta de nuevo");
+      return;
+    }
+    setSentName(name.trim());
+  };
+
+  const title = (
+    <h2
+      style={{
+        fontFamily: DISPLAY,
+        fontWeight: 600,
+        // clamp + nowrap: siempre en UNA sola línea (320–430px)
+        fontSize: "clamp(18px, 6vw, 30px)",
+        whiteSpace: "nowrap",
+        letterSpacing: "0.04em",
+        color: INK,
+        textAlign: "center",
+        textTransform: "uppercase",
+        margin: 0,
+      }}
+    >
+      Ayúdanos con la playlist
+    </h2>
+  );
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 12px",
+    border: `1px solid ${TEAL}66`,
+    borderRadius: 8,
+    fontFamily: BODY,
+    fontSize: 14,
+    color: INK,
+    background: "#ffffff",
+    outline: "none",
+    boxSizing: "border-box",
+  };
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontFamily: BODY,
+    fontWeight: 600,
+    fontSize: 13,
+    color: INK,
+    marginBottom: 6,
+  };
+  const errStyle: React.CSSProperties = {
+    fontFamily: BODY,
+    fontSize: 12.5,
+    color: RED_SOFT,
+    marginTop: 6,
+  };
+
+  // ── Estado de éxito: solo el título + mensaje de agradecimiento ──
+  if (sentName) {
+    return (
+      <section style={{ background: BG, padding: "54px 30px 60px" }}>
+        <Reveal>{title}</Reveal>
+        <Reveal delay={1}>
+          <p
+            style={{
+              fontFamily: BODY,
+              fontSize: 16,
+              lineHeight: 1.6,
+              color: INK,
+              textAlign: "center",
+              marginTop: 22,
+              maxWidth: 320,
+              marginLeft: "auto",
+              marginRight: "auto",
+            }}
+          >
+            Muchas gracias <strong style={{ fontWeight: 700 }}>{sentName}</strong> por tus
+            recomendaciones, las tendremos en cuenta para ese día. 🎵
+          </p>
+        </Reveal>
+      </section>
+    );
+  }
+
+  return (
+    <section style={{ background: BG, padding: "54px 30px 60px" }}>
+      <Reveal>{title}</Reveal>
+
+      {/* Dos columnas: izquierda GIF (~40%), derecha texto + formulario (~60%) */}
+      <Reveal delay={1}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 14,
+            marginTop: 28,
+          }}
+        >
+          {/* Columna izquierda: tortuga bailando */}
+          <div
+            style={{
+              flex: "0 0 40%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              paddingTop: 8,
+            }}
+          >
+            <img
+              src={`${photosPath}/tortuga-bailando.gif`}
+              alt="Tortuga bailando"
+              draggable={false}
+              style={{ width: "100%", maxWidth: 160, minWidth: 140, display: "block" }}
+            />
+          </div>
+
+          {/* Columna derecha: intro + formulario */}
+          <div style={{ flex: "1 1 60%", minWidth: 0, textAlign: "left" }}>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: 14,
+                lineHeight: 1.55,
+                color: INK,
+                margin: "0 0 16px",
+              }}
+            >
+              Ayúdanos con la música, recomiéndanos esa canción que no puede faltar, puedes agregar
+              hasta 5 canciones:
+            </p>
+
+            {/* Campo nombre */}
+            <label style={labelStyle}>Tu Nombre:</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameError) setNameError("");
+              }}
+              placeholder="Escribe tu nombre"
+              style={inputStyle}
+            />
+            {nameError && <div style={errStyle}>{nameError}</div>}
+
+            {/* Campos de canciones */}
+            <label style={{ ...labelStyle, marginTop: 16 }}>Tus canciones:</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {songs.map((song, i) => (
+                <input
+                  key={i}
+                  type="text"
+                  value={song}
+                  onChange={(e) => setSong(i, e.target.value)}
+                  placeholder={i === 0 ? "Nombre de la canción" : "Otra canción..."}
+                  style={inputStyle}
+                />
+              ))}
+            </div>
+            {songError && <div style={errStyle}>{songError}</div>}
+
+            {/* Botón "+" para agregar otra canción (máx 5) */}
+            {showAdd && (
+              <div style={{ textAlign: "center", marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={addSong}
+                  aria-label="Agregar otra canción"
+                  style={{
+                    appearance: "none",
+                    border: "none",
+                    background: "transparent",
+                    color: GOLD,
+                    fontFamily: BODY,
+                    fontWeight: 700,
+                    fontSize: 28,
+                    lineHeight: 1,
+                    cursor: "pointer",
+                    padding: "2px 10px",
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            )}
+
+            {submitError && <div style={{ ...errStyle, marginTop: 12 }}>{submitError}</div>}
+
+            {/* Botón de envío: aparece con transición al escribir la 1ª canción */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!showSubmit || submitting}
+              style={{
+                width: "100%",
+                background: TEAL_BRIGHT,
+                color: BG,
+                fontFamily: DISPLAY,
+                fontSize: "clamp(14px, 4vw, 18px)",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                padding: "14px 28px",
+                border: "none",
+                borderRadius: 8,
+                cursor: showSubmit ? "pointer" : "default",
+                marginTop: 16,
+                opacity: showSubmit ? (submitting ? 0.7 : 1) : 0,
+                pointerEvents: showSubmit ? "auto" : "none",
+                transition: "opacity 0.3s ease",
+              }}
+            >
+              {submitting
+                ? "Enviando..."
+                : filledCount >= 2
+                  ? "Enviar mis recomendaciones"
+                  : "Enviar mi recomendación"}
+            </button>
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
 // ─── ¿Nos acompañas? (sección coral con patrón de tortugas) ──────────────────
 
 function ConfirmarSection() {
@@ -2129,6 +2408,7 @@ export default function InvitationTortuga({
   galeriaHref = "/tortuga-tropical/galeria",
   photosPath = DEMO_PHOTOS_PATH,
   musicSrc = MUSIC_SRC,
+  playlist = false,
 }: {
   demo?: boolean;
   // Las rutas de clientes pasan su propia galería (p. ej.
@@ -2139,6 +2419,9 @@ export default function InvitationTortuga({
   galeriaHref?: string;
   photosPath?: string;
   musicSrc?: string;
+  // Solo la ruta del cliente israel-y-marisol la activa: muestra la sección
+  // "Ayúdanos con la playlist" entre la subida de fotos y "¿Nos acompañas?".
+  playlist?: boolean;
 }) {
   const [opened, setOpened] = useState(false);
   const { playing, play, toggle } = useMusic(musicSrc, DESIGN_ID);
@@ -2176,6 +2459,7 @@ export default function InvitationTortuga({
         <AgradecimientosSection />
         <RegalosSection photosPath={photosPath} />
         <PhotoUpload galeriaHref={galeriaHref} demo={demo} />
+        {playlist && <PlaylistSection photosPath={photosPath} />}
         <ConfirmarSection />
         <CierreSection photosPath={photosPath} galeriaHref={galeriaHref} />
       </main>
