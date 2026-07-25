@@ -2024,7 +2024,7 @@ function PlaylistSection({ photosPath }: { photosPath: string }) {
     <section style={{ background: BG, padding: "54px 30px 60px" }}>
       <Reveal>{title}</Reveal>
 
-      {/* Dos columnas: izquierda GIF (~40%), derecha texto + formulario (~60%) */}
+      {/* Dos columnas: izquierda video (~40%), derecha texto + formulario (~60%) */}
       <Reveal delay={1}>
         <div
           style={{
@@ -2044,12 +2044,23 @@ function PlaylistSection({ photosPath }: { photosPath: string }) {
               paddingTop: 8,
             }}
           >
-            <img
-              src={`${photosPath}/tortuga-bailando.gif`}
-              alt="Tortuga bailando"
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
               draggable={false}
-              style={{ width: "100%", maxWidth: 160, minWidth: 140, display: "block" }}
-            />
+              style={{
+                width: "100%",
+                maxWidth: 160,
+                minWidth: 140,
+                display: "block",
+                background: "transparent",
+              }}
+            >
+              <source src={`${photosPath}/tortuga-bailando.webm`} type="video/webm" />
+              <source src={`${photosPath}/tortuga-bailando.mp4`} type="video/mp4" />
+            </video>
           </div>
 
           {/* Columna derecha: intro + formulario */}
