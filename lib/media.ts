@@ -9,8 +9,16 @@ export type MediaKind = "photo" | "video";
 export const PHOTO_EXTS = ["jpg", "jpeg", "png", "webp", "heic"];
 export const VIDEO_EXTS = ["mp4", "mov", "avi"];
 
-export const MAX_PHOTO_BYTES = 100 * 1024 * 1024; // 100MB
+// Límites por archivo (plan Pro de Supabase; el "Upload file size limit" del
+// proyecto debe estar al menos en 500MB para que los videos grandes entren).
+export const MAX_PHOTO_BYTES = 15 * 1024 * 1024; // 15MB
 export const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // 500MB
+
+/** Cuánto puede acumular UN invitado (suma de file_size de todo lo que subió). */
+export const GUEST_MAX_BYTES = 500 * 1024 * 1024; // 500MB
+
+/** Días que se conservan los archivos antes de poder eliminarse (expires_at). */
+export const RETENTION_DAYS = 15;
 
 export const ACCEPT_ATTR = [
   ...PHOTO_EXTS.map((e) => "." + e),
@@ -21,7 +29,15 @@ export const ACCEPT_ATTR = [
   "video/x-msvideo",
 ].join(",");
 
-const BUCKET = "wedding-photos";
+export const BUCKET = "wedding-photos";
+
+/** Ruta dentro del bucket a partir de la URL pública (para borrar el archivo). */
+export function storagePathFromUrl(url: string): string | null {
+  const marker = `/storage/v1/object/public/${BUCKET}/`;
+  const i = url.indexOf(marker);
+  if (i === -1) return null;
+  return decodeURIComponent(url.slice(i + marker.length).split("?")[0]);
+}
 
 export function fileExt(name: string): string {
   return (name.split(".").pop() || "").toLowerCase();
@@ -60,7 +76,10 @@ export function validateFile(
   if (file.size > max) {
     return {
       ok: false,
-      error: `El ${kind === "photo" ? "archivo" : "video"} pesa ${formatBytes(file.size)} y el máximo es ${formatBytes(max)}.`,
+      error:
+        kind === "photo"
+          ? "Esta foto supera 15MB. Intenta con una de menor resolución."
+          : "Este video supera 500MB. Intenta con un clip más corto.",
     };
   }
   return { ok: true, kind };
@@ -114,8 +133,29 @@ export function uploadToStorage(
   });
 }
 
+/** Suma de bytes que un invitado ya subió en un diseño.
+ * Se usa para el límite de GUEST_MAX_BYTES por persona: supabase-js no tiene
+ * agregados sin RPC, así que se traen los file_size y se suman aquí. Las filas
+ * viejas (antes de la migración file_size) cuentan como 0. */
+export async function fetchGuestUsage(
+  uploaderName: string,
+  designId: string
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("photos")
+    .select("file_size")
+    .eq("uploader_name", uploaderName)
+    .eq("design", designId);
+  if (error) throw error;
+  return (data || []).reduce(
+    (sum, row) => sum + (typeof row.file_size === "number" ? row.file_size : 0),
+    0
+  );
+}
+
 /** Registra el archivo subido en la tabla photos.
- * Si la migración de file_type/file_size aún no se ejecutó, reintenta sin esas columnas. */
+ * Si alguna migración (file_type/file_size, expires_at) aún no se ejecutó,
+ * reintenta con menos columnas hasta que el insert entre. */
 export async function insertMediaRow(
   url: string,
   uploaderName: string,
@@ -123,17 +163,24 @@ export async function insertMediaRow(
   kind: MediaKind,
   size: number
 ): Promise<void> {
-  let { error } = await supabase.from("photos").insert({
-    url,
-    uploader_name: uploaderName,
-    design: designId,
-    file_type: kind,
-    file_size: size,
-  });
-  if (error && (error.code === "PGRST204" || /file_(type|size)/.test(error.message))) {
-    ({ error } = await supabase
-      .from("photos")
-      .insert({ url, uploader_name: uploaderName, design: designId }));
+  const base = { url, uploader_name: uploaderName, design: designId };
+  const expiresAt = new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  // De más completo a más antiguo; se baja un escalón si la columna no existe.
+  const payloads = [
+    { ...base, file_type: kind, file_size: size, expires_at: expiresAt },
+    { ...base, file_type: kind, file_size: size },
+    base,
+  ];
+
+  let lastError: { code?: string; message: string } | null = null;
+  for (const payload of payloads) {
+    const { error } = await supabase.from("photos").insert(payload);
+    if (!error) return;
+    lastError = error;
+    const missingColumn =
+      error.code === "PGRST204" || /file_(type|size)|expires_at/.test(error.message);
+    if (!missingColumn) break;
   }
-  if (error) throw error;
+  throw lastError;
 }

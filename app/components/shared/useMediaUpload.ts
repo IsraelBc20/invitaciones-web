@@ -5,7 +5,14 @@
 // selección con validación, previews, progreso individual y subida secuencial.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MediaKind, insertMediaRow, uploadToStorage, validateFile } from "@/lib/media";
+import {
+  GUEST_MAX_BYTES,
+  MediaKind,
+  fetchGuestUsage,
+  insertMediaRow,
+  uploadToStorage,
+  validateFile,
+} from "@/lib/media";
 
 export interface UploadItem {
   id: string;
@@ -25,6 +32,8 @@ export function useMediaUpload(designId: string) {
   const [uploading, setUploading] = useState(false);
   const [uploadDone, setUploadDone] = useState(false);
   const [formError, setFormError] = useState("");
+  // true cuando el invitado llegó a los 500MB acumulados → se abre el modal
+  const [limitReached, setLimitReached] = useState(false);
   const itemsRef = useRef(items);
   useEffect(() => {
     itemsRef.current = items;
@@ -67,6 +76,7 @@ export function useMediaUpload(designId: string) {
     setItems([]);
     setUploadDone(false);
     setFormError("");
+    setLimitReached(false);
   }, []);
 
   const patchItem = (id: string, patch: Partial<UploadItem>) =>
@@ -85,14 +95,39 @@ export function useMediaUpload(designId: string) {
     }
     setUploading(true);
     setFormError("");
+
+    // Límite de almacenamiento por invitado: se consulta cuánto lleva subido
+    // (suma de file_size de sus filas en este diseño) y se va acumulando el
+    // tamaño de cada archivo antes de subirlo. Si un archivo hace pasar de
+    // GUEST_MAX_BYTES, se corta ahí y se abre el modal.
+    let used = 0;
+    try {
+      used = await fetchGuestUsage(name, designId);
+    } catch {
+      // Si la consulta falla (red/permiso) no bloqueamos la subida: el límite
+      // es una regla de negocio, no una barrera de seguridad.
+      used = 0;
+    }
+    if (used >= GUEST_MAX_BYTES) {
+      setUploading(false);
+      setLimitReached(true);
+      return;
+    }
+
     let failed = 0;
+    let stoppedByLimit = false;
     for (const it of pending) {
+      if (used + it.file.size > GUEST_MAX_BYTES) {
+        stoppedByLimit = true;
+        break;
+      }
       patchItem(it.id, { status: "uploading", progress: 0 });
       try {
         const url = await uploadToStorage(it.file, designId, it.kind!, (pct) =>
           patchItem(it.id, { progress: pct })
         );
         await insertMediaRow(url, name, designId, it.kind!, it.file.size);
+        used += it.file.size;
         patchItem(it.id, { status: "done", progress: 100 });
       } catch (e) {
         failed++;
@@ -103,6 +138,10 @@ export function useMediaUpload(designId: string) {
       }
     }
     setUploading(false);
+    if (stoppedByLimit) {
+      setLimitReached(true);
+      return;
+    }
     if (failed === 0) {
       setUploadDone(true);
     } else {
@@ -127,6 +166,8 @@ export function useMediaUpload(designId: string) {
     uploadDone,
     setUploadDone,
     formError,
+    limitReached,
+    closeLimitModal: () => setLimitReached(false),
     validCount,
     pendingCount,
   };

@@ -63,3 +63,20 @@ drop constraint if exists photos_file_type_check;
 
 alter table public.photos
 add constraint photos_file_type_check check (file_type in ('photo', 'video'));
+
+-- ─── Migración: expiración (15 días) + índice por invitado ───────────────────
+-- expires_at marca cuándo puede eliminarse el archivo (la subida nueva lo pone
+-- a +15 días desde lib/media.ts). El índice acelera la consulta del límite de
+-- 500MB por invitado (uploader_name + design). EJECUTAR EN EL SQL EDITOR.
+
+alter table public.photos
+add column if not exists expires_at timestamptz;
+
+create index if not exists photos_uploader_design_idx
+on public.photos(uploader_name, design);
+
+-- Fotos ya subidas de la boda de Israel & Marisol (tortuga-tropical):
+-- se conservan hasta el 27 de septiembre de 2026.
+update public.photos
+set expires_at = '2026-09-27 23:59:59+00'
+where design = 'tortuga-tropical';

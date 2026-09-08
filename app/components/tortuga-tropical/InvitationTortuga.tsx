@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMediaUpload } from "@/app/components/shared/useMediaUpload";
 import { useUploadGate, type UploadGate } from "@/app/components/shared/uploadGate";
+import { UploadLimitModal } from "@/app/components/shared/UploadLimitModal";
 import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
@@ -1653,6 +1654,8 @@ function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean
     uploading,
     uploadDone,
     formError,
+    limitReached,
+    closeLimitModal,
   } = useMediaUpload(DESIGN_ID);
   const { ready, gate } = useUploadGate(demo);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1783,7 +1786,7 @@ function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean
               : "Sube tus fotos y videos del día"}
           </div>
           <div style={{ ...smallCaps, fontSize: 9.5, color: TEAL, marginTop: 6 }}>
-            Fotos hasta 100MB · Videos hasta 500MB
+            Fotos hasta 15MB · Videos hasta 500MB · 500MB por invitado
           </div>
           <input
             ref={inputRef}
@@ -1866,6 +1869,21 @@ function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean
       )}
 
       {ready && gate.blocked && <UploadBlockedCard gate={gate} />}
+
+      {limitReached && (
+        <UploadLimitModal
+          demo={demo}
+          onClose={closeLimitModal}
+          theme={{
+            card: "#ffffff",
+            title: INK,
+            text: INK,
+            titleFont: DISPLAY,
+            bodyFont: BODY,
+            titleStyle: { fontWeight: 600, letterSpacing: "0.02em" },
+          }}
+        />
+      )}
 
       <Reveal delay={2}>
         <div style={{ marginTop: 22 }}>
