@@ -10,7 +10,7 @@ import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 import { venueFor } from "@/lib/venue";
-import { signatureFor } from "@/lib/couple";
+import { coupleFor, signatureFor } from "@/lib/couple";
 
 const DESIGN_ID = "playa";
 
@@ -42,9 +42,12 @@ const GIF_FILTER = "sepia(1) saturate(0.9) hue-rotate(100deg) brightness(0.58)";
 const WEDDING_ISO = "2026-09-12T16:00:00";
 // La dirección y los mapas salen de lib/venue.ts: la demo usa un placeholder
 // genérico (Plaza de Armas de Lima) y la real solo va en rutas de cliente.
-const WA_CONFIRM = `https://wa.me/51993092110?text=${encodeURIComponent(
-  "¡Hola Israel y Marisol! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🌊"
-)}`;
+// El saludo lleva los nombres de la pareja: en las demos, los ficticios
+// (ver lib/couple.ts), por eso es una función de `demo` y no una constante.
+const waConfirm = (demo: boolean) =>
+  `https://wa.me/51993092110?text=${encodeURIComponent(
+    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🌊`
+  )}`;
 
 // ─── Scroll reveal (mismas clases CSS globales que el diseño oliva) ──────────
 
@@ -353,7 +356,7 @@ function DemoBanner() {
 
 // ─── Intro (portada de entrada, como el diseño oliva) ────────────────────────
 
-function IntroGate({ onOpen }: { onOpen: () => void }) {
+function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
   return (
     <div
       style={{
@@ -413,9 +416,9 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
             textShadow: "0 2px 18px rgba(0,0,0,0.45)",
           }}
         >
-          Israel
+          {coupleFor(demo).first}
           <div style={{ fontSize: 34, opacity: 0.85, margin: "-2px 0" }}>&amp;</div>
-          Marisol
+          {coupleFor(demo).second}
         </h1>
 
         <button
@@ -460,7 +463,7 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
 
 // ─── Portada ─────────────────────────────────────────────────────────────────
 
-function PortadaSection({ opened, photosPath }: { opened: boolean; photosPath: string }) {
+function PortadaSection({ opened, photosPath, demo }: { opened: boolean; photosPath: string; demo: boolean }) {
   // Entrada al ingresar: nombres → portada → texto de bienvenida, con stagger.
   // La fecha entra al final de la secuencia (está en el primer viewport, así
   // que el scroll-reveal normal la mostraría de golpe junto con el resto).
@@ -477,7 +480,7 @@ function PortadaSection({ opened, photosPath }: { opened: boolean; photosPath: s
             color: GREEN,
           }}
         >
-          Israel &amp; Marisol
+          {coupleFor(demo).amp}
         </h1>
       </EnterReveal>
       <EnterReveal active={opened} kind="reveal-scale" delay={180}>
@@ -1542,7 +1545,7 @@ function PhotoUpload({
 
 // ─── Confirmar asistencia ────────────────────────────────────────────────────
 
-function ConfirmarSection() {
+function ConfirmarSection({ demo }: { demo: boolean }) {
   return (
     <section style={{ background: BG_MID, padding: "60px 34px 70px", textAlign: "center" }}>
       <Reveal>
@@ -1570,7 +1573,7 @@ function ConfirmarSection() {
       </Reveal>
       <Reveal delay={2}>
         <div style={{ marginTop: 28 }}>
-          <BtnBlue href={WA_CONFIRM}>Confirmar</BtnBlue>
+          <BtnBlue href={waConfirm(demo)}>Confirmar</BtnBlue>
         </div>
       </Reveal>
     </section>
@@ -1658,11 +1661,11 @@ export default function InvitationPlaya({
   return (
     <div id="invitation-root">
       {demo && <DemoBanner />}
-      {!opened && <IntroGate onOpen={handleOpen} />}
+      {!opened && <IntroGate onOpen={handleOpen} demo={demo} />}
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        <PortadaSection opened={opened} photosPath={photosPath} />
+        <PortadaSection opened={opened} photosPath={photosPath} demo={demo} />
         {/* Asoma en el primer viewport: entra al final de la secuencia de
             ingreso en vez de aparecer de golpe (no tiene scroll-reveal propio) */}
         <EnterReveal active={opened} delay={760}>
@@ -1675,7 +1678,7 @@ export default function InvitationPlaya({
         <DressCodeSection />
         <RegalosSection />
         <PhotoUpload galeriaHref={galeriaHref} demo={demo} invitation={invitation} />
-        <ConfirmarSection />
+        <ConfirmarSection demo={demo} />
         <FullPhoto file="final.jpg" base={photosPath} alt="Israel y Marisol frente al mar" bg={BG} />
 
         <footer

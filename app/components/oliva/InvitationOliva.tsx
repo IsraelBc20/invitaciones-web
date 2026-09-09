@@ -10,7 +10,7 @@ import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 import { venueFor } from "@/lib/venue";
-import { signatureFor } from "@/lib/couple";
+import { coupleFor, signatureFor } from "@/lib/couple";
 
 const DESIGN_ID = "oliva";
 
@@ -372,7 +372,7 @@ export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: ()
 
 // ─── IntroGate ────────────────────────────────────────────────────────────────
 
-function IntroGate({ onOpen }: { onOpen: () => void }) {
+function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
   return (
     <div
       style={{
@@ -457,9 +457,9 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
         </div>
 
         <div className="script" style={{ fontSize: 72 }}>
-          Israel
+          {coupleFor(demo).first}
           <div style={{ fontSize: 46, color: "var(--tan)", margin: "-6px 0" }}>&amp;</div>
-          Marisol
+          {coupleFor(demo).second}
         </div>
 
         <div
@@ -499,7 +499,7 @@ function IntroGate({ onOpen }: { onOpen: () => void }) {
 
 // ─── Nombres + ¡Nos casamos! ─────────────────────────────────────────────────
 
-function NamesSection({ photosPath }: { photosPath: string }) {
+function NamesSection({ photosPath, demo }: { photosPath: string; demo: boolean }) {
   return (
     <section
       className="s"
@@ -514,9 +514,9 @@ function NamesSection({ photosPath }: { photosPath: string }) {
 
       <Reveal kind="reveal-scale">
         <div className="script" style={{ fontSize: 64, marginTop: 30 }}>
-          Israel
+          {coupleFor(demo).first}
           <div style={{ fontSize: 42, color: "var(--tan)", margin: "-4px 0" }}>&amp;</div>
-          Marisol
+          {coupleFor(demo).second}
         </div>
       </Reveal>
 
@@ -1455,10 +1455,11 @@ function PhotoUpload({
 
 // ─── Confirmar asistencia ────────────────────────────────────────────────────
 
-function RSVPSection() {
+function RSVPSection({ demo }: { demo: boolean }) {
   const phone = "993092110";
+  // El saludo lleva los nombres de la pareja: en las demos, los ficticios.
   const msg = encodeURIComponent(
-    "¡Hola Israel y Marisol! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. ✨"
+    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. ✨`
   );
   const link = `https://wa.me/51${phone}?text=${msg}`;
 
@@ -1683,11 +1684,11 @@ export default function InvitationOliva({
   return (
     <div id="invitation-root">
       {demo && <DemoBanner />}
-      {!opened && <IntroGate onOpen={handleOpen} />}
+      {!opened && <IntroGate onOpen={handleOpen} demo={demo} />}
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        <NamesSection photosPath={photosPath} />
+        <NamesSection photosPath={photosPath} demo={demo} />
         <QuoteSection />
         <DateSection demo={demo} />
         <CountdownSection />
@@ -1700,7 +1701,7 @@ export default function InvitationOliva({
         <ThanksSection />
         <GiftSection />
         <PhotoUpload galeriaHref={galeriaHref} demo={demo} invitation={invitation} />
-        <RSVPSection />
+        <RSVPSection demo={demo} />
         <TeEsperamos />
 
         <footer

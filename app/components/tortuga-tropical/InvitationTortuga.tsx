@@ -58,9 +58,12 @@ const WEDDING_ISO_DEMO = "2026-09-12T16:00:00";
 const WEDDING_ISO_CLIENTE = "2026-09-12T14:00:00";
 // La dirección y los mapas salen de lib/venue.ts: la demo usa un placeholder
 // genérico (Plaza de Armas de Lima) y la real solo va en rutas de cliente.
-const WA_CONFIRM = `https://wa.me/51993092110?text=${encodeURIComponent(
-  "¡Hola Israel y Marisol! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🐢"
-)}`;
+// El saludo lleva los nombres de la pareja: en las demos, los ficticios
+// (ver lib/couple.ts), por eso es una función de `demo` y no una constante.
+const waConfirm = (demo: boolean) =>
+  `https://wa.me/51993092110?text=${encodeURIComponent(
+    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🐢`
+  )}`;
 
 // ─── Scroll reveal (mismas clases CSS globales que oliva y playa) ────────────
 
@@ -499,9 +502,9 @@ function IntroGate({
             textShadow: "0 2px 18px rgba(0,0,0,0.35)",
           }}
         >
-          Israel
+          {coupleFor(demo).first}
           <div style={{ fontSize: 34, opacity: 0.85, margin: "-2px 0" }}>&amp;</div>
-          Marisol
+          {coupleFor(demo).second}
         </h1>
 
         <button
@@ -546,7 +549,7 @@ function IntroGate({
 
 // ─── Portada ─────────────────────────────────────────────────────────────────
 
-function PortadaSection({ opened, photosPath }: { opened: boolean; photosPath: string }) {
+function PortadaSection({ opened, photosPath, demo }: { opened: boolean; photosPath: string; demo: boolean }) {
   return (
     <section
       style={{ background: BG, padding: "52px 18px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}
@@ -566,7 +569,7 @@ function PortadaSection({ opened, photosPath }: { opened: boolean; photosPath: s
             color: INK,
           }}
         >
-          Israel &amp; Marisol
+          {coupleFor(demo).amp}
         </h1>
       </EnterReveal>
 
@@ -2210,7 +2213,7 @@ function PlaylistSection({ photosPath }: { photosPath: string }) {
 
 // ─── ¿Nos acompañas? (sección coral con patrón de tortugas) ──────────────────
 
-function ConfirmarSection() {
+function ConfirmarSection({ demo }: { demo: boolean }) {
   return (
     <section style={{ position: "relative", background: CORAL, overflow: "hidden" }}>
       {/* fondo-nosotros.png (flores crema) como capa de fondo con opacity 0.45
@@ -2272,7 +2275,7 @@ function ConfirmarSection() {
         <Reveal delay={1}>
           <div style={{ marginTop: 26 }}>
             <a
-              href={WA_CONFIRM}
+              href={waConfirm(demo)}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -2384,7 +2387,7 @@ function CierreSection({
       {/* 3. Bloque de cierre azul petróleo, PEGADO a la imagen: nombres + galería */}
       <div style={{ background: "#02516f", padding: 24, textAlign: "center" }}>
         <div style={{ fontFamily: BODY, fontSize: 16, color: BG, margin: "0 0 12px" }}>
-          {coupleFor(demo)} · 2026
+          {coupleFor(demo).amp} · 2026
         </div>
         <Link
           href={galeriaHref}
@@ -2493,7 +2496,7 @@ export default function InvitationTortuga({
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        <PortadaSection opened={opened} photosPath={photosPath} />
+        <PortadaSection opened={opened} photosPath={photosPath} demo={demo} />
         <FechaSection demo={demo} />
         <CountdownSection weddingIso={demo ? WEDDING_ISO_DEMO : WEDDING_ISO_CLIENTE} />
         {/* Arreglo floral de transición entre el contador y la ceremonia */}
@@ -2514,7 +2517,7 @@ export default function InvitationTortuga({
         <RegalosSection photosPath={photosPath} />
         <PhotoUpload galeriaHref={galeriaHref} demo={demo} invitation={invitation} />
         {playlist && <PlaylistSection photosPath={photosPath} />}
-        <ConfirmarSection />
+        <ConfirmarSection demo={demo} />
         <CierreSection demo={demo} photosPath={photosPath} galeriaHref={galeriaHref} />
       </main>
     </div>

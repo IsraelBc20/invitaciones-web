@@ -12,7 +12,7 @@ import { useMusic } from "@/app/components/shared/useMusic";
 import { useGalleryMedia } from "@/app/components/shared/useGalleryMedia";
 import { DEMO_INVITATION } from "@/lib/media";
 import { MusicFab, MUSIC_SRC } from "@/app/components/oliva/InvitationOliva";
-import { signatureFor } from "@/lib/couple";
+import { coupleFor, signatureFor } from "@/lib/couple";
 
 const DESIGN_ID = "oliva";
 
@@ -115,7 +115,7 @@ export default function GalleryOliva({
           className="small-caps"
           style={{ fontSize: 10, letterSpacing: "0.4em", color: "var(--ink-soft)" }}
         >
-          Israel &amp; Marisol · 12 · 09 · 2026
+          {coupleFor(invitation === DEMO_INVITATION).amp} · 12 · 09 · 2026
         </div>
         <h1
           style={{
