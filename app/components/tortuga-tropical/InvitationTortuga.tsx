@@ -48,7 +48,12 @@ const ACCENT = "'Bodoni Moda', 'Bodoni MT', Georgia, serif";
 // el tono a ~40° y el hue-rotate lo gira hasta ~195°, el matiz de ese azul).
 const GIF_FILTER = "sepia(1) saturate(2.4) hue-rotate(155deg) brightness(0.55)";
 
-const WEDDING_ISO = "2026-09-12T16:00:00";
+// Hora del evento para la cuenta regresiva. Igual que la tarjeta de ceremonia y
+// el itinerario, depende de la invitación: el demo conserva la hora plantilla
+// (4:00 p.m.) y el cliente israel-y-marisol se casa a las 2:00 p.m. Si no
+// coinciden, el countdown termina a una hora distinta de la ceremonia.
+const WEDDING_ISO_DEMO = "2026-09-12T16:00:00";
+const WEDDING_ISO_CLIENTE = "2026-09-12T14:00:00";
 // Coordenadas exactas del local (Av. Circunvalación Norte 404, Huaral)
 const COORDS = "-11.489522,-77.206264";
 const MAPS_URL = `https://www.google.com/maps?q=${COORDS}`;
@@ -720,8 +725,8 @@ function FechaSection() {
 
 // ─── Cuenta regresiva ("Solo faltan:") ───────────────────────────────────────
 
-function getTimeLeft() {
-  const diff = new Date(WEDDING_ISO).getTime() - Date.now();
+function getTimeLeft(weddingIso: string) {
+  const diff = new Date(weddingIso).getTime() - Date.now();
   const clamp = Math.max(diff, 0);
   return {
     d: Math.floor(clamp / 86400000),
@@ -731,16 +736,16 @@ function getTimeLeft() {
   };
 }
 
-function CountdownSection() {
+function CountdownSection({ weddingIso }: { weddingIso: string }) {
   // Arranca en null y se calcula recién en el cliente: el valor depende de
   // Date.now() y renderizarlo en SSR causa un hydration mismatch.
   const [t, setT] = useState<ReturnType<typeof getTimeLeft> | null>(null);
   useEffect(() => {
-    const tick = () => setT(getTimeLeft());
+    const tick = () => setT(getTimeLeft(weddingIso));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [weddingIso]);
 
   const unit = (value: number, label: string) => (
     <div style={{ minWidth: 56 }}>
@@ -2484,7 +2489,7 @@ export default function InvitationTortuga({
       <main style={{ position: "relative", zIndex: 1 }}>
         <PortadaSection opened={opened} photosPath={photosPath} />
         <FechaSection />
-        <CountdownSection />
+        <CountdownSection weddingIso={demo ? WEDDING_ISO_DEMO : WEDDING_ISO_CLIENTE} />
         {/* Arreglo floral de transición entre el contador y la ceremonia */}
         <div style={{ background: BG, textAlign: "center", padding: "24px 0" }}>
           <img
