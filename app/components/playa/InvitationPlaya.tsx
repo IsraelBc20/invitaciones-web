@@ -9,6 +9,7 @@ import { UploadLimitModal } from "@/app/components/shared/UploadLimitModal";
 import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
+import { venueFor } from "@/lib/venue";
 
 const DESIGN_ID = "playa";
 
@@ -38,10 +39,8 @@ const DISPLAY = "'Cormorant Garamond', Georgia, serif";
 const GIF_FILTER = "sepia(1) saturate(0.9) hue-rotate(100deg) brightness(0.58)";
 
 const WEDDING_ISO = "2026-09-12T16:00:00";
-// Coordenadas exactas del local (Av. Circunvalación Norte 404, Huaral)
-const COORDS = "-11.489522,-77.206264";
-const MAPS_URL = `https://www.google.com/maps?q=${COORDS}`;
-const MAPS_DIR_URL = `https://www.google.com/maps/dir/?api=1&destination=${COORDS}`;
+// La dirección y los mapas salen de lib/venue.ts: la demo usa un placeholder
+// genérico (Plaza de Armas de Lima) y la real solo va en rutas de cliente.
 const WA_CONFIRM = `https://wa.me/51993092110?text=${encodeURIComponent(
   "¡Hola Israel y Marisol! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🌊"
 )}`;
@@ -802,8 +801,9 @@ function InvitacionSection({ photosPath }: { photosPath: string }) {
 
 // ─── Ubicación ───────────────────────────────────────────────────────────────
 
-function UbicacionSection() {
-  const embed = `https://maps.google.com/maps?q=${COORDS}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
+function UbicacionSection({ demo }: { demo: boolean }) {
+  const venue = venueFor(demo);
+  const embed = venue.embedUrl;
 
   const info = (titulo: string, texto: string) => (
     <div style={{ marginTop: 30 }}>
@@ -861,7 +861,7 @@ function UbicacionSection() {
       </Reveal>
 
       <Reveal delay={2}>
-        {info("Dirección", "Av. Circunvalación Norte 404 - Huaral")}
+        {info("Dirección", venue.line)}
         {info("Hora", "4:00 p.m.")}
       </Reveal>
 
@@ -902,8 +902,8 @@ function UbicacionSection() {
             gap: 12,
           }}
         >
-          <BtnBlue href={MAPS_URL}>Ver en Google Maps</BtnBlue>
-          <BtnBlue href={MAPS_DIR_URL}>Cómo llegar</BtnBlue>
+          <BtnBlue href={venue.mapsUrl}>Ver en Google Maps</BtnBlue>
+          <BtnBlue href={venue.directionsUrl}>Cómo llegar</BtnBlue>
         </div>
       </Reveal>
     </section>
@@ -1669,7 +1669,7 @@ export default function InvitationPlaya({
         </EnterReveal>
         <NosotrosSection photosPath={photosPath} />
         <InvitacionSection photosPath={photosPath} />
-        <UbicacionSection />
+        <UbicacionSection demo={demo} />
         <ItinerarioSection />
         <DressCodeSection />
         <RegalosSection />

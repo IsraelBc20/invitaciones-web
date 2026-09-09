@@ -9,6 +9,7 @@ import { UploadLimitModal } from "@/app/components/shared/UploadLimitModal";
 import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
+import { venueFor } from "@/lib/venue";
 
 const DESIGN_ID = "oliva";
 
@@ -573,7 +574,7 @@ function QuoteSection() {
 
 // ─── Fecha ────────────────────────────────────────────────────────────────────
 
-function DateSection() {
+function DateSection({ demo }: { demo: boolean }) {
   return (
     <section className="s" style={{ paddingTop: 20, paddingBottom: 50 }}>
       <Reveal>
@@ -600,7 +601,7 @@ function DateSection() {
 
           <div style={{ textAlign: "center", padding: "0 6px" }}>
             <div className="small-caps" style={{ fontSize: 11 }}>
-              Huaral
+              {venueFor(demo).city}
             </div>
             <div
               style={{
@@ -692,12 +693,13 @@ function CountdownSection() {
 
 // ─── Lugar ────────────────────────────────────────────────────────────────────
 
-function VenueSection() {
-  // Coordenadas exactas del local (Av. Circunvalación Norte 404, Huaral)
-  const coords = "-11.489522,-77.206264";
-  const mapsLink = `https://www.google.com/maps?q=${coords}`;
-  const directionsLink = `https://www.google.com/maps/dir/?api=1&destination=${coords}`;
-  const embed = `https://maps.google.com/maps?q=${coords}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
+function VenueSection({ demo }: { demo: boolean }) {
+  // La demo muestra una dirección genérica y mapas a la Plaza de Armas de Lima;
+  // la real solo va en rutas de cliente (ver lib/venue.ts).
+  const venue = venueFor(demo);
+  const mapsLink = venue.mapsUrl;
+  const directionsLink = venue.directionsUrl;
+  const embed = venue.embedUrl;
 
   return (
     <section className="s" style={{ paddingTop: 60, paddingBottom: 60, textAlign: "center" }}>
@@ -729,9 +731,9 @@ function VenueSection() {
               marginTop: 10,
             }}
           >
-            Av. Circunvalación Norte 404
+            {venue.street}
             <br />
-            Huaral
+            {venue.city}
           </p>
           <div
             style={{
@@ -1686,9 +1688,9 @@ export default function InvitationOliva({
       <main style={{ position: "relative", zIndex: 1 }}>
         <NamesSection photosPath={photosPath} />
         <QuoteSection />
-        <DateSection />
+        <DateSection demo={demo} />
         <CountdownSection />
-        <VenueSection />
+        <VenueSection demo={demo} />
         <ItinerarySection />
         <DressCode />
         <NosotrosSection photosPath={photosPath} />

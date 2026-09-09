@@ -10,6 +10,7 @@ import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 import { supabase } from "@/lib/supabase";
+import { venueFor } from "@/lib/venue";
 
 const DESIGN_ID = "tortuga-tropical";
 
@@ -54,10 +55,8 @@ const GIF_FILTER = "sepia(1) saturate(2.4) hue-rotate(155deg) brightness(0.55)";
 // coinciden, el countdown termina a una hora distinta de la ceremonia.
 const WEDDING_ISO_DEMO = "2026-09-12T16:00:00";
 const WEDDING_ISO_CLIENTE = "2026-09-12T14:00:00";
-// Coordenadas exactas del local (Av. Circunvalación Norte 404, Huaral)
-const COORDS = "-11.489522,-77.206264";
-const MAPS_URL = `https://www.google.com/maps?q=${COORDS}`;
-const MAPS_DIR_URL = `https://www.google.com/maps/dir/?api=1&destination=${COORDS}`;
+// La dirección y los mapas salen de lib/venue.ts: la demo usa un placeholder
+// genérico (Plaza de Armas de Lima) y la real solo va en rutas de cliente.
 const WA_CONFIRM = `https://wa.me/51993092110?text=${encodeURIComponent(
   "¡Hola Israel y Marisol! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🐢"
 )}`;
@@ -649,7 +648,7 @@ function PortadaSection({ opened, photosPath }: { opened: boolean; photosPath: s
 // globals.css), replicada inline con la paleta tortuga: texto azul petróleo,
 // líneas y acentos teal.
 
-function FechaSection() {
+function FechaSection({ demo }: { demo: boolean }) {
   // .hline de oliva (height 1px, opacity 0.5) en teal
   const hline: React.CSSProperties = { height: 1, background: TEAL, opacity: 0.5 };
   // .display-title de oliva (Lora, tracking 0.24em, uppercase, weight 500)
@@ -691,7 +690,7 @@ function FechaSection() {
           </div>
 
           <div style={{ textAlign: "center", padding: "0 6px" }}>
-            <div style={{ ...caps, color: TEAL }}>Huaral</div>
+            <div style={{ ...caps, color: TEAL }}>{venueFor(demo).city}</div>
             <div
               style={{
                 fontFamily: "var(--font-display)",
@@ -821,11 +820,15 @@ function CountdownSection({ weddingIso }: { weddingIso: string }) {
 
 // ─── Ceremonia civil (fondo con imagen, ícono de municipalidad, botones y mapa)
 
-// El pb del embed apunta a las coordenadas exactas del local (COORDS)
+// El pb del embed apunta a las coordenadas exactas del local (VENUE_REAL). Es
+// la forma /maps/embed?pb=, que da un mapa más limpio que el ?q= genérico; como
+// el pb trae las coordenadas incrustadas, solo sirve para el local real y la
+// demo cae en el embedUrl genérico de lib/venue.ts.
 const MAPS_EMBED_URL =
   "https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d487.5!2d-77.206264!3d-11.489522!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMTHCsDI5JzIyLjMiUyA3N8KwMTInMjIuNiJX!5e0!3m2!1ses!2spe!4v1";
 
 function CeremoniaSection({ demo }: { demo: boolean }) {
+  const venue = venueFor(demo);
   // El cliente israel-y-marisol tiene ceremonia civil a las 2:00 p.m. (coincide
   // con el primer ítem de su itinerario); el demo conserva la hora plantilla
   // (4:00 p.m.) e ícono un poco más chico.
@@ -872,7 +875,7 @@ function CeremoniaSection({ demo }: { demo: boolean }) {
             {hora}
           </div>
           <div style={{ fontFamily: BODY, fontSize: 16, color: INK, marginTop: 16 }}>
-            Av. Circunvalación Norte 402 - Huaral
+            {venue.line}
           </div>
         </Reveal>
 
@@ -886,10 +889,10 @@ function CeremoniaSection({ demo }: { demo: boolean }) {
               gap: 14,
             }}
           >
-            <MapButton href={MAPS_URL} bg={TEAL_BRIGHT}>
+            <MapButton href={venue.mapsUrl} bg={TEAL_BRIGHT}>
               Ver en maps
             </MapButton>
-            <MapButton href={MAPS_DIR_URL} bg={TEAL_DARK}>
+            <MapButton href={venue.directionsUrl} bg={TEAL_DARK}>
               Cómo llegar
             </MapButton>
           </div>
@@ -897,7 +900,7 @@ function CeremoniaSection({ demo }: { demo: boolean }) {
 
         <Reveal kind="reveal-scale" delay={2}>
           <iframe
-            src={MAPS_EMBED_URL}
+            src={demo ? venue.embedUrl : MAPS_EMBED_URL}
             title="Mapa de la ceremonia"
             width="100%"
             height={250}
@@ -2488,7 +2491,7 @@ export default function InvitationTortuga({
 
       <main style={{ position: "relative", zIndex: 1 }}>
         <PortadaSection opened={opened} photosPath={photosPath} />
-        <FechaSection />
+        <FechaSection demo={demo} />
         <CountdownSection weddingIso={demo ? WEDDING_ISO_DEMO : WEDDING_ISO_CLIENTE} />
         {/* Arreglo floral de transición entre el contador y la ceremonia */}
         <div style={{ background: BG, textAlign: "center", padding: "24px 0" }}>
