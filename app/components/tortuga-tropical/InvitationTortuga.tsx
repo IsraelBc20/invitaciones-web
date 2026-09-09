@@ -821,9 +821,10 @@ const MAPS_EMBED_URL =
   "https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d487.5!2d-77.206264!3d-11.489522!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMTHCsDI5JzIyLjMiUyA3N8KwMTInMjIuNiJX!5e0!3m2!1ses!2spe!4v1";
 
 function CeremoniaSection({ demo }: { demo: boolean }) {
-  // El cliente israel-y-marisol tiene ceremonia civil a la 1:00 p.m.; el demo
-  // conserva la hora plantilla (4:00 p.m.) e ícono un poco más chico.
-  const hora = demo ? "4:00 p.m." : "1:00 p.m.";
+  // El cliente israel-y-marisol tiene ceremonia civil a las 2:00 p.m. (coincide
+  // con el primer ítem de su itinerario); el demo conserva la hora plantilla
+  // (4:00 p.m.) e ícono un poco más chico.
+  const hora = demo ? "4:00 p.m." : "2:00 p.m.";
   const muniWidth = demo ? 70 : 85;
   return (
     <section
