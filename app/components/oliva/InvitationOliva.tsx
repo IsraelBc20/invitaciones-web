@@ -10,6 +10,7 @@ import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 import { venueFor } from "@/lib/venue";
+import { signatureFor } from "@/lib/couple";
 
 const DESIGN_ID = "oliva";
 
@@ -1710,7 +1711,7 @@ export default function InvitationOliva({
           }}
         >
           <div className="small-caps" style={{ fontSize: 10 }}>
-            Israel &amp; Marisol · Huaral 2026
+            {signatureFor(demo)}
           </div>
           <Link
             href={galeriaHref}

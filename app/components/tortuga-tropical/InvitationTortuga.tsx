@@ -11,6 +11,7 @@ import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 import { supabase } from "@/lib/supabase";
 import { venueFor } from "@/lib/venue";
+import { coupleFor } from "@/lib/couple";
 
 const DESIGN_ID = "tortuga-tropical";
 
@@ -2298,9 +2299,11 @@ function ConfirmarSection() {
 // ─── Cierre ──────────────────────────────────────────────────────────────────
 
 function CierreSection({
+  demo,
   photosPath,
   galeriaHref,
 }: {
+  demo: boolean;
   photosPath: string;
   galeriaHref: string;
 }) {
@@ -2381,7 +2384,7 @@ function CierreSection({
       {/* 3. Bloque de cierre azul petróleo, PEGADO a la imagen: nombres + galería */}
       <div style={{ background: "#02516f", padding: 24, textAlign: "center" }}>
         <div style={{ fontFamily: BODY, fontSize: 16, color: BG, margin: "0 0 12px" }}>
-          Israel &amp; Marisol · 2026
+          {coupleFor(demo)} · 2026
         </div>
         <Link
           href={galeriaHref}
@@ -2512,7 +2515,7 @@ export default function InvitationTortuga({
         <PhotoUpload galeriaHref={galeriaHref} demo={demo} invitation={invitation} />
         {playlist && <PlaylistSection photosPath={photosPath} />}
         <ConfirmarSection />
-        <CierreSection photosPath={photosPath} galeriaHref={galeriaHref} />
+        <CierreSection demo={demo} photosPath={photosPath} galeriaHref={galeriaHref} />
       </main>
     </div>
   );

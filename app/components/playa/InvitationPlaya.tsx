@@ -10,6 +10,7 @@ import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 import { venueFor } from "@/lib/venue";
+import { signatureFor } from "@/lib/couple";
 
 const DESIGN_ID = "playa";
 
@@ -1685,7 +1686,7 @@ export default function InvitationPlaya({
           }}
         >
           <div style={{ ...smallCaps, fontSize: 10, color: BLUE }}>
-            Israel &amp; Marisol · Huaral 2026
+            {signatureFor(demo)}
           </div>
           <Link
             href={galeriaHref}

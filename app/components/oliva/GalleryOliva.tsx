@@ -12,6 +12,7 @@ import { useMusic } from "@/app/components/shared/useMusic";
 import { useGalleryMedia } from "@/app/components/shared/useGalleryMedia";
 import { DEMO_INVITATION } from "@/lib/media";
 import { MusicFab, MUSIC_SRC } from "@/app/components/oliva/InvitationOliva";
+import { signatureFor } from "@/lib/couple";
 
 const DESIGN_ID = "oliva";
 
@@ -383,7 +384,7 @@ export default function GalleryOliva({
           color: "#f6f2ee",
         }}
       >
-        Israel &amp; Marisol · Huaral 2026
+        {signatureFor(invitation === DEMO_INVITATION)}
       </div>
 
       {lightboxIndex !== null && (

@@ -13,6 +13,7 @@ import { useMusic } from "@/app/components/shared/useMusic";
 import { useGalleryMedia } from "@/app/components/shared/useGalleryMedia";
 import { DEMO_INVITATION } from "@/lib/media";
 import { MusicFab, MUSIC_SRC } from "@/app/components/tortuga-tropical/InvitationTortuga";
+import { signatureFor } from "@/lib/couple";
 
 const DESIGN_ID = "tortuga-tropical";
 
@@ -428,7 +429,7 @@ export default function GalleryTortuga({
           color: "#faf3eb",
         }}
       >
-        Israel &amp; Marisol · Huaral 2026
+        {signatureFor(invitation === DEMO_INVITATION)}
       </div>
 
       {lightboxIndex !== null && (
