@@ -96,15 +96,20 @@ const FALLBACK_MIME: Record<string, string> = {
   avi: "video/x-msvideo",
 };
 
-/** Sube un archivo al bucket con progreso real (0–100). Devuelve la URL pública. */
+/** Sube un archivo al bucket con progreso real (0–100). Devuelve la URL pública.
+ * La ruta es `<design>/<invitation>/<foto|video>-<timestamp>-<random>.<ext>`. */
 export function uploadToStorage(
   file: File,
   designId: string,
+  invitation: string,
   kind: MediaKind,
   onProgress: (pct: number) => void
 ): Promise<string> {
   const ext = fileExt(file.name) || (kind === "photo" ? "jpg" : "mp4");
-  const path = `${designId}/${kind === "photo" ? "foto" : "video"}-${Date.now()}-${Math.random()
+  // Los archivos se agrupan por diseño Y por invitación
+  // (wedding-photos/tortuga-tropical/israel-y-marisol/foto-*.jpg) para poder
+  // borrar de una vez todo lo de un cliente desde Storage.
+  const path = `${designId}/${invitation}/${kind === "photo" ? "foto" : "video"}-${Date.now()}-${Math.random()
     .toString(36)
     .slice(2)}.${ext}`;
 

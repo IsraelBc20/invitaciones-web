@@ -38,7 +38,8 @@ create policy "Public read wedding photos"
 -- ─── Migración: multi-diseño (catálogo) ──────────────────────────────────────
 -- Cada foto pertenece a un diseño ('oliva', 'playa', ...). Las fotos existentes
 -- quedan en 'oliva'. Los archivos nuevos se guardan en subcarpetas del bucket
--- (oliva/archivo.jpg). EJECUTAR EN EL SQL EDITOR DEL DASHBOARD.
+-- (desde el 8 sep 2026, <design>/<invitation>/archivo.jpg).
+-- EJECUTAR EN EL SQL EDITOR DEL DASHBOARD.
 
 alter table public.photos
 add column if not exists design text not null default 'oliva';

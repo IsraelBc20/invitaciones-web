@@ -125,7 +125,7 @@ export function useMediaUpload(designId: string, invitation: string) {
       }
       patchItem(it.id, { status: "uploading", progress: 0 });
       try {
-        const url = await uploadToStorage(it.file, designId, it.kind!, (pct) =>
+        const url = await uploadToStorage(it.file, designId, invitation, it.kind!, (pct) =>
           patchItem(it.id, { progress: pct })
         );
         await insertMediaRow(url, name, designId, invitation, it.kind!, it.file.size);

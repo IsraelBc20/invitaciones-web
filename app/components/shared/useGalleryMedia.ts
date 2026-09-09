@@ -31,25 +31,16 @@ export function useGalleryMedia(designId: string, invitation: string) {
 
   const load = useCallback(async () => {
     try {
-      let { data, error: queryError } = await supabase
+      // Sin fallback a propósito (decisión del 8 sep 2026): si la migración
+      // `invitation` no se ejecutó, la consulta falla con 42703 y la galería
+      // muestra el aviso de error en vez de disimularlo mostrando las fotos de
+      // todas las invitaciones del diseño mezcladas.
+      const { data, error: queryError } = await supabase
         .from("photos")
         .select("*")
         .eq("design", designId)
         .eq("invitation", invitation)
         .order("created_at", { ascending: false });
-
-      // Si la migración `invitation` todavía no se ejecutó, la consulta falla
-      // con 42703 (columna inexistente). Se reintenta solo por diseño para que
-      // la galería siga funcionando entre el deploy y el SQL — mismo criterio
-      // que el fallback en cascada de insertMediaRow. Es transitorio: una vez
-      // ejecutada la migración esta rama no se vuelve a usar.
-      if (queryError?.code === "42703") {
-        ({ data, error: queryError } = await supabase
-          .from("photos")
-          .select("*")
-          .eq("design", designId)
-          .order("created_at", { ascending: false }));
-      }
 
       // No se pisan los items ya cargados: si falla una recarga, se sigue
       // viendo lo que había además del aviso.
