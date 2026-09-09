@@ -1,6 +1,8 @@
 "use client";
 
 // Lógica compartida de la sección "Sube tus fotos y videos" (oliva, playa, ...).
+// `invitation` es el slug de la invitación ('demo' o el del cliente): separa las
+// fotos —y la cuota de 500MB— de la demo y de cada boda dentro de un diseño.
 // Cada diseño renderiza su propia UI con su estética; este hook maneja el estado:
 // selección con validación, previews, progreso individual y subida secuencial.
 
@@ -26,7 +28,7 @@ export interface UploadItem {
 
 let nextId = 0;
 
-export function useMediaUpload(designId: string) {
+export function useMediaUpload(designId: string, invitation: string) {
   const [uploaderName, setUploaderName] = useState("");
   const [items, setItems] = useState<UploadItem[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -102,7 +104,7 @@ export function useMediaUpload(designId: string) {
     // GUEST_MAX_BYTES, se corta ahí y se abre el modal.
     let used = 0;
     try {
-      used = await fetchGuestUsage(name, designId);
+      used = await fetchGuestUsage(name, designId, invitation);
     } catch {
       // Si la consulta falla (red/permiso) no bloqueamos la subida: el límite
       // es una regla de negocio, no una barrera de seguridad.
@@ -126,7 +128,7 @@ export function useMediaUpload(designId: string) {
         const url = await uploadToStorage(it.file, designId, it.kind!, (pct) =>
           patchItem(it.id, { progress: pct })
         );
-        await insertMediaRow(url, name, designId, it.kind!, it.file.size);
+        await insertMediaRow(url, name, designId, invitation, it.kind!, it.file.size);
         used += it.file.size;
         patchItem(it.id, { status: "done", progress: 100 });
       } catch (e) {
@@ -149,7 +151,7 @@ export function useMediaUpload(designId: string) {
         `${failed} archivo${failed > 1 ? "s" : ""} no se pudo${failed > 1 ? "ieron" : ""} subir. Revisa los mensajes e intenta de nuevo.`
       );
     }
-  }, [designId, uploaderName]);
+  }, [designId, invitation, uploaderName]);
 
   const validCount = items.filter((it) => it.status !== "error" || it.kind).length;
   const pendingCount = items.filter((it) => it.status === "pending").length;

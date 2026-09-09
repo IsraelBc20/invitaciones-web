@@ -6,6 +6,11 @@ import { supabase } from "./supabase";
 
 export type MediaKind = "photo" | "video";
 
+/** Slug de la invitación a la que pertenece una foto: 'demo' o el del cliente
+ * (p. ej. 'israel-y-marisol'). Separa la galería del demo de la de cada cliente
+ * dentro de un mismo diseño. */
+export const DEMO_INVITATION = "demo";
+
 export const PHOTO_EXTS = ["jpg", "jpeg", "png", "webp", "heic"];
 export const VIDEO_EXTS = ["mp4", "mov", "avi"];
 
@@ -133,19 +138,23 @@ export function uploadToStorage(
   });
 }
 
-/** Suma de bytes que un invitado ya subió en un diseño.
- * Se usa para el límite de GUEST_MAX_BYTES por persona: supabase-js no tiene
+/** Suma de bytes que un invitado ya subió en una invitación.
+ * Se usa para el límite de GUEST_MAX_BYTES por persona: la cuota es por
+ * invitado + diseño + invitación, así que los invitados de una boda no gastan la
+ * cuota de otra. supabase-js no tiene
  * agregados sin RPC, así que se traen los file_size y se suman aquí. Las filas
  * viejas (antes de la migración file_size) cuentan como 0. */
 export async function fetchGuestUsage(
   uploaderName: string,
-  designId: string
+  designId: string,
+  invitation: string
 ): Promise<number> {
   const { data, error } = await supabase
     .from("photos")
     .select("file_size")
     .eq("uploader_name", uploaderName)
-    .eq("design", designId);
+    .eq("design", designId)
+    .eq("invitation", invitation);
   if (error) throw error;
   return (data || []).reduce(
     (sum, row) => sum + (typeof row.file_size === "number" ? row.file_size : 0),
@@ -154,12 +163,13 @@ export async function fetchGuestUsage(
 }
 
 /** Registra el archivo subido en la tabla photos.
- * Si alguna migración (file_type/file_size, expires_at) aún no se ejecutó,
- * reintenta con menos columnas hasta que el insert entre. */
+ * Si alguna migración (file_type/file_size, expires_at, invitation) aún no se
+ * ejecutó, reintenta con menos columnas hasta que el insert entre. */
 export async function insertMediaRow(
   url: string,
   uploaderName: string,
   designId: string,
+  invitation: string,
   kind: MediaKind,
   size: number
 ): Promise<void> {
@@ -168,7 +178,8 @@ export async function insertMediaRow(
 
   // De más completo a más antiguo; se baja un escalón si la columna no existe.
   const payloads = [
-    { ...base, file_type: kind, file_size: size, expires_at: expiresAt },
+    { ...base, invitation, file_type: kind, file_size: size, expires_at: expiresAt },
+    { ...base, invitation, file_type: kind, file_size: size },
     { ...base, file_type: kind, file_size: size },
     base,
   ];
@@ -179,7 +190,7 @@ export async function insertMediaRow(
     if (!error) return;
     lastError = error;
     const missingColumn =
-      error.code === "PGRST204" || /file_(type|size)|expires_at/.test(error.message);
+      error.code === "PGRST204" || /file_(type|size)|expires_at|invitation/.test(error.message);
     if (!missingColumn) break;
   }
   throw lastError;

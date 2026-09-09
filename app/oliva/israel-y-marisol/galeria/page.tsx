@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <GalleryOliva
+      invitation="israel-y-marisol"
       backHref="/oliva/israel-y-marisol"
       musicSrc="/oliva/israel-y-marisol/music.mp3"
     />

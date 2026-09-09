@@ -6,10 +6,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import { MediaKind, kindFromUrl } from "@/lib/media";
 import Lightbox from "@/app/components/shared/Lightbox";
 import { useMusic } from "@/app/components/shared/useMusic";
+import { useGalleryMedia } from "@/app/components/shared/useGalleryMedia";
+import { DEMO_INVITATION } from "@/lib/media";
 import { MusicFab, MUSIC_SRC } from "@/app/components/playa/InvitationPlaya";
 
 const DESIGN_ID = "playa";
@@ -57,31 +58,28 @@ function formatDate(iso: string) {
 
 export default function GalleryPlaya({
   backHref = "/playa",
+  invitation = DEMO_INVITATION,
   musicSrc = MUSIC_SRC,
 }: {
   backHref?: string;
+  // Slug de la invitación: 'demo' o el del cliente (p. ej. 'israel-y-marisol').
+  // Cada una ve solo SUS fotos, aunque compartan diseño.
+  invitation?: string;
   // La galería de un cliente pasa la misma canción que su invitación
   // (p. ej. /playa/israel-y-marisol/music.mp3) para que el audio continúe.
   musicSrc?: string;
 }) {
-  const [items, setItems] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   // Misma canción que la invitación: si llegó sonando, aquí sigue hasta pausar
   const { playing, toggle } = useMusic(musicSrc, DESIGN_ID);
 
+  // La consulta vive en useGalleryMedia: expone el error (antes se tragaba y la
+  // galería se veía igual que una vacía) y recarga al volver a la pestaña.
+  const { items, loading, error, reload } = useGalleryMedia(DESIGN_ID, invitation);
+
   useEffect(() => {
     applyTheme();
-    supabase
-      .from("photos")
-      .select("*")
-      .eq("design", DESIGN_ID)
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (!error && data) setItems(data);
-        setLoading(false);
-      });
   }, []);
 
   const photoCount = useMemo(() => items.filter((i) => kindOf(i) === "photo").length, [items]);
@@ -216,6 +214,49 @@ export default function GalleryPlaya({
             }}
           >
             Cargando recuerdos...
+          </div>
+        ) : error ? (
+          <div style={{ textAlign: "center", padding: "80px 28px" }}>
+            <div style={{ fontSize: 46, marginBottom: 14 }}>🌐</div>
+            <h3
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 26,
+                color: "var(--ink)",
+                marginBottom: 10,
+              }}
+            >
+              No pudimos cargar los recuerdos
+            </h3>
+            <p
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontStyle: "italic",
+                fontSize: 16,
+                color: "var(--ink-soft)",
+              }}
+            >
+              Revisa tu conexión e inténtalo de nuevo.
+            </p>
+            <button
+              onClick={reload}
+              style={{
+                appearance: "none",
+                border: 0,
+                cursor: "pointer",
+                marginTop: 20,
+                background: "var(--accent)",
+                color: "#fdfdfe",
+                fontFamily: "var(--font-display)",
+                fontSize: 14,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                padding: "11px 28px",
+                borderRadius: 4,
+              }}
+            >
+              Reintentar
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 28px" }}>

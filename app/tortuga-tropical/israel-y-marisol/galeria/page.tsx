@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <GalleryTortuga
+      invitation="israel-y-marisol"
       backHref="/tortuga-tropical/israel-y-marisol"
       // Por ahora la misma canción del demo; cuando el cliente tenga la suya
       // irá en /tortuga-tropical/israel-y-marisol/music.mp3

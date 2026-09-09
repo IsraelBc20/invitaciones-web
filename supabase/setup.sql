@@ -80,3 +80,29 @@ on public.photos(uploader_name, design);
 update public.photos
 set expires_at = '2026-09-27 23:59:59+00'
 where design = 'tortuga-tropical';
+
+-- ─── Migración: separar galerías por cliente (invitation) ────────────────────
+-- Hasta ahora `photos` solo tenía `design`, así que la galería del demo y la de
+-- cada cliente del mismo diseño mostraban LAS MISMAS fotos. `invitation` es el
+-- slug de la invitación ('demo' o 'israel-y-marisol'), igual que la columna que
+-- ya usa `song_requests`. EJECUTAR EN EL SQL EDITOR.
+
+alter table public.photos
+add column if not exists invitation text not null default 'demo';
+
+-- La galería consulta siempre por design + invitation.
+create index if not exists photos_design_invitation_idx
+on public.photos(design, invitation);
+
+-- El límite de 500MB por invitado se calcula por invitado + diseño + invitación.
+drop index if exists photos_uploader_design_idx;
+create index if not exists photos_uploader_design_invitation_idx
+on public.photos(uploader_name, design, invitation);
+
+-- Filas anteriores a esta migración: la URL del bucket solo guarda el diseño
+-- (wedding-photos/<design>/foto-*.jpg), no el cliente, así que no hay forma de
+-- deducir a qué invitación pertenecían. Quedan como 'demo' (el default), que es
+-- donde se subieron mientras las rutas de clientes estaban bloqueadas.
+update public.photos
+set invitation = 'demo'
+where invitation is null;

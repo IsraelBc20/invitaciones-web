@@ -32,6 +32,7 @@ interface MediaRow {
   url: string;
   uploader_name: string;
   design: string | null;
+  invitation: string | null;
   created_at: string;
   file_size: number | null;
   file_type: MediaKind | null;
@@ -393,7 +394,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                   {row.uploader_name}
                 </strong>
                 <span style={S.cardMeta}>
-                  {row.design || "oliva"} · .{fileExt(row.url.split("?")[0]) || "?"}
+                  {row.design || "oliva"} · {row.invitation || "demo"} · .
+                  {fileExt(row.url.split("?")[0]) || "?"}
                 </span>
                 <span style={S.cardMeta}>
                   {row.file_size ? formatBytes(row.file_size) : "tamaño no registrado"}

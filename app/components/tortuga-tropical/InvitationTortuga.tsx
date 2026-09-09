@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMediaUpload } from "@/app/components/shared/useMediaUpload";
+import { DEMO_INVITATION } from "@/lib/media";
 import { useUploadGate, type UploadGate } from "@/app/components/shared/uploadGate";
 import { UploadLimitModal } from "@/app/components/shared/UploadLimitModal";
 import UploadPreview from "@/app/components/shared/UploadPreview";
@@ -1642,7 +1643,15 @@ function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true
   );
 }
 
-function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean }) {
+function PhotoUpload({
+  galeriaHref,
+  demo,
+  invitation,
+}: {
+  galeriaHref: string;
+  demo: boolean;
+  invitation: string;
+}) {
   const {
     uploaderName,
     setUploaderName,
@@ -1656,7 +1665,7 @@ function PhotoUpload({ galeriaHref, demo }: { galeriaHref: string; demo: boolean
     formError,
     limitReached,
     closeLimitModal,
-  } = useMediaUpload(DESIGN_ID);
+  } = useMediaUpload(DESIGN_ID, invitation);
   const { ready, gate } = useUploadGate(demo);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -2435,11 +2444,15 @@ export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: ()
 export default function InvitationTortuga({
   demo = false,
   galeriaHref = "/tortuga-tropical/galeria",
+  invitation = DEMO_INVITATION,
   photosPath = DEMO_PHOTOS_PATH,
   musicSrc = MUSIC_SRC,
   playlist = false,
 }: {
   demo?: boolean;
+  // Slug de la invitación: 'demo' o el del cliente (p. ej. 'israel-y-marisol').
+  // Se guarda en cada foto para que la galería de cada boda vea solo las suyas.
+  invitation?: string;
   // Las rutas de clientes pasan su propia galería (p. ej.
   // /tortuga-tropical/israel-y-marisol/galeria) para que el "Volver" cierre el
   // círculo, y sus propios assets (public/tortuga-tropical/<cliente>/photos y
@@ -2487,7 +2500,7 @@ export default function InvitationTortuga({
         <NosotrosSection photosPath={photosPath} />
         <AgradecimientosSection />
         <RegalosSection photosPath={photosPath} />
-        <PhotoUpload galeriaHref={galeriaHref} demo={demo} />
+        <PhotoUpload galeriaHref={galeriaHref} demo={demo} invitation={invitation} />
         {playlist && <PlaylistSection photosPath={photosPath} />}
         <ConfirmarSection />
         <CierreSection photosPath={photosPath} galeriaHref={galeriaHref} />
