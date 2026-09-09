@@ -22,6 +22,17 @@ import { useEffect, useState } from "react";
 // el resultado NO depende de la zona horaria del visitante.
 export const CLIENT_UPLOAD_OPENS_AT = new Date("2026-09-12T12:00:00-05:00").getTime();
 
+// Escape hatch SOLO para pruebas locales: con NEXT_PUBLIC_BYPASS_UPLOAD_BLOCK=true
+// en .env.local la subida queda habilitada sin tocar el código (ni la fecha, ni
+// el bloqueo de las demos). Next.js reemplaza las NEXT_PUBLIC_* en tiempo de
+// build, así que en Vercel —donde la variable no existe— esto compila a `false`
+// y el bloqueo funciona normal.
+//
+// OJO: al ser NEXT_PUBLIC_ el valor viaja al navegador. Si algún día se define
+// en Vercel, la subida queda abierta para TODOS los visitantes: es una variable
+// de desarrollo, no un interruptor para producción.
+export const BYPASS_UPLOAD_BLOCK = process.env.NEXT_PUBLIC_BYPASS_UPLOAD_BLOCK === "true";
+
 // WhatsApp de contacto para el flujo de subida (demo bloqueada para invitados).
 export const UPLOAD_CONTACT_WA = `https://wa.me/51993092110?text=${encodeURIComponent(
   "¡Hola! Estuve viendo la demo de las invitaciones y me gustaría saber cómo funciona la subida de fotos y videos de los invitados. 📸"
@@ -61,12 +72,20 @@ const BEFORE_WEDDING_GATE: UploadGate = {
  * useEffect para evitar hydration mismatch (renderizar Date.now() en el estado
  * inicial rompe la hidratación — mismo patrón que los countdowns del proyecto).
  * El caso demo no depende del reloj, así que se resuelve de inmediato.
+ *
+ * Con NEXT_PUBLIC_BYPASS_UPLOAD_BLOCK=true (solo en local) se saltan los dos
+ * bloqueos —el de la demo y el de la fecha— para poder probar la subida.
  */
 export function useUploadGate(demo: boolean): { ready: boolean; gate: UploadGate } {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     setNow(Date.now());
   }, []);
+
+  // El bypass es una constante de build, así que no depende del reloj ni del
+  // navegador: se puede resolver antes que todo lo demás sin romper la
+  // hidratación.
+  if (BYPASS_UPLOAD_BLOCK) return { ready: true, gate: { blocked: false } };
 
   if (demo) return { ready: true, gate: DEMO_GATE };
 
