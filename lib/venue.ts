@@ -7,8 +7,8 @@
 // `demo`.
 //
 // Vive en lib/ y no en cada componente porque antes estaba triplicada y derivó:
-// tortuga-tropical quedó en "Norte 402" mientras oliva y playa decían "Norte
-// 404" (detectado el 9 sep 2026).
+// oliva y playa decían "Norte 404" mientras tortuga-tropical decía "Norte 402"
+// (detectado el 9 sep 2026). El número bueno es el 402.
 
 export interface Venue {
   /** Calle y número, sin ciudad. */
@@ -41,7 +41,7 @@ function venue(street: string, city: string, coords: string): Venue {
 
 /** Local real de la boda de Israel & Marisol. Solo en rutas de cliente. */
 export const VENUE_REAL = venue(
-  "Av. Circunvalación Norte 404",
+  "Av. Circunvalación Norte 402",
   "Huaral",
   "-11.489522,-77.206264",
 );
