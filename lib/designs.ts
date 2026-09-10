@@ -46,5 +46,16 @@ export const designs: Design[] = [
     colores: ["#02536f", "#faf3eb", "#f56646"],
     tags: ["Boda Civil", "Playa", "Tropical"],
   },
+  {
+    id: "cabo-azul",
+    nombre: "Cabo Azul",
+    descripcion:
+      "Scrapbook náutico en crema y azul: polaroids con clip, conchas y sellos postales dibujados a mano, cuenta regresiva sobre acuarela y galería de fotos y videos para invitados.",
+    ruta: "/cabo-azul",
+    galeriaRuta: "/cabo-azul/galeria",
+    disponible: true,
+    colores: ["#007caf", "#f5ede7", "#cfe3ec"],
+    tags: ["Boda Civil", "Playa", "Scrapbook"],
+  },
   // Futuros diseños se agregan aquí:
 ];
