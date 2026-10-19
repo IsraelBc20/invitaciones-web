@@ -1,339 +1,580 @@
-import Link from "next/link";
-import { designs } from "@/lib/designs";
+"use client";
 
-const WA_CATALOGO = `https://wa.me/51993092110?text=${encodeURIComponent(
-  "¡Hola! Vi el catálogo de Invitaciones Digitales y me gustaría más información. ✨"
+// Catálogo (/) con estilo de tienda (rediseño 19 oct 2026, inspirado en
+// dariwithlove.ru): fondo gris claro, filtros por categoría, tarjetas blancas
+// con un celular que muestra la portada de cada diseño y un panel lateral de
+// "Solicitar" que arma el mensaje de WhatsApp.
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Camera, Clock, MapPin, MessageCircle, Music, Smartphone } from "lucide-react";
+import { designs, PRECIOS, type Categoria, type Design } from "@/lib/designs";
+
+const NEGOCIO = "Invitaciones Digitales";
+const WA_NUMBER = "51993092110";
+
+const WA_CATALOGO = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(
+  "¡Hola! Vi el catálogo de Invitaciones Digitales y me gustaría más información."
 )}`;
 
+// Paleta de la tienda
+const PAGE_BG = "#f8f8f8";
+const CARD_BG = "#ffffff";
+const BLACK = "#111111";
+const TEXT = "#222222";
+const MUTED = "#6b6b6b";
+const LINE = "#e4e4e4";
+const LINK = "#3a5f8f"; // nombre del diseño, azulado como un enlace
+const WA_GREEN = "#25D366";
+
+const FONT = "'DM Sans', 'Segoe UI', Arial, sans-serif";
+
+type Filtro = "todas" | Categoria;
+
+const FILTROS: { id: Filtro | "bautizos" | "quinceaneros"; label: string; pronto?: boolean }[] = [
+  { id: "todas", label: "Todas" },
+  { id: "boda", label: "Bodas" },
+  { id: "cumpleanos", label: "Cumpleaños" },
+  { id: "bautizos", label: "Bautizos", pronto: true },
+  { id: "quinceaneros", label: "Quinceañeros", pronto: true },
+];
+
 const FEATURES = [
-  { icon: "🎵", titulo: "Música de fondo", texto: "Canción personalizada que suena al abrir la invitación." },
-  { icon: "📸", titulo: "Galería de fotos", texto: "Tus invitados suben sus fotos y todos las ven en un solo lugar." },
-  { icon: "⏰", titulo: "Cuenta regresiva", texto: "Días, horas, minutos y segundos en vivo hasta el gran día." },
-  { icon: "📍", titulo: "Ubicación con mapa", texto: "Google Maps integrado para que nadie se pierda." },
-  { icon: "📱", titulo: "Optimizada para celular", texto: "Diseñada para verse perfecta en cualquier teléfono." },
-  { icon: "✉️", titulo: "Confirmación de asistencia", texto: "Tus invitados confirman con un toque por WhatsApp." },
+  { icon: Music, titulo: "Música de fondo", texto: "Canción personalizada que suena al abrir la invitación." },
+  { icon: Clock, titulo: "Cuenta regresiva", texto: "Días, horas, minutos y segundos en vivo hasta el gran día." },
+  { icon: MapPin, titulo: "Ubicación con mapa", texto: "Google Maps integrado para que nadie se pierda." },
+  { icon: MessageCircle, titulo: "Confirmación por WhatsApp", texto: "Tus invitados confirman su asistencia con un toque." },
+  { icon: Camera, titulo: "Galería de fotos", texto: "En las bodas, los invitados suben sus fotos y videos." },
+  { icon: Smartphone, titulo: "Hecha para celular", texto: "Se ve perfecta en cualquier teléfono." },
 ];
 
 const PASOS = [
   { n: 1, titulo: "Elige tu diseño", texto: "Explora el catálogo y mira las demos en vivo." },
   { n: 2, titulo: "Envíanos los datos", texto: "Nombres, fecha, lugar, fotos y la canción que quieres." },
-  { n: 3, titulo: "Personalizamos tu invitación", texto: "Adaptamos el diseño con toda tu información." },
+  { n: 3, titulo: "La personalizamos", texto: "Adaptamos el diseño con toda tu información." },
   { n: 4, titulo: "Recibe tu link", texto: "Compártelo por WhatsApp con todos tus invitados." },
 ];
 
-export default function CatalogPage() {
+const soles = (n: number) => `S/. ${n}`;
+
+// "2026-11-27" → "27/11/2026" para el mensaje de WhatsApp
+const fechaCorta = (iso: string) => iso.split("-").reverse().join("/");
+
+function WhatsAppIcon({ size = 18 }: { size?: number }) {
   return (
-    <div className="catalog-root">
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.6.2-.8l.4-.5c.1-.2.1-.3.2-.5v-.5c0-.1-.5-1.3-.7-1.8-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9 2.6 1.1 2.6.8 3.1.7.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2l-.4-.4Z" />
+    </svg>
+  );
+}
+
+/* eslint-disable @next/next/no-img-element */
+
+// ─── Celular con la portada ──────────────────────────────────────────────────
+// La pantalla va DEBAJO del SVG: el cuerpo negro es un path con un hueco
+// (fill-rule evenodd) por donde se ve la portada, y encima se dibujan la isla
+// y los botones laterales. Sin `preview` la pantalla es colores[0] + nombre.
+
+function PhoneFrame({ design, compact = false }: { design: Design; compact?: boolean }) {
+  // viewBox 200×410: cuerpo de x=6 a x=194; pantalla de 14,12 a 186,398
+  const screen = { left: 14 / 200, top: 12 / 410, width: 172 / 200, height: 386 / 410 };
+  return (
+    <div style={{ position: "relative", width: "100%", aspectRatio: "200 / 410" }}>
+      <div
+        style={{
+          position: "absolute",
+          left: `${screen.left * 100}%`,
+          top: `${screen.top * 100}%`,
+          width: `${screen.width * 100}%`,
+          height: `${screen.height * 100}%`,
+          borderRadius: compact ? 6 : "11% / 5.4%",
+          overflow: "hidden",
+          background: design.colores[0],
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "0 10%",
+          textAlign: "center",
+        }}
+      >
+        {design.preview ? (
+          <img
+            src={design.preview}
+            alt={`Portada del diseño ${design.nombre}`}
+            draggable={false}
+            style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }}
+          />
+        ) : (
+          !compact && (
+            <span className="phone-name" style={{ color: "#ffffff", fontFamily: FONT, fontWeight: 600, lineHeight: 1.2 }}>
+              {design.nombre}
+            </span>
+          )
+        )}
+      </div>
+      <svg
+        viewBox="0 0 200 410"
+        aria-hidden="true"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}
+      >
+        {/* Botones laterales: volumen (izq.) y encendido (der.) */}
+        <rect x="2" y="92" width="5" height="30" rx="2" fill="#1c1c1c" />
+        <rect x="2" y="132" width="5" height="46" rx="2" fill="#1c1c1c" />
+        <rect x="2" y="186" width="5" height="46" rx="2" fill="#1c1c1c" />
+        <rect x="193" y="142" width="5" height="68" rx="2" fill="#1c1c1c" />
+        <path
+          fillRule="evenodd"
+          fill={BLACK}
+          d="M36 2h128a30 30 0 0 1 30 30v346a30 30 0 0 1-30 30H36a30 30 0 0 1-30-30V32A30 30 0 0 1 36 2Z M36 12h128a22 22 0 0 1 22 22v342a22 22 0 0 1-22 22H36a22 22 0 0 1-22-22V34a22 22 0 0 1 22-22Z"
+        />
+        {/* Isla dinámica */}
+        <rect x="76" y="20" width="48" height="13" rx="6.5" fill={BLACK} />
+      </svg>
+    </div>
+  );
+}
+
+// ─── Tarjeta ─────────────────────────────────────────────────────────────────
+
+function DesignCard({ design, onSolicitar }: { design: Design; onSolicitar: (d: Design) => void }) {
+  const { precio, antes } = PRECIOS[design.categoria];
+  return (
+    <article className="shop-card">
+      <Link href={design.ruta} className="shop-phone" aria-label={`Ver demo de ${design.nombre}`}>
+        <span className="shop-badge">NUEVO</span>
+        <PhoneFrame design={design} />
+      </Link>
+
+      <div className="shop-info">
+        <Link href={design.ruta} className="shop-name">
+          “{design.nombre.toUpperCase()}”
+        </Link>
+        <p className="shop-desc">{design.descripcion}</p>
+        <div className="shop-tags">
+          {design.tags.map((tag) => (
+            <span key={tag} className="shop-tag">
+              {tag}
+            </span>
+          ))}
+        </div>
+        <div className="shop-price">
+          {antes && <s style={{ color: MUTED, fontWeight: 400, marginRight: 8 }}>{soles(antes)}</s>}
+          {soles(precio)}
+        </div>
+        <div className="shop-actions">
+          <Link href={design.ruta} className="shop-btn shop-btn-outline">
+            Ver demo
+          </Link>
+          <button type="button" className="shop-btn shop-btn-solid" onClick={() => onSolicitar(design)}>
+            Solicitar
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// ─── Panel lateral "Tu solicitud" ────────────────────────────────────────────
+
+function SolicitudPanel({
+  design,
+  open,
+  onClose,
+  onRemove,
+}: {
+  design: Design | null;
+  open: boolean;
+  onClose: () => void;
+  onRemove: () => void;
+}) {
+  const [nombre, setNombre] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [detalles, setDetalles] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  // Al corregir cualquier campo desaparece el aviso de validación
+  const campo = (set: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    set(e.target.value);
+    setError(null);
+  };
+
+  // Escape cierra; mientras está abierto la página de fondo no hace scroll
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  const enviar = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!design) return setError("Elige un diseño para tu solicitud");
+    if (!nombre.trim()) return setError("Por favor escribe tu nombre completo");
+    if (!fecha) return setError("Por favor indica la fecha del evento");
+    setError(null);
+    const mensaje = [
+      `Hola, quiero solicitar la invitación "${design.nombre}".`,
+      `Mi nombre es ${nombre.trim()}, el evento es el ${fechaCorta(fecha)}.`,
+      whatsapp.trim() ? `Mi WhatsApp: ${whatsapp.trim()}` : "",
+      detalles.trim() ? `Detalles: ${detalles.trim()}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(mensaje)}`, "_blank", "noopener");
+  };
+
+  const total = design ? PRECIOS[design.categoria].precio : 0;
+
+  return (
+    <>
+      <div className={`shop-overlay${open ? " open" : ""}`} onClick={onClose} aria-hidden="true" />
+      <aside
+        className={`shop-panel${open ? " open" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tu solicitud"
+        aria-hidden={!open}
+        inert={!open}
+      >
+        <div className="panel-head">
+          <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "0.08em" }}>TU SOLICITUD:</h2>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar" className="panel-x">
+            ×
+          </button>
+        </div>
+
+        <div className="panel-body">
+          {design ? (
+            <div className="panel-item">
+              <div style={{ width: 50, flexShrink: 0 }}>
+                <PhoneFrame design={design} compact />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: TEXT }}>“{design.nombre.toUpperCase()}”</div>
+                <div style={{ color: MUTED, fontSize: 13, marginTop: 4 }}>
+                  {soles(PRECIOS[design.categoria].precio)}
+                </div>
+              </div>
+              <button type="button" onClick={onRemove} aria-label={`Quitar ${design.nombre}`} className="panel-remove">
+                ×
+              </button>
+            </div>
+          ) : (
+            <p style={{ color: MUTED, fontSize: 14, padding: "18px 0" }}>
+              Aún no elegiste un diseño. Cierra el panel y toca “Solicitar” en el que te guste.
+            </p>
+          )}
+
+          <div className="panel-total">
+            <span>Total</span>
+            <span>{soles(total)}</span>
+          </div>
+
+          <form onSubmit={enviar} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <label className="panel-field">
+              <span>Nombre completo</span>
+              <input value={nombre} onChange={campo(setNombre)} autoComplete="name" />
+            </label>
+            <label className="panel-field">
+              <span>Número de WhatsApp</span>
+              <input
+                type="tel"
+                value={whatsapp}
+                onChange={campo(setWhatsapp)}
+                placeholder="+51 999 999 999"
+                autoComplete="tel"
+              />
+            </label>
+            <label className="panel-field">
+              <span>Fecha del evento</span>
+              <input type="date" value={fecha} onChange={campo(setFecha)} />
+            </label>
+            <label className="panel-field">
+              <span>
+                Mensaje o detalles adicionales <em style={{ color: MUTED, fontStyle: "normal" }}>(opcional)</em>
+              </span>
+              <textarea rows={4} value={detalles} onChange={campo(setDetalles)} />
+            </label>
+
+            {error && (
+              <p role="alert" style={{ color: "#c0392b", fontSize: 13.5 }}>
+                {error}
+              </p>
+            )}
+
+            <button type="submit" className="shop-btn shop-btn-solid" style={{ width: "100%", padding: "15px 0" }}>
+              ENVIAR SOLICITUD
+            </button>
+            <p style={{ textAlign: "center", fontSize: 12.5, color: MUTED, marginTop: -4 }}>
+              Te responderemos por WhatsApp a la brevedad
+            </p>
+          </form>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+// ─── Página ──────────────────────────────────────────────────────────────────
+
+export default function CatalogPage() {
+  const [filtro, setFiltro] = useState<Filtro>("todas");
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [elegido, setElegido] = useState<Design | null>(null);
+
+  const visibles = filtro === "todas" ? designs : designs.filter((d) => d.categoria === filtro);
+  const contar = (c: Filtro) => (c === "todas" ? designs.length : designs.filter((d) => d.categoria === c).length);
+
+  // Estable: el panel la usa como dependencia de su efecto (Escape + foco)
+  const cerrarPanel = useCallback(() => setPanelOpen(false), []);
+
+  const solicitar = (d: Design) => {
+    setElegido(d);
+    setPanelOpen(true);
+  };
+
+  return (
+    <div className="shop-root">
       <style>{`
         html { scroll-behavior: smooth; }
-        .catalog-root {
-          width: 100%;
-          min-height: 100vh;
-          background: radial-gradient(ellipse at top, #2a3a2e 0%, #131a15 55%, #0c110d 100%);
-          color: #f0ece4;
-          font-family: var(--font-serif);
+        body { background: ${PAGE_BG}; display: block; }
+        .shop-root { width: 100%; min-height: 100vh; background: ${PAGE_BG}; color: ${TEXT}; font-family: ${FONT}; }
+        .shop-inner { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+        @media (min-width: 768px) { .shop-inner { padding: 0 32px; } }
+
+        .shop-header { background: ${CARD_BG}; border-bottom: 1px solid ${LINE}; }
+        .shop-header .shop-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+        .shop-logo { font-weight: 700; font-size: 17px; letter-spacing: 0.14em; text-transform: uppercase; color: ${BLACK}; text-decoration: none; }
+        .shop-contact { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: ${TEXT}; text-decoration: none; }
+        .shop-contact:hover { color: ${BLACK}; text-decoration: underline; }
+        @media (max-width: 520px) {
+          .shop-logo { font-size: 14px; letter-spacing: 0.1em; }
+          .shop-contact span { display: none; }
         }
-        .catalog-inner { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
-        .cat-eyebrow {
-          font-family: var(--font-sans);
-          font-size: 12px;
-          letter-spacing: 0.38em;
-          text-transform: uppercase;
-          color: var(--gold);
+
+        .shop-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; }
+        .shop-pills::-webkit-scrollbar { display: none; }
+        .shop-pill {
+          flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+          padding: 9px 16px; border-radius: 999px; border: 1px solid ${LINE}; background: ${CARD_BG};
+          font-family: inherit; font-size: 14px; color: ${TEXT}; cursor: pointer; transition: all 0.2s ease;
         }
-        .cat-h2 {
-          font-family: var(--font-display);
-          font-size: clamp(26px, 4vw, 36px);
-          color: #f8f6f3;
-          margin-top: 12px;
-        }
-        .design-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 380px)); gap: 28px; justify-content: center; }
-        .design-card {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(215, 192, 122, 0.25);
-          border-radius: 18px;
-          overflow: hidden;
+        .shop-pill:hover:not(:disabled) { border-color: ${BLACK}; }
+        .shop-pill.active { background: ${BLACK}; border-color: ${BLACK}; color: #fff; }
+        .shop-pill:disabled { color: #9a9a9a; cursor: not-allowed; }
+        .shop-pill .count { font-size: 12px; opacity: 0.6; }
+        .shop-soon { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; background: #f0e6c8; color: #6e5a1c; padding: 2px 7px; border-radius: 999px; }
+
+        .shop-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 12px; }
+        @media (min-width: 900px) { .shop-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; } }
+
+        .shop-card {
+          background: ${CARD_BG}; border-radius: 12px; overflow: hidden;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
           transition: transform 0.3s ease, box-shadow 0.3s ease;
+          display: flex; flex-direction: column;
         }
-        .design-card:hover { transform: translateY(-4px); box-shadow: 0 24px 50px -20px rgba(0, 0, 0, 0.7); }
-        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
-        .feature-card {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 14px;
-          padding: 24px 20px;
+        .shop-card:hover { transform: translateY(-6px); box-shadow: 0 18px 36px -12px rgba(0, 0, 0, 0.22); }
+        .shop-phone { position: relative; display: block; padding: 22px 22% 18px; background: #f1f1f1; }
+        @media (max-width: 899px) { .shop-phone { padding: 16px 18% 14px; } }
+        .shop-badge {
+          position: absolute; top: 10px; left: 10px; z-index: 2;
+          background: ${BLACK}; color: #fff; font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+          padding: 4px 8px; border-radius: 4px;
         }
-        .paso-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; }
-        .btn-cat {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 14px 34px;
-          border-radius: 50px;
-          font-family: var(--font-sans);
-          font-size: 13px;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          text-decoration: none;
-          transition: all 0.3s ease;
-          cursor: pointer;
+        .phone-name { font-size: clamp(11px, 1.5vw, 16px); }
+
+        .shop-info { padding: 14px 14px 16px; display: flex; flex-direction: column; flex: 1; }
+        @media (min-width: 900px) { .shop-info { padding: 18px 18px 20px; } }
+        .shop-name { color: ${LINK}; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; text-decoration: none; cursor: pointer; }
+        .shop-name:hover { text-decoration: underline; }
+        .shop-desc {
+          margin-top: 6px; font-size: 13px; line-height: 1.45; color: ${MUTED};
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
-        .btn-cat-gold { background: var(--gold); color: #1c2418; }
-        .btn-cat-gold:hover { filter: brightness(1.08); }
-        .btn-cat-outline { border: 1px solid rgba(215, 192, 122, 0.6); color: var(--gold); }
-        .btn-cat-outline:hover { background: rgba(215, 192, 122, 0.12); }
+        .shop-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        .shop-tag { font-size: 10.5px; padding: 3px 8px; border-radius: 999px; background: #f2f2f2; color: #555; }
+        .shop-price { margin-top: auto; padding-top: 12px; font-size: 17px; font-weight: 700; color: ${BLACK}; }
+        .shop-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .shop-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          padding: 10px 6px; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 600;
+          text-decoration: none; cursor: pointer; transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+          white-space: nowrap;
+        }
+        @media (max-width: 899px) { .shop-actions { gap: 6px; } .shop-actions .shop-btn { font-size: 12px; padding: 9px 2px; } }
+        .shop-btn-outline { background: #fff; color: ${BLACK}; border: 1px solid ${BLACK}; }
+        .shop-btn-outline:hover { background: ${BLACK}; color: #fff; }
+        .shop-btn-solid { background: ${BLACK}; color: #fff; border: 1px solid ${BLACK}; }
+        .shop-btn-solid:hover { opacity: 0.85; }
+
+        .shop-empty { grid-column: 1 / -1; text-align: center; color: ${MUTED}; padding: 60px 0; }
+
+        .shop-section-title { font-size: clamp(20px, 3vw, 26px); font-weight: 700; text-align: center; color: ${BLACK}; }
+        .shop-features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 28px; }
+        @media (min-width: 900px) { .shop-features { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } }
+        .shop-feature { background: #fff; border-radius: 12px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .shop-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; margin-top: 28px; }
+        @media (min-width: 900px) { .shop-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+        .shop-overlay {
+          position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.45);
+          opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .shop-overlay.open { opacity: 1; pointer-events: auto; }
+        .shop-panel {
+          position: fixed; top: 0; right: 0; bottom: 0; z-index: 210;
+          width: 100%; max-width: 400px; background: #fff; color: ${TEXT};
+          display: flex; flex-direction: column;
+          transform: translateX(100%); transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+        .shop-panel.open { transform: translateX(0); box-shadow: -12px 0 40px rgba(0, 0, 0, 0.18); }
+        @media (max-width: 480px) { .shop-panel { max-width: none; } }
+        .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid ${LINE}; }
+        .panel-x { background: none; border: 0; font-size: 28px; line-height: 1; cursor: pointer; color: ${BLACK}; padding: 4px 8px; }
+        .panel-body { flex: 1; overflow-y: auto; padding: 18px 20px 28px; }
+        .panel-item { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid ${LINE}; }
+        .panel-remove { background: none; border: 1px solid ${LINE}; border-radius: 50%; width: 28px; height: 28px; font-size: 16px; line-height: 1; cursor: pointer; color: ${MUTED}; }
+        .panel-remove:hover { border-color: ${BLACK}; color: ${BLACK}; }
+        .panel-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; padding: 16px 0 22px; }
+        .panel-field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: ${TEXT}; }
+        .panel-field input, .panel-field textarea {
+          font-family: inherit; font-size: 15px; font-weight: 400; color: ${TEXT};
+          border: 1px solid #d6d6d6; border-radius: 6px; padding: 11px 12px; background: #fff; resize: vertical;
+        }
+        .panel-field input:focus, .panel-field textarea:focus { outline: none; border-color: ${BLACK}; }
+
+        .shop-footer { background: #151515; color: #e8e8e8; text-align: center; padding: 48px 16px 36px; margin-top: 70px; }
+        .shop-wa {
+          display: inline-flex; align-items: center; gap: 10px; margin-top: 18px;
+          background: ${WA_GREEN}; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px;
+          padding: 13px 26px; border-radius: 999px; transition: filter 0.2s ease;
+        }
+        .shop-wa:hover { filter: brightness(1.08); }
       `}</style>
 
-      {/* ── Header / Hero ── */}
-      <header className="catalog-inner" style={{ textAlign: "center", padding: "90px 24px 70px" }}>
-        <div className="cat-eyebrow">Invitaciones Digitales</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(38px, 7vw, 64px)",
-            lineHeight: 1.1,
-            marginTop: 22,
-            color: "#f8f6f3",
-            fontWeight: 500,
-          }}
-        >
-          Invitaciones únicas para
-          <br />
-          <span style={{ fontFamily: "var(--font-script)", color: "var(--gold)", fontWeight: 400 }}>
-            el día más especial
-          </span>
-        </h1>
-        <p
-          style={{
-            fontStyle: "italic",
-            fontSize: 19,
-            color: "rgba(240, 236, 228, 0.75)",
-            marginTop: 20,
-            maxWidth: 520,
-            marginLeft: "auto",
-            marginRight: "auto",
-            lineHeight: 1.6,
-          }}
-        >
-          Diseños exclusivos para bodas, 15 años y más
-        </p>
-        <div style={{ marginTop: 36 }}>
-          <a href="#disenos" className="btn-cat btn-cat-gold">
-            Ver diseños ↓
+      {/* ── Header ── */}
+      <header className="shop-header">
+        <div className="shop-inner">
+          <Link href="/" className="shop-logo">
+            {NEGOCIO}
+          </Link>
+          <a href={WA_CATALOGO} target="_blank" rel="noopener noreferrer" className="shop-contact">
+            <WhatsAppIcon size={16} />
+            <span>+51 993 092 110</span>
           </a>
         </div>
       </header>
 
-      {/* ── Diseños ── */}
-      <section id="disenos" className="catalog-inner" style={{ padding: "50px 24px 70px", textAlign: "center" }}>
-        <div className="cat-eyebrow">Catálogo</div>
-        <h2 className="cat-h2">Nuestros diseños</h2>
-        <div className="design-grid" style={{ marginTop: 40 }}>
-          {designs.map((d) => (
-            <article key={d.id} className="design-card">
-              {/* Preview: gradiente con los colores del diseño */}
-              <div
-                style={{
-                  height: 190,
-                  background: `linear-gradient(135deg, ${d.colores[0]} 0%, ${d.colores[1]} 60%, ${d.colores[2]} 130%)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  position: "relative",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-script)",
-                    fontSize: 46,
-                    color: "rgba(30, 40, 30, 0.75)",
-                  }}
-                >
-                  {d.nombre}
-                </span>
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 12,
-                    right: 12,
-                    fontFamily: "var(--font-sans)",
-                    fontSize: 10,
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    padding: "5px 12px",
-                    borderRadius: 50,
-                    background: d.disponible ? "rgba(30, 45, 32, 0.85)" : "rgba(90, 80, 60, 0.85)",
-                    color: d.disponible ? "#d7e5cf" : "#e8dcbc",
-                  }}
-                >
-                  {d.disponible ? "Disponible" : "Próximamente"}
-                </span>
-              </div>
+      <main className="shop-inner">
+        <div style={{ padding: "36px 0 20px" }}>
+          <h1 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 700, color: BLACK }}>Invitaciones digitales</h1>
+          <p style={{ color: MUTED, fontSize: 15, marginTop: 8 }}>
+            Diseños con música, cuenta regresiva, mapa y confirmación por WhatsApp.
+          </p>
+        </div>
 
-              <div style={{ padding: "24px 22px 28px", textAlign: "left" }}>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: 24, color: "#f8f6f3" }}>
-                  {d.nombre}
-                </h3>
-                <p
+        {/* ── Filtros ── */}
+        <div className="shop-pills" role="tablist" aria-label="Categorías">
+          {FILTROS.map((f) =>
+            f.pronto ? (
+              <button key={f.id} type="button" className="shop-pill" disabled>
+                {f.label}
+                <span className="shop-soon">Próximamente</span>
+              </button>
+            ) : (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={filtro === f.id}
+                className={`shop-pill${filtro === f.id ? " active" : ""}`}
+                onClick={() => setFiltro(f.id as Filtro)}
+              >
+                {f.label}
+                <span className="count">{contar(f.id as Filtro)}</span>
+              </button>
+            )
+          )}
+        </div>
+
+        {/* ── Grid ── */}
+        <section className="shop-grid" style={{ marginTop: 18 }} aria-live="polite">
+          {visibles.length === 0 ? (
+            <p className="shop-empty">Pronto tendremos diseños en esta categoría.</p>
+          ) : (
+            visibles.map((d) => <DesignCard key={d.id} design={d} onSolicitar={solicitar} />)
+          )}
+        </section>
+
+        {/* ── Qué incluye ── */}
+        <section style={{ marginTop: 72 }}>
+          <h2 className="shop-section-title">Cada invitación incluye</h2>
+          <div className="shop-features">
+            {FEATURES.map((f) => (
+              <div key={f.titulo} className="shop-feature">
+                <f.icon size={24} color={LINK} strokeWidth={1.8} aria-hidden="true" />
+                <div style={{ fontWeight: 600, fontSize: 15, marginTop: 8, color: BLACK }}>{f.titulo}</div>
+                <p style={{ fontSize: 13, lineHeight: 1.5, color: MUTED, marginTop: 4 }}>{f.texto}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Cómo funciona ── */}
+        <section style={{ marginTop: 64 }}>
+          <h2 className="shop-section-title">Cómo funciona</h2>
+          <div className="shop-steps">
+            {PASOS.map((p) => (
+              <div key={p.n} style={{ textAlign: "center" }}>
+                <div
                   style={{
-                    fontStyle: "italic",
-                    fontSize: 15.5,
-                    lineHeight: 1.55,
-                    color: "rgba(240, 236, 228, 0.7)",
-                    marginTop: 10,
+                    width: 40,
+                    height: 40,
+                    margin: "0 auto",
+                    borderRadius: "50%",
+                    background: BLACK,
+                    color: "#fff",
+                    display: "grid",
+                    placeItems: "center",
+                    fontWeight: 700,
                   }}
                 >
-                  {d.descripcion}
-                </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
-                  {d.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: 10,
-                        letterSpacing: "0.12em",
-                        textTransform: "uppercase",
-                        padding: "5px 11px",
-                        borderRadius: 50,
-                        border: "1px solid rgba(215, 192, 122, 0.4)",
-                        color: "var(--gold)",
-                      }}
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                  {p.n}
                 </div>
-                {d.disponible && (
-                  <div style={{ marginTop: 22 }}>
-                    <Link href={d.ruta} className="btn-cat btn-cat-outline" style={{ width: "100%" }}>
-                      Ver demo →
-                    </Link>
-                  </div>
-                )}
+                <div style={{ fontWeight: 600, fontSize: 15, marginTop: 10, color: BLACK }}>{p.titulo}</div>
+                <p style={{ fontSize: 13, lineHeight: 1.5, color: MUTED, marginTop: 4 }}>{p.texto}</p>
               </div>
-            </article>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      </main>
 
-      {/* ── Características ── */}
-      <section className="catalog-inner" style={{ padding: "50px 24px 70px", textAlign: "center" }}>
-        <div className="cat-eyebrow">Qué incluye</div>
-        <h2 className="cat-h2">Cada invitación viene con</h2>
-        <div className="feature-grid" style={{ marginTop: 40, textAlign: "left" }}>
-          {FEATURES.map((f) => (
-            <div key={f.titulo} className="feature-card">
-              <div style={{ fontSize: 30 }}>{f.icon}</div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 17,
-                  color: "#f8f6f3",
-                  marginTop: 12,
-                }}
-              >
-                {f.titulo}
-              </div>
-              <p
-                style={{
-                  fontStyle: "italic",
-                  fontSize: 14.5,
-                  lineHeight: 1.55,
-                  color: "rgba(240, 236, 228, 0.65)",
-                  marginTop: 8,
-                }}
-              >
-                {f.texto}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Cómo funciona ── */}
-      <section className="catalog-inner" style={{ padding: "50px 24px 80px", textAlign: "center" }}>
-        <div className="cat-eyebrow">Proceso</div>
-        <h2 className="cat-h2">Cómo funciona</h2>
-        <div className="paso-grid" style={{ marginTop: 40 }}>
-          {PASOS.map((p) => (
-            <div key={p.n} style={{ padding: "10px 8px" }}>
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  margin: "0 auto",
-                  borderRadius: "50%",
-                  border: "1px solid var(--gold)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "var(--font-display)",
-                  fontSize: 22,
-                  color: "var(--gold)",
-                }}
-              >
-                {p.n}
-              </div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 17,
-                  color: "#f8f6f3",
-                  marginTop: 16,
-                }}
-              >
-                {p.titulo}
-              </div>
-              <p
-                style={{
-                  fontStyle: "italic",
-                  fontSize: 14.5,
-                  lineHeight: 1.55,
-                  color: "rgba(240, 236, 228, 0.65)",
-                  marginTop: 8,
-                }}
-              >
-                {p.texto}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Footer / Contacto ── */}
-      <footer
-        style={{
-          borderTop: "1px solid rgba(215, 192, 122, 0.2)",
-          padding: "60px 24px 50px",
-          textAlign: "center",
-        }}
-      >
-        <h2 className="cat-h2" style={{ marginTop: 0 }}>
-          ¿Te gustó algún diseño? Contáctanos
-        </h2>
-        <div style={{ marginTop: 26 }}>
-          <a href={WA_CATALOGO} target="_blank" rel="noopener noreferrer" className="btn-cat btn-cat-gold">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-              <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.6.2-.8l.4-.5c.1-.2.1-.3.2-.5v-.5c0-.1-.5-1.3-.7-1.8-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9 2.6 1.1 2.6.8 3.1.7.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2l-.4-.4Z" />
-            </svg>
-            +51 993 092 110
-          </a>
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 11,
-            letterSpacing: "0.28em",
-            textTransform: "uppercase",
-            color: "rgba(240, 236, 228, 0.45)",
-            marginTop: 44,
-          }}
-        >
-          Invitaciones Digitales © 2026
-        </div>
+      {/* ── Footer ── */}
+      <footer className="shop-footer">
+        <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.14em", textTransform: "uppercase" }}>{NEGOCIO}</div>
+        <p style={{ marginTop: 14, color: "#bdbdbd", fontSize: 15 }}>¿Tienes dudas? Contáctanos</p>
+        <a href={WA_CATALOGO} target="_blank" rel="noopener noreferrer" className="shop-wa">
+          <WhatsAppIcon />
+          +51 993 092 110
+        </a>
+        <div style={{ marginTop: 34, fontSize: 12, color: "#8a8a8a" }}>© 2026 Invitaciones Digitales</div>
       </footer>
+
+      <SolicitudPanel
+        design={elegido}
+        open={panelOpen}
+        onClose={cerrarPanel}
+        onRemove={() => setElegido(null)}
+      />
     </div>
   );
 }

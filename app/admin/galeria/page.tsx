@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { Play } from "lucide-react";
 import { designs } from "@/lib/designs";
 import { fileExt, formatBytes, kindFromUrl, type MediaKind } from "@/lib/media";
 
@@ -297,7 +298,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           <span style={S.filterLabel}>Diseño</span>
           <select value={design} onChange={(e) => setDesign(e.target.value)} style={S.select}>
             <option value="todos">Todos</option>
-            {designs.map((d) => (
+            {/* Los diseños sin galería (cumpleaños) no tienen fotos que filtrar */}
+            {designs.filter((d) => d.galeriaRuta).map((d) => (
               <option key={d.id} value={d.id}>
                 {d.nombre}
               </option>
@@ -377,7 +379,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                       playsInline
                       style={S.thumb}
                     />
-                    <span style={S.playIcon}>▶</span>
+                    <span style={S.playIcon}>
+                      <Play size={14} fill="currentColor" strokeWidth={0} />
+                    </span>
                   </>
                 )}
                 <input

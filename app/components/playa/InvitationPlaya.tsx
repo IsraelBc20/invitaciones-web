@@ -11,6 +11,7 @@ import { useMusic } from "@/app/components/shared/useMusic";
 import { ACCEPT_ATTR } from "@/lib/media";
 import { venueFor } from "@/lib/venue";
 import { coupleFor, signatureFor } from "@/lib/couple";
+import { Hourglass, Lock, Sparkles } from "lucide-react";
 
 const DESIGN_ID = "playa";
 
@@ -46,7 +47,7 @@ const WEDDING_ISO = "2026-09-12T16:00:00";
 // (ver lib/couple.ts), por eso es una función de `demo` y no una constante.
 const waConfirm = (demo: boolean) =>
   `https://wa.me/51993092110?text=${encodeURIComponent(
-    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🌊`
+    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre.`
   )}`;
 
 // ─── Scroll reveal (mismas clases CSS globales que el diseño oliva) ──────────
@@ -285,7 +286,7 @@ function DemoBanner() {
   if (!visible) return null;
 
   const waLink = `https://wa.me/51993092110?text=${encodeURIComponent(
-    "¡Hola! Me gusta el diseño Playa Tropical y quiero una invitación como esta. 🌊"
+    "¡Hola! Me gusta el diseño Playa Tropical y quiero una invitación como esta."
   )}`;
 
   return (
@@ -311,7 +312,10 @@ function DemoBanner() {
         letterSpacing: "0.05em",
       }}
     >
-      <span>✨ Esta es una demo — ¿Te gusta este diseño?</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <Sparkles size={14} color="currentColor" aria-hidden="true" />
+        Esta es una demo — ¿Te gusta este diseño?
+      </span>
       <a
         href={waLink}
         target="_blank"
@@ -1241,7 +1245,9 @@ function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true
           marginTop: 26,
         }}
       >
-        <div style={{ fontSize: 32, lineHeight: 1 }}>{gate.kind === "demo" ? "🔒" : "⏳"}</div>
+        <div style={{ lineHeight: 1, color: GREEN }}>
+          {gate.kind === "demo" ? <Lock size={32} strokeWidth={1.6} /> : <Hourglass size={32} strokeWidth={1.6} />}
+        </div>
         <h3
           style={{
             fontFamily: DISPLAY,

@@ -13,6 +13,7 @@ import { useGalleryMedia } from "@/app/components/shared/useGalleryMedia";
 import { DEMO_INVITATION } from "@/lib/media";
 import { MusicFab, MUSIC_SRC } from "@/app/components/playa/InvitationPlaya";
 import { coupleFor, signatureFor } from "@/lib/couple";
+import { Play, Waves, WifiOff } from "lucide-react";
 
 const DESIGN_ID = "playa";
 
@@ -218,7 +219,9 @@ export default function GalleryPlaya({
           </div>
         ) : error ? (
           <div style={{ textAlign: "center", padding: "80px 28px" }}>
-            <div style={{ fontSize: 46, marginBottom: 14 }}>🌐</div>
+            <div style={{ marginBottom: 14 }}>
+              <WifiOff size={46} strokeWidth={1.4} color="var(--ink)" />
+            </div>
             <h3
               style={{
                 fontFamily: "var(--font-display)",
@@ -261,7 +264,9 @@ export default function GalleryPlaya({
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 28px" }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>🌊</div>
+            <div style={{ marginBottom: 16 }}>
+              <Waves size={52} strokeWidth={1.2} color="var(--ink)" />
+            </div>
             <h3
               style={{
                 fontFamily: "'Marcellus', var(--font-display)",
@@ -341,7 +346,7 @@ export default function GalleryPlaya({
                             paddingLeft: 3,
                           }}
                         >
-                          ▶
+                          <Play size={14} fill="currentColor" strokeWidth={0} />
                         </span>
                       </span>
                     </span>

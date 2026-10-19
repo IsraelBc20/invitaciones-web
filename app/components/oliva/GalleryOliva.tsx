@@ -13,6 +13,7 @@ import { useGalleryMedia } from "@/app/components/shared/useGalleryMedia";
 import { DEMO_INVITATION } from "@/lib/media";
 import { MusicFab, MUSIC_SRC } from "@/app/components/oliva/InvitationOliva";
 import { coupleFor, signatureFor } from "@/lib/couple";
+import { Flower2, Play, WifiOff } from "lucide-react";
 
 const DESIGN_ID = "oliva";
 
@@ -219,7 +220,9 @@ export default function GalleryOliva({
           </div>
         ) : error ? (
           <div style={{ textAlign: "center", padding: "80px 28px" }}>
-            <div style={{ fontSize: 46, marginBottom: 14 }}>🌐</div>
+            <div style={{ marginBottom: 14 }}>
+              <WifiOff size={46} strokeWidth={1.4} color="var(--ink)" />
+            </div>
             <h3
               style={{
                 fontFamily: "var(--font-display)",
@@ -246,7 +249,9 @@ export default function GalleryOliva({
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 28px" }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>🌸</div>
+            <div style={{ marginBottom: 16 }}>
+              <Flower2 size={52} strokeWidth={1.2} color="var(--brown)" />
+            </div>
             <h3
               style={{
                 fontFamily: "var(--font-display)",
@@ -326,7 +331,7 @@ export default function GalleryOliva({
                             paddingLeft: 3,
                           }}
                         >
-                          ▶
+                          <Play size={14} fill="currentColor" strokeWidth={0} />
                         </span>
                       </span>
                     </span>

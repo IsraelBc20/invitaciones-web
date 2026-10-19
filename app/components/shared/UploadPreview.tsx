@@ -3,6 +3,7 @@
 // Miniatura de un archivo por subir, con progreso individual y botón de quitar.
 // Es visualmente neutra: cada diseño le pasa su color de acento.
 
+import { Camera, Check, Film, Play, TriangleAlert } from "lucide-react";
 import { UploadItem } from "./useMediaUpload";
 
 export default function UploadPreview({
@@ -29,8 +30,8 @@ export default function UploadPreview({
         justifyContent: "center",
       }}
     >
-      <span style={{ position: "absolute", fontSize: 24, opacity: 0.4 }}>
-        {item.kind === "video" ? "🎬" : "📷"}
+      <span style={{ position: "absolute", display: "flex", opacity: 0.4 }}>
+        {item.kind === "video" ? <Film size={24} /> : <Camera size={24} />}
       </span>
       {item.kind === "video" ? (
         <video
@@ -49,7 +50,7 @@ export default function UploadPreview({
           onError={(e) => (e.currentTarget.style.display = "none")}
         />
       ) : (
-        <span style={{ position: "relative", fontSize: 24 }}>⚠️</span>
+        <TriangleAlert size={24} style={{ position: "relative" }} />
       )}
 
       {item.kind === "video" && item.status !== "uploading" && (
@@ -68,7 +69,7 @@ export default function UploadPreview({
             pointerEvents: "none",
           }}
         >
-          ▶
+          <Play size={12} fill="currentColor" strokeWidth={0} />
         </div>
       )}
 
@@ -83,12 +84,12 @@ export default function UploadPreview({
             borderRadius: "50%",
             background: accent,
             color: "#fff",
-            fontSize: 12,
-            lineHeight: "20px",
-            textAlign: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          ✓
+          <Check size={13} strokeWidth={3} />
         </div>
       )}
 

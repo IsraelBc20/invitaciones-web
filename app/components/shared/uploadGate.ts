@@ -35,7 +35,7 @@ export const BYPASS_UPLOAD_BLOCK = process.env.NEXT_PUBLIC_BYPASS_UPLOAD_BLOCK =
 
 // WhatsApp de contacto para el flujo de subida (demo bloqueada para invitados).
 export const UPLOAD_CONTACT_WA = `https://wa.me/51993092110?text=${encodeURIComponent(
-  "¡Hola! Estuve viendo la demo de las invitaciones y me gustaría saber cómo funciona la subida de fotos y videos de los invitados. 📸"
+  "¡Hola! Estuve viendo la demo de las invitaciones y me gustaría saber cómo funciona la subida de fotos y videos de los invitados."
 )}`;
 
 export type UploadGate =

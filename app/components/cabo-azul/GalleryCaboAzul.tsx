@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Play, WifiOff } from "lucide-react";
 import { MediaKind, kindFromUrl, DEMO_INVITATION } from "@/lib/media";
 import Lightbox from "@/app/components/shared/Lightbox";
 import { useMusic } from "@/app/components/shared/useMusic";
@@ -223,7 +224,9 @@ export default function GalleryCaboAzul({
           </div>
         ) : error ? (
           <div style={{ textAlign: "center", padding: "80px 28px" }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>🌐</div>
+            <div style={{ marginBottom: 12 }}>
+              <WifiOff size={44} strokeWidth={1.4} color="var(--ink)" />
+            </div>
             <h3
               style={{
                 fontFamily: SCRIPT_SOFT,
@@ -340,7 +343,7 @@ export default function GalleryCaboAzul({
                             paddingLeft: 3,
                           }}
                         >
-                          ▶
+                          <Play size={14} fill="currentColor" strokeWidth={0} />
                         </span>
                       </span>
                     </span>

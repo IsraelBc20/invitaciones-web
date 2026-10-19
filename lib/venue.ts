@@ -53,7 +53,20 @@ export const VENUE_DEMO = venue(
   "-12.045833,-77.030278",
 );
 
-/** Elige la dirección según la prop `demo` de la invitación. */
-export function venueFor(demo: boolean): Venue {
-  return demo ? VENUE_DEMO : VENUE_REAL;
+/**
+ * Local del cumpleaños de Emilia (K-Pop Guerreras). Placeholder hasta tener la
+ * dirección real: mientras tanto el mapa apunta a la Plaza de Armas de Lima.
+ */
+export const VENUE_EMILIA = venue(
+  "Dirección por confirmar",
+  "Lima",
+  "-12.045833,-77.030278",
+);
+
+/**
+ * Elige la dirección según la prop `demo` de la invitación. `real` es el local
+ * del cliente; por defecto el de la boda, los cumpleaños pasan el suyo.
+ */
+export function venueFor(demo: boolean, real: Venue = VENUE_REAL): Venue {
+  return demo ? VENUE_DEMO : real;
 }

@@ -12,6 +12,7 @@ import { ACCEPT_ATTR } from "@/lib/media";
 import { supabase } from "@/lib/supabase";
 import { venueFor } from "@/lib/venue";
 import { coupleFor } from "@/lib/couple";
+import { Lock, Sparkles } from "lucide-react";
 
 const DESIGN_ID = "tortuga-tropical";
 
@@ -62,7 +63,7 @@ const WEDDING_ISO_CLIENTE = "2026-09-12T14:00:00";
 // (ver lib/couple.ts), por eso es una función de `demo` y no una constante.
 const waConfirm = (demo: boolean) =>
   `https://wa.me/51993092110?text=${encodeURIComponent(
-    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🐢`
+    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre.`
   )}`;
 
 // ─── Scroll reveal (mismas clases CSS globales que oliva y playa) ────────────
@@ -338,7 +339,7 @@ function DemoBanner() {
   if (!visible) return null;
 
   const waLink = `https://wa.me/51993092110?text=${encodeURIComponent(
-    "¡Hola! Me gusta el diseño Tortuga Tropical y quiero una invitación como esta. 🐢"
+    "¡Hola! Me gusta el diseño Tortuga Tropical y quiero una invitación como esta."
   )}`;
 
   return (
@@ -364,7 +365,10 @@ function DemoBanner() {
         letterSpacing: "0.05em",
       }}
     >
-      <span>🐢 Esta es una demo — ¿Te gusta este diseño?</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <Sparkles size={14} color="currentColor" aria-hidden="true" />
+        Esta es una demo — ¿Te gusta este diseño?
+      </span>
       <a
         href={waLink}
         target="_blank"
@@ -1605,7 +1609,7 @@ function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true
       >
         <div style={{ fontSize: 34, lineHeight: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
           {gate.kind === "demo" ? (
-            "🔒"
+            <Lock size={34} strokeWidth={1.6} color={INK} />
           ) : (
             <img 
               src="/reloj-arena.gif" 
@@ -2053,7 +2057,7 @@ function PlaylistSection({ photosPath }: { photosPath: string }) {
             }}
           >
             Muchas gracias <strong style={{ fontWeight: 700 }}>{sentName}</strong> por tus
-            recomendaciones, las tendremos en cuenta para ese día. 🎵
+            recomendaciones, las tendremos en cuenta para ese día.
           </p>
         </Reveal>
       </section>

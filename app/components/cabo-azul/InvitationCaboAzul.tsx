@@ -22,6 +22,7 @@ import UploadPreview from "@/app/components/shared/UploadPreview";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { venueFor } from "@/lib/venue";
 import { coupleFor } from "@/lib/couple";
+import { Heart, Lock, Sparkles } from "lucide-react";
 
 const DESIGN_ID = "cabo-azul";
 
@@ -69,7 +70,7 @@ const smallCaps: React.CSSProperties = {
 
 const waConfirm = (demo: boolean) =>
   `https://wa.me/51993092110?text=${encodeURIComponent(
-    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre. 🐚`
+    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre.`
   )}`;
 
 // ─── Scroll reveal (mismas clases CSS globales que los otros diseños) ────────
@@ -395,7 +396,7 @@ function DemoBanner() {
   if (!visible) return null;
 
   const waLink = `https://wa.me/51993092110?text=${encodeURIComponent(
-    "¡Hola! Me gusta el diseño Cabo Azul y quiero una invitación como esta. 🐚"
+    "¡Hola! Me gusta el diseño Cabo Azul y quiero una invitación como esta."
   )}`;
 
   return (
@@ -421,7 +422,10 @@ function DemoBanner() {
         letterSpacing: "0.05em",
       }}
     >
-      <span>🐚 Esta es una demo — ¿Te gusta este diseño?</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <Sparkles size={14} color="currentColor" aria-hidden="true" />
+        Esta es una demo — ¿Te gusta este diseño?
+      </span>
       <a
         href={waLink}
         target="_blank"
@@ -683,7 +687,9 @@ function PortadaSection({
           <div style={{ fontFamily: SERIF, fontSize: 14, color: INK, marginTop: 2 }}>
             {venue.city}
           </div>
-          <div style={{ fontSize: 13, color: INK, marginTop: 2 }}>♥</div>
+          <div style={{ marginTop: 4, lineHeight: 0 }}>
+            <Heart size={13} fill={INK} color={INK} aria-hidden="true" />
+          </div>
         </div>
       </EnterReveal>
     </section>
@@ -1261,7 +1267,7 @@ function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true
       >
         <div style={{ fontSize: 32, lineHeight: 1 }}>
           {gate.kind === "demo" ? (
-            "🔒"
+            <Lock size={32} strokeWidth={1.6} color={INK} />
           ) : (
             <img src="/reloj-arena.gif" alt="Reloj de arena" style={{ width: 32, height: 32 }} />
           )}

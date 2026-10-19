@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Lock } from "lucide-react";
 
 // Protección de contenido para las rutas de invitación (NO usar en el
 // catálogo). Se agrega una sola vez en el layout del diseño
@@ -97,7 +98,7 @@ export default function ContentProtection() {
             fontFamily: "var(--font-serif), Georgia, serif",
           }}
         >
-          <div style={{ fontSize: 40 }}>🔒</div>
+          <Lock size={40} strokeWidth={1.6} />
           <div style={{ fontSize: 26, fontStyle: "italic" }}>Contenido protegido</div>
           <div style={{ fontSize: 15, opacity: 0.7, maxWidth: 300 }}>
             Cierra las herramientas de desarrollo para seguir viendo la invitación.

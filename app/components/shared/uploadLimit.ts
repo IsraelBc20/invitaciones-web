@@ -4,7 +4,7 @@
 // duplicarlo en oliva/playa/tortuga. Cada diseño lo pinta con su paleta usando
 // UploadLimitModal.
 
-const WA_TEXT_NOVIOS = "Hola %s 🐢 quiero compartir más fotos de tu boda";
+const WA_TEXT_NOVIOS = "Hola %s, quiero compartir más fotos de tu boda";
 
 function wa(phone: string, text: string) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
@@ -26,20 +26,20 @@ export interface LimitModalCopy {
 }
 
 const CLIENT_COPY: LimitModalCopy = {
-  title: "¡Límite de almacenamiento alcanzado! 📸",
+  title: "¡Límite de almacenamiento alcanzado!",
   message:
     "Has compartido muchos recuerdos hermosos (máximo 500MB por persona). Si deseas enviar más fotos o videos, puedes hacerlo directamente por WhatsApp:",
   buttons: [
-    { label: "Enviar a Marisol 💚", href: WA_MARISOL },
-    { label: "Enviar a Israel 💚", href: WA_ISRAEL },
+    { label: "Enviar a Marisol", href: WA_MARISOL },
+    { label: "Enviar a Israel", href: WA_ISRAEL },
   ],
 };
 
 const DEMO_COPY: LimitModalCopy = {
-  title: "¡Límite de almacenamiento alcanzado! 📸",
+  title: "¡Límite de almacenamiento alcanzado!",
   message:
     "Has alcanzado el límite de la versión demo. Para una galería sin límites para tu boda, ¡contáctanos!",
-  buttons: [{ label: "Escríbenos por WhatsApp 💚", href: WA_NEGOCIO }],
+  buttons: [{ label: "Escríbenos por WhatsApp", href: WA_NEGOCIO }],
 };
 
 export function limitModalCopy(demo: boolean): LimitModalCopy {
