@@ -83,7 +83,7 @@ Negocio de invitaciones digitales. `/` es el catálogo de diseños (fondo verde 
 - **Sin galería, subida, regalos, playlist ni historia**: `galeriaRuta: null` y `categoria: "cumpleanos"` en `lib/designs.ts` (el filtro del panel admin omite diseños sin galería).
 - El día de la semana se calcula a partir de la fecha (`fechaLarga`): el 27/11/2026 es **viernes**, no jueves.
 - Local: `venueFor(demo, VENUE_EMILIA)`. `VENUE_EMILIA` (en `lib/venue.ts`) es un **placeholder** ("Dirección por confirmar", con el mapa en la Plaza de Armas de Lima) hasta tener la dirección real.
-- Estrellas y confetti usan un PRNG con semilla (`seeded`), no `Math.random()`, para evitar el hydration mismatch. Keyframes `kpop-*` en `globals.css`; fuente Fredoka (agregada al `<link>` de `app/layout.tsx`).
+- Estrellas y confetti usan un PRNG con semilla (`seeded`), no `Math.random()`, para evitar el hydration mismatch. Keyframes `kpop-*` en `globals.css`; cuerpo en Fredoka (agregada al `<link>` de `app/layout.tsx`) y títulos (nombre de la portada + todos los `Titulo` de sección) en **Hunters K-Pop** (`public/fonts/Hunters K-Pop.otf`, `@font-face` en `globals.css`, const `TITLE_FONT`). Solo trae peso normal: no ponerle `fontWeight` bold.
 - Imágenes: el componente `Imagen` muestra un placeholder magenta/morado con el nombre del archivo que espera (lista en `public/kpop-guerreras-demo/README.txt`). Faltan todas, también `music.mp3` del demo y de Emilia.
 
 ## Supabase (proyecto `chbtejzilpvakdjevxnw`)

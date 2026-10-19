@@ -50,6 +50,8 @@ const GLOW = "rgba(233, 30, 140, 0.4)";
 const WHATSAPP = "#25D366";
 
 const FONT = "'Fredoka', 'Segoe UI', Arial, sans-serif";
+// Títulos (nombre de la portada y títulos de sección); @font-face en globals.css
+const TITLE_FONT = "'Hunters K-Pop', 'Fredoka', 'Segoe UI', Arial, sans-serif";
 
 const GRADIENT = `linear-gradient(135deg, ${MAGENTA} 0%, ${PURPLE} 100%)`;
 const TEXT_GLOW = `0 0 20px ${MAGENTA}, 0 0 40px ${MAGENTA}, 0 0 80px ${PURPLE}`;
@@ -372,8 +374,8 @@ function Titulo({ children, size = 34 }: { children: React.ReactNode; size?: num
   return (
     <h2
       style={{
-        fontFamily: FONT,
-        fontWeight: 700,
+        fontFamily: TITLE_FONT,
+        fontWeight: "normal",
         fontSize: size,
         letterSpacing: "0.04em",
         color: WHITE,
@@ -578,8 +580,8 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
 
         <h1
           style={{
-            fontFamily: FONT,
-            fontWeight: 700,
+            fontFamily: TITLE_FONT,
+            fontWeight: "normal",
             // Se encoge con nombres largos ("VALENTINA") para no tocar los bordes
             fontSize: "clamp(40px, 14vw, 64px)",
             lineHeight: 1,
