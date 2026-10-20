@@ -612,26 +612,46 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
 }
 
 // ─── 1b. Portada con video (solo cliente) ────────────────────────────────────
-// Video a ancho completo y debajo la tira de estrellas. Ambos son assets del
-// cliente (photosPath), así que el demo no la monta.
+// Video a ancho completo con la tira de estrellas pegada sobre su borde
+// inferior. Ambos son assets del cliente (photosPath), así que el demo no la
+// monta. El video arranca recién al abrir la invitación (si corriera detrás
+// del IntroGate podría terminar antes de que se vea) y, al terminar, la
+// página baja sola hasta lo que sigue.
 
-function PortadaVideoSection({ photosPath }: { photosPath: string }) {
+function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opened: boolean }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!opened || !video) return;
+    video.currentTime = 0;
+    video.play().catch(() => {});
+  }, [opened]);
+
+  const handleVideoEnded = () => {
+    const section = sectionRef.current;
+    if (!section) return;
+    window.scrollTo({ top: section.getBoundingClientRect().bottom + window.scrollY, behavior: "smooth" });
+  };
+
   return (
-    <section style={{ position: "relative", lineHeight: 0 }}>
+    <section ref={sectionRef} style={{ position: "relative", lineHeight: 0 }}>
       <video
+        ref={videoRef}
         src={`${photosPath}/video-portada.mp4`}
-        autoPlay
-        loop
         muted
         playsInline
+        preload="auto"
         draggable={false}
+        onEnded={handleVideoEnded}
         style={{ width: "100%", display: "block", margin: 0, padding: 0 }}
       />
       <img
         src={`${photosPath}/estrellas.png`}
         alt=""
         draggable={false}
-        style={{ width: "100%", display: "block", margin: 0 }}
+        style={{ position: "absolute", left: 0, bottom: -20, width: "100%", display: "block", margin: 0, zIndex: 2 }}
       />
     </section>
   );
@@ -719,8 +739,9 @@ function useTimeLeft(iso: string) {
 
 // Contador de Emilia: tarjeta crema con patitas (contador-base.png) y la
 // cabeza del gato asomándose por detrás. La cabeza va DETRÁS de la tarjeta
-// (zIndex menor) para que las patitas del PNG queden delante, y sube/baja
-// cada vez que el contador entra/sale del viewport.
+// (zIndex menor) para que las patitas del PNG queden delante, y su posición
+// sigue al scroll (parallax, sin transición ni opacity): escondida cuando el
+// contador entra por abajo, del todo asomada cuando llega al centro.
 const CAT_INK = "#1d2758"; // azul marino del contorno de la tarjeta
 const CAT_BLUE = "#3a78c9"; // azul de las patitas
 const LABEL_FONT = "'Montserrat Arabic', 'Fredoka', sans-serif";
@@ -728,15 +749,25 @@ const LABEL_FONT = "'Montserrat Arabic', 'Fredoka', sans-serif";
 function ContadorGato({ partyIso, photosPath }: { partyIso: string; photosPath: string }) {
   const t = useTimeLeft(partyIso);
   const ref = useRef<HTMLDivElement>(null);
-  const [cabeceraVisible, setCabeceraVisible] = useState(false);
+  // 0 = asomada del todo, 1 = escondida (fracción de su propia altura)
+  const [cabeceraOffset, setCabeceraOffset] = useState(1);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => setCabeceraVisible(entry.isIntersecting),
-      { threshold: 0.3 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
+    const handleScroll = () => {
+      if (!ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      const start = window.innerHeight; // contador entrando por abajo
+      const end = window.innerHeight / 2; // contador en el centro
+      const progress = Math.min(Math.max((start - rect.top) / (start - end), 0), 1);
+      setCabeceraOffset(1 - progress);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
   }, []);
 
   const unit = (value: number | null, label: string) => (
@@ -780,24 +811,29 @@ function ContadorGato({ partyIso, photosPath }: { partyIso: string; photosPath: 
   );
 
   // Proporciones medidas sobre contador-base.png (425×149): el borde superior
-  // de la tarjeta está al ~28% del alto y su centro al ~60%.
+  // de la tarjeta está al ~28% del alto y su centro al ~60%. La cabeza vive en
+  // una franja con overflow hidden cuyo borde inferior (34%) queda escondido
+  // tras la tarjeta: al bajarla su propia altura desaparece del todo. Sin esa
+  // franja asomaría por debajo de la tarjeta, que es más baja que la cabeza.
   return (
     <div ref={ref} style={{ position: "relative", marginTop: 76 }}>
-      <img
-        src={`${photosPath}/gato-cabeza.png`}
-        alt=""
-        draggable={false}
-        style={{
-          position: "absolute",
-          bottom: "66%",
-          left: "50%",
-          width: "29%",
-          zIndex: 0,
-          transition: "opacity 0.4s ease, transform 0.4s ease",
-          opacity: cabeceraVisible ? 1 : 0,
-          transform: cabeceraVisible ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(20px)",
-        }}
-      />
+      <div
+        aria-hidden="true"
+        style={{ position: "absolute", left: 0, right: 0, bottom: "66%", height: "90%", overflow: "hidden", zIndex: 0 }}
+      >
+        <img
+          src={`${photosPath}/gato-cabeza.png`}
+          alt=""
+          draggable={false}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: "50%",
+            width: "29%",
+            transform: `translateX(-50%) translateY(${cabeceraOffset * 100}%)`,
+          }}
+        />
+      </div>
       <div style={{ position: "relative", zIndex: 1 }}>
         <img
           src={`${photosPath}/contador-base.png`}
@@ -865,7 +901,7 @@ function CountdownSection({ partyIso, photosPath, demo }: { partyIso: string; ph
     >
       <Stars count={20} seed={23} />
       <Reveal>
-        <Deco file="deco-microfono.png" width={70} ratio="1 / 2" style={{ margin: "0 auto 18px" }} />
+        {demo && <Deco file="deco-microfono.png" width={70} ratio="1 / 2" style={{ margin: "0 auto 18px" }} />}
         <Titulo>¡SOLO FALTAN!</Titulo>
       </Reveal>
       {demo ? (
@@ -1223,7 +1259,7 @@ export default function InvitationKpop({
         ) : (
           // Emilia: video + estrellas + contador con gatito abren la invitación
           <>
-            <PortadaVideoSection photosPath={photosPath} />
+            <PortadaVideoSection photosPath={photosPath} opened={opened} />
             <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={false} />
             <BienvenidaSection photosPath={photosPath} demo={demo} />
           </>
