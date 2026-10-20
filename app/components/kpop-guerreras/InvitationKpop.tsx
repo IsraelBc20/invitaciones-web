@@ -756,99 +756,59 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
   );
 }
 
-// ─── 2c. Programa: imagen + video (solo cliente) ─────────────────────────────
-// programa-chicas.png entra desde la derecha con el scroll (mismo recorrido
-// que las chicas: de asomar por abajo a quedar centrada) y debajo va
-// video-programa.mp4, que solo arranca al tocar el botón de play. El video
-// pesa ~36MB: preload="metadata" evita bajarlo antes de que lo pidan.
-//
-// La imagen es chica (139×339): al 100% del ancho quedaría ampliada casi 3x y
-// más alta que la pantalla, por eso va al 50%.
+// ─── 5b. Video del programa (solo cliente) ──────────────────────────────────
+// Va justo después de ¿QUÉ HAREMOS?. Sin autoplay ni controles: un botón con
+// el ícono Play lo arranca y se esconde, y vuelve a aparecer cuando el video
+// termina. Pesa ~36MB: preload="metadata" evita bajarlo antes de que lo pidan.
 
 function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
-  const imgRef = useRef<HTMLImageElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  // 1 = fuera por la derecha, 0 = en su lugar
-  const [restante, setRestante] = useState(1);
-  const [started, setStarted] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!imgRef.current) return;
-      const rect = imgRef.current.getBoundingClientRect();
-      const start = window.innerHeight;
-      const end = (window.innerHeight - rect.height) / 2;
-      setRestante(1 - Math.min(Math.max((start - rect.top) / (start - end), 0), 1));
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll);
-    handleScroll();
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
-    };
-  }, []);
+  const videoProgramaRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
 
   const handlePlay = () => {
-    const video = videoRef.current;
+    const video = videoProgramaRef.current;
     if (!video) return;
-    setStarted(true);
-    video.play().catch(() => {});
+    setPlaying(true);
+    video.play().catch(() => setPlaying(false));
   };
 
   return (
-    <section style={{ position: "relative", overflow: "hidden", padding: "40px 0 0" }}>
-      <img
-        ref={imgRef}
-        src={`${photosPath}/programa-chicas.png`}
-        alt=""
+    <section style={{ position: "relative", lineHeight: 0 }}>
+      <video
+        ref={videoProgramaRef}
+        // #t=0.1 hace que el navegador pinte el primer cuadro como portada
+        src={`${photosPath}/video-programa.mp4#t=0.1`}
+        muted
+        playsInline
+        preload="metadata"
+        controls={false}
         draggable={false}
-        style={{
-          width: "50%",
-          height: "auto",
-          display: "block",
-          margin: "0 auto",
-          // translateX en % es del ancho propio: 150% saca la imagen centrada
-          // al 50% por completo del borde derecho
-          transform: `translateX(${restante * 150}%)`,
-        }}
+        onEnded={() => setPlaying(false)}
+        style={{ width: "100%", display: "block", background: "#000" }}
       />
-      <div style={{ position: "relative", marginTop: 32, lineHeight: 0 }}>
-        <video
-          ref={videoRef}
-          // #t=0.1 hace que el navegador pinte el primer cuadro como portada
-          src={`${photosPath}/video-programa.mp4#t=0.1`}
-          muted
-          playsInline
-          preload="metadata"
-          controls={started}
-          draggable={false}
-          style={{ width: "100%", display: "block", margin: 0, padding: 0, background: "#000" }}
-        />
-        {!started && (
-          <button
-            onClick={handlePlay}
-            aria-label="Reproducir video"
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: 76,
-              height: 76,
-              borderRadius: "50%",
-              border: `2px solid ${PINK_SOFT}`,
-              background: GRADIENT,
-              boxShadow: `0 0 24px ${GLOW}, 0 0 50px ${GLOW}`,
-              display: "grid",
-              placeItems: "center",
-              cursor: "pointer",
-            }}
-          >
-            <Play size={32} color={WHITE} fill={WHITE} style={{ marginLeft: 4 }} aria-hidden="true" />
-          </button>
-        )}
-      </div>
+      {!playing && (
+        <button
+          onClick={handlePlay}
+          aria-label="Reproducir video"
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 76,
+            height: 76,
+            borderRadius: "50%",
+            border: `2px solid ${PINK_SOFT}`,
+            background: GRADIENT,
+            boxShadow: `0 0 24px ${GLOW}, 0 0 50px ${GLOW}`,
+            display: "grid",
+            placeItems: "center",
+            cursor: "pointer",
+          }}
+        >
+          <Play size={32} color={WHITE} fill={WHITE} style={{ marginLeft: 4 }} aria-hidden="true" />
+        </button>
+      )}
     </section>
   );
 }
@@ -1179,12 +1139,93 @@ const PROGRAMA = [
   { icon: Music2, nombre: "¡A bailar!", hora: "6:30 PM" },
 ];
 
-function ProgramaSection() {
+// En Emilia (con `photosPath`) va en dos columnas: la lista a la izquierda
+// (60%) y programa-chicas.png a la derecha (40%), que entra desde la derecha
+// con el scroll, con el mismo recorrido que las chicas (de asomar por abajo a
+// quedar centrada). El demo no la trae y sigue en una columna.
+
+const PROGRAMA_PAD_X = 26;
+
+function ProgramaSection({ photosPath }: { photosPath?: string }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  // 1 = fuera por la derecha, 0 = en su lugar
+  const [restante, setRestante] = useState(1);
+
+  useEffect(() => {
+    if (!photosPath) return;
+    const handleScroll = () => {
+      if (!imgRef.current) return;
+      const rect = imgRef.current.getBoundingClientRect();
+      const start = window.innerHeight;
+      const end = (window.innerHeight - rect.height) / 2;
+      setRestante(1 - Math.min(Math.max((start - rect.top) / (start - end), 0), 1));
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [photosPath]);
+
+  const lista = (
+    <div style={{ position: "relative", marginTop: 34, paddingLeft: 8 }}>
+      {/* Línea del timeline, al centro de la columna de íconos */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 26,
+          bottom: 26,
+          left: 8 + 26 - 1.5,
+          width: 3,
+          borderRadius: 3,
+          background: MAGENTA,
+          boxShadow: `0 0 10px ${MAGENTA}`,
+        }}
+      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+        {PROGRAMA.map((it, i) => (
+          <Reveal key={it.nombre} delay={Math.min(i + 1, 4)}>
+            <div style={{ display: "flex", alignItems: "center", gap: photosPath ? 12 : 18 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "relative",
+                  flexShrink: 0,
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  background: BG,
+                  border: `3px solid ${MAGENTA}`,
+                  boxShadow: `0 0 14px ${GLOW}`,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <it.icon size={24} color={GOLD} strokeWidth={2.1} />
+              </span>
+              <div style={{ fontFamily: FONT }}>
+                <div style={{ fontSize: photosPath ? 16 : 18, fontWeight: 600, color: WHITE, lineHeight: 1.2 }}>
+                  {it.nombre}
+                </div>
+                <div style={{ fontSize: 14.5, fontWeight: 500, color: GOLD, marginTop: 2, letterSpacing: "0.06em" }}>
+                  {it.hora}
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <section
       style={{
         position: "relative",
-        padding: "60px 26px 66px",
+        padding: `60px ${PROGRAMA_PAD_X}px 66px`,
         background: `linear-gradient(180deg, ${BG} 0%, #2a0f3d 45%, #3a0d35 75%, ${BG} 100%)`,
         overflow: "hidden",
       }}
@@ -1193,53 +1234,29 @@ function ProgramaSection() {
       <Reveal>
         <Titulo>¿QUÉ HAREMOS?</Titulo>
       </Reveal>
-      <div style={{ position: "relative", marginTop: 34, paddingLeft: 8 }}>
-        {/* Línea del timeline, al centro de la columna de íconos */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: 26,
-            bottom: 26,
-            left: 8 + 26 - 1.5,
-            width: 3,
-            borderRadius: 3,
-            background: MAGENTA,
-            boxShadow: `0 0 10px ${MAGENTA}`,
-          }}
-        />
-        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          {PROGRAMA.map((it, i) => (
-            <Reveal key={it.nombre} delay={Math.min(i + 1, 4)}>
-              <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    position: "relative",
-                    flexShrink: 0,
-                    width: 52,
-                    height: 52,
-                    borderRadius: "50%",
-                    background: BG,
-                    border: `3px solid ${MAGENTA}`,
-                    boxShadow: `0 0 14px ${GLOW}`,
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                >
-                  <it.icon size={24} color={GOLD} strokeWidth={2.1} />
-                </span>
-                <div style={{ fontFamily: FONT }}>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: WHITE }}>{it.nombre}</div>
-                  <div style={{ fontSize: 14.5, fontWeight: 500, color: GOLD, marginTop: 2, letterSpacing: "0.06em" }}>
-                    {it.hora}
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          ))}
+      {photosPath ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: "0 0 60%", minWidth: 0 }}>{lista}</div>
+          <div style={{ flex: "1 1 40%", minWidth: 0, marginTop: 34 }}>
+            <img
+              ref={imgRef}
+              src={`${photosPath}/programa-chicas.png`}
+              alt=""
+              draggable={false}
+              style={{
+                width: "100%",
+                height: "auto",
+                display: "block",
+                // 100% de su ancho + el padding derecho de la sección: así
+                // arranca del todo fuera de la pantalla
+                transform: `translateX(calc(${restante * 100}% + ${restante * PROGRAMA_PAD_X}px))`,
+              }}
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        lista
+      )}
     </section>
   );
 }
@@ -1411,9 +1428,19 @@ export default function InvitationKpop({
         {!demo && <PortadaVideoSection photosPath={photosPath} opened={opened} />}
         <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={demo} />
         <ChicasSection photosPath={photosPath} />
-        {!demo && <ProgramaVideoSection photosPath={photosPath} />}
-        <FiestaSection demo={demo} photosPath={photosPath} />
-        <ProgramaSection />
+        {demo ? (
+          <>
+            <FiestaSection demo photosPath={photosPath} />
+            <ProgramaSection />
+          </>
+        ) : (
+          // Emilia: el programa (con su imagen y su video) va antes de la fiesta
+          <>
+            <ProgramaSection photosPath={photosPath} />
+            <ProgramaVideoSection photosPath={photosPath} />
+            <FiestaSection demo={false} photosPath={photosPath} />
+          </>
+        )}
         <ConfirmarSection demo={demo} />
         <CierreSection demo={demo} />
       </main>
