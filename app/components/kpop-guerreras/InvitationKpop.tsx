@@ -5,9 +5,8 @@
 // parpadean, títulos con glow magenta y botones en degradado magenta → morado.
 //
 // A diferencia de las bodas NO tiene galería, subida de fotos, regalos,
-// playlist ni historia: es portada → bienvenida → countdown → la fiesta →
-// programa → RSVP → cierre con confetti. Todos los efectos son CSS, así que
-// el diseño se ve animado aunque todavía no existan las imágenes.
+// playlist ni historia: es portada → countdown → chicas → la fiesta →
+// programa → RSVP → cierre con confetti (Emilia abre además con su video).
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -160,36 +159,6 @@ function Stars({ count = 26, seed = 1 }: { count?: number; seed?: number }) {
         />
       ))}
     </div>
-  );
-}
-
-// Destellos (estrellas) alrededor de la foto de bienvenida
-function Sparkle({
-  size,
-  color = GOLD,
-  delay = 0,
-  style,
-}: {
-  size: number;
-  color?: string;
-  delay?: number;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        position: "absolute",
-        lineHeight: 0,
-        color,
-        filter: `drop-shadow(0 0 6px ${color})`,
-        animation: `kpop-twinkle 2.2s ease-in-out ${delay}s infinite`,
-        pointerEvents: "none",
-        ...style,
-      }}
-    >
-      <Star size={size} fill={color} strokeWidth={0} />
-    </span>
   );
 }
 
@@ -692,77 +661,6 @@ function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opene
   );
 }
 
-// ─── 2. Bienvenida ───────────────────────────────────────────────────────────
-
-function BienvenidaSection({ photosPath, demo }: { photosPath: string; demo: boolean }) {
-  const f = festejadaFor(demo);
-  // Emilia: solo título + subtexto (sin foto circular, corona ni
-  // deco-estrellas); le sigue directo la sección de las chicas.
-  if (!demo) {
-    return (
-      <section style={{ position: "relative", padding: "56px 26px 44px", textAlign: "center", overflow: "hidden" }}>
-        <Stars count={18} seed={11} />
-        <Reveal>
-          <Titulo size="clamp(28px, 9vw, 36px)">¡Hola! Soy {f.nombre}</Titulo>
-          <p style={{ fontFamily: FONT, fontSize: 18, lineHeight: 1.5, color: PINK_SOFT, marginTop: 16 }}>
-            ¡Y quiero que seas parte
-            <br />
-            de mi fiesta más especial!
-          </p>
-        </Reveal>
-      </section>
-    );
-  }
-  return (
-    <section style={{ position: "relative", padding: "86px 26px 64px", textAlign: "center", overflow: "hidden" }}>
-      <Stars count={24} seed={11} />
-      <Reveal kind="reveal-scale">
-        <div style={{ position: "relative", width: 230, margin: "0 auto" }}>
-          <Deco
-            file="deco-corona.png"
-            width={92}
-            ratio="3 / 2"
-            style={{ position: "absolute", top: -50, left: "50%", marginLeft: -46, zIndex: 3 }}
-          />
-          <Sparkle size={26} style={{ top: 6, left: -18 }} />
-          <Sparkle size={16} color={PINK_SOFT} delay={0.7} style={{ top: 40, right: -22 }} />
-          <Sparkle size={20} color={WHITE} delay={1.2} style={{ bottom: 18, left: -26 }} />
-          <Sparkle size={28} delay={0.4} style={{ bottom: -6, right: -14 }} />
-          {/* Borde degradado magenta/morado: aro con el GRADIENT de fondo y la
-              foto adentro, más el halo brillante */}
-          <div
-            style={{
-              borderRadius: "50%",
-              padding: 5,
-              background: GRADIENT,
-              boxShadow: `0 0 0 3px ${MAGENTA}, 0 0 20px rgba(233,30,140,0.5), 0 0 50px ${GLOW}`,
-            }}
-          >
-            <div style={{ borderRadius: "50%", padding: 3, background: BG }}>
-              <Imagen src={`${photosPath}/foto-emilia.png`} label="foto-emilia.png" width="100%" round />
-            </div>
-          </div>
-        </div>
-      </Reveal>
-
-      <Reveal delay={1}>
-        <div style={{ marginTop: 34 }}>
-          <Titulo size="clamp(28px, 9vw, 36px)">¡Hola! Soy {f.nombre}</Titulo>
-        </div>
-        <p style={{ fontFamily: FONT, fontSize: 18, lineHeight: 1.5, color: PINK_SOFT, marginTop: 16 }}>
-          ¡Y quiero que seas parte
-          <br />
-          de mi fiesta más especial!
-        </p>
-      </Reveal>
-
-      <Reveal delay={2}>
-        <Deco file="deco-estrellas.png" width={170} ratio="3 / 1" style={{ margin: "28px auto 0" }} />
-      </Reveal>
-    </section>
-  );
-}
-
 // ─── 2b. Las chicas (parallax por scroll) ────────────────────────────────────
 // Fondo fijo (chicas-fondo.png) y encima las 3 chicas superpuestas, apoyadas en
 // el borde inferior: pelirroja a la izquierda, pelinegra al centro y morada a
@@ -773,11 +671,19 @@ function BienvenidaSection({ photosPath, demo }: { photosPath: string; demo: boo
 // `left` y `width` son % de la sección. Para salir desde el borde derecho, el
 // desplazamiento inicial es (100 - left) / width veces el ancho propio, que es
 // la unidad de los % de translateX.
+//
+// La sección mide lo mismo que chicas-fondo.png, pero la morada (más alta que
+// ancha) sobresale por arriba: por eso se recorta solo en horizontal
+// (overflow-x: clip, que a diferencia de hidden deja el eje Y visible), lo
+// justo para esconder a las chicas que todavía esperan a la derecha.
+//
+// `z`: la pelinegra (centro) va al frente. Así tapa el pelo de la morada,
+// que ocupa la mitad izquierda de su PNG, y no su cara.
 
 const CHICAS = [
-  { file: "chica-pelirroja.png", left: 0, width: 46 },
-  { file: "chica-pelinegra.png", left: 28, width: 44 },
-  { file: "chica-morada.png", left: 60, width: 40 },
+  { file: "chica-pelirroja.png", left: -10, width: 55, z: 1 },
+  { file: "chica-pelinegra.png", left: 22.5, width: 55, z: 3 },
+  { file: "chica-morada.png", left: 45, width: 55, z: 2 },
 ];
 
 function ChicasSection({ photosPath }: { photosPath: string }) {
@@ -811,7 +717,7 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
   }, []);
 
   return (
-    <section ref={chicasRef} style={{ position: "relative", overflow: "hidden", lineHeight: 0 }}>
+    <section ref={chicasRef} style={{ position: "relative", overflowX: "clip", overflowY: "visible", lineHeight: 0 }}>
       <img src={`${photosPath}/chicas-fondo.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
       {CHICAS.map((c, i) => (
         <img
@@ -824,6 +730,7 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
             bottom: 0,
             left: `${c.left}%`,
             width: `${c.width}%`,
+            zIndex: c.z,
             transform: `translateX(${(restante[i] * (100 - c.left) * 100) / c.width}%)`,
           }}
         />
@@ -1069,13 +976,7 @@ function DatoFila({ icon: Icon, children }: { icon: LucideIcon; children: React.
 // Decoraciones de ¡LA FIESTA! (bolas de disco y soda): fotos del diseño que
 // cada ruta trae en su photosPath.
 const decoImg = (src: string, style: React.CSSProperties) => (
-  <img
-    src={src}
-    alt=""
-    aria-hidden="true"
-    draggable={false}
-    style={{ position: "absolute", pointerEvents: "none", ...style }}
-  />
+  <img src={src} alt="" aria-hidden="true" draggable={false} style={{ pointerEvents: "none", flexShrink: 0, ...style }} />
 );
 
 function FiestaSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
@@ -1085,10 +986,10 @@ function FiestaSection({ demo, photosPath }: { demo: boolean; photosPath: string
     <section style={{ position: "relative", padding: "60px 22px 64px", overflow: "hidden" }}>
       <Stars count={18} seed={37} />
       <Reveal>
-        <div style={{ position: "relative", width: "fit-content", margin: "0 auto", padding: "0 52px" }}>
-          {decoImg(`${photosPath}/bola-disco-izquierda.png`, { top: -30, left: 0, width: 60 })}
-          {decoImg(`${photosPath}/bola-disco-derecha.png`, { top: -30, right: 0, width: 60 })}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+          {decoImg(`${photosPath}/bola-disco-izquierda.png`, { width: 62 })}
           <Titulo>¡LA FIESTA!</Titulo>
+          {decoImg(`${photosPath}/bola-disco-derecha.png`, { width: 62 })}
         </div>
       </Reveal>
       <Reveal delay={1}>
@@ -1096,30 +997,26 @@ function FiestaSection({ demo, photosPath }: { demo: boolean; photosPath: string
           style={{
             position: "relative",
             marginTop: 28,
-            padding: "26px 22px",
+            padding: "24px 16px 24px 18px",
             borderRadius: 24,
             background: "rgba(107, 15, 168, 0.22)",
             border: `1.5px solid rgba(233, 30, 140, 0.55)`,
             boxShadow: `0 0 26px ${GLOW}`,
             display: "flex",
-            flexDirection: "column",
-            gap: 18,
+            alignItems: "center",
+            gap: 10,
           }}
         >
-          {/* A la altura de la fila de la hora (la más corta) para no tapar texto */}
-          {decoImg(`${photosPath}/soda-pop.png`, {
-            top: "50%",
-            right: -22,
-            width: 78,
-            zIndex: 2,
-            transform: "translateY(-55%) rotate(12deg)",
-          })}
-          <DatoFila icon={CalendarDays}>{fechaLarga(f.iso)}</DatoFila>
-          <DatoFila icon={Clock}>{f.hora}</DatoFila>
-          <DatoFila icon={MapPin}>
-            <strong style={{ fontWeight: 600 }}>{f.lugar}</strong>
-            <div style={{ color: PINK_SOFT, fontSize: 15 }}>{venue.line}</div>
-          </DatoFila>
+          {/* Columna izquierda: los datos; derecha: la soda */}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
+            <DatoFila icon={CalendarDays}>{fechaLarga(f.iso)}</DatoFila>
+            <DatoFila icon={Clock}>{f.hora}</DatoFila>
+            <DatoFila icon={MapPin}>
+              <strong style={{ fontWeight: 600 }}>{f.lugar}</strong>
+              <div style={{ color: PINK_SOFT, fontSize: 15 }}>{venue.line}</div>
+            </DatoFila>
+          </div>
+          {decoImg(`${photosPath}/soda-pop.png`, { width: 88, display: "block" })}
         </div>
       </Reveal>
       <Reveal delay={2}>
@@ -1396,19 +1293,9 @@ export default function InvitationKpop({
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        {demo ? (
-          <>
-            <BienvenidaSection photosPath={photosPath} demo={demo} />
-            <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo />
-          </>
-        ) : (
-          // Emilia: video + estrellas + contador con gatito abren la invitación
-          <>
-            <PortadaVideoSection photosPath={photosPath} opened={opened} />
-            <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={false} />
-            <BienvenidaSection photosPath={photosPath} demo={demo} />
-          </>
-        )}
+        {/* Emilia: video + estrellas abren la invitación (el demo no tiene video) */}
+        {!demo && <PortadaVideoSection photosPath={photosPath} opened={opened} />}
+        <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={demo} />
         <ChicasSection photosPath={photosPath} />
         <FiestaSection demo={demo} photosPath={photosPath} />
         <ProgramaSection />
