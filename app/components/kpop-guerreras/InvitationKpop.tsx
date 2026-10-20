@@ -674,13 +674,13 @@ function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opene
 // en píxeles desde +ancho de la sección (fuera por la derecha) hasta 0, que se
 // suma a su anclaje; overflow hidden esconde a las que todavía esperan.
 //
-// `z`: la pelinegra (centro) va al frente. Así tapa el pelo de la morada,
-// que ocupa la mitad izquierda de su PNG, y no su cara.
+// `z`: capas de abajo hacia arriba fondo (0) → pelirroja (1) → pelinegra (2)
+// → morada (3), que queda encima de todas.
 
 const CHICAS: { file: string; anchor: "left" | "center" | "right"; z: number }[] = [
   { file: "chica-pelirroja.png", anchor: "left", z: 1 },
-  { file: "chica-pelinegra.png", anchor: "center", z: 3 },
-  { file: "chica-morada.png", anchor: "right", z: 2 },
+  { file: "chica-pelinegra.png", anchor: "center", z: 2 },
+  { file: "chica-morada.png", anchor: "right", z: 3 },
 ];
 
 function ChicasSection({ photosPath }: { photosPath: string }) {
@@ -718,7 +718,12 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
 
   return (
     <section ref={chicasRef} style={{ position: "relative", overflow: "hidden", lineHeight: 0 }}>
-      <img src={`${photosPath}/chicas-fondo.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
+      <img
+        src={`${photosPath}/chicas-fondo.png`}
+        alt=""
+        draggable={false}
+        style={{ position: "relative", zIndex: 0, width: "100%", display: "block" }}
+      />
       {CHICAS.map((c, i) => (
         <img
           key={c.file}
