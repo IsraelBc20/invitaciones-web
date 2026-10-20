@@ -668,28 +668,27 @@ function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opene
 // recorrido (desde que la sección asoma por abajo hasta que queda centrada),
 // sin transition: sigue al scroll.
 //
-// `left` y `width` son % de la sección. Para salir desde el borde derecho, el
-// desplazamiento inicial es (100 - left) / width veces el ancho propio, que es
-// la unidad de los % de translateX.
-//
-// La sección mide lo mismo que chicas-fondo.png, pero la morada (más alta que
-// ancha) sobresale por arriba: por eso se recorta solo en horizontal
-// (overflow-x: clip, que a diferencia de hidden deja el eje Y visible), lo
-// justo para esconder a las chicas que todavía esperan a la derecha.
+// Las 3 tienen la altura del fondo (height 100%, width auto: proporción
+// natural, sin object-fit) y se anclan por `anchor`: pelirroja a la izquierda,
+// pelinegra centrada y morada a la derecha. Para entrar, cada una se desplaza
+// en píxeles desde +ancho de la sección (fuera por la derecha) hasta 0, que se
+// suma a su anclaje; overflow hidden esconde a las que todavía esperan.
 //
 // `z`: la pelinegra (centro) va al frente. Así tapa el pelo de la morada,
 // que ocupa la mitad izquierda de su PNG, y no su cara.
 
-const CHICAS = [
-  { file: "chica-pelirroja.png", left: -10, width: 55, z: 1 },
-  { file: "chica-pelinegra.png", left: 22.5, width: 55, z: 3 },
-  { file: "chica-morada.png", left: 45, width: 55, z: 2 },
+const CHICAS: { file: string; anchor: "left" | "center" | "right"; z: number }[] = [
+  { file: "chica-pelirroja.png", anchor: "left", z: 1 },
+  { file: "chica-pelinegra.png", anchor: "center", z: 3 },
+  { file: "chica-morada.png", anchor: "right", z: 2 },
 ];
 
 function ChicasSection({ photosPath }: { photosPath: string }) {
   const chicasRef = useRef<HTMLElement>(null);
-  // Fracción pendiente de cada chica: 1 = fuera por la derecha, 0 = en su lugar
-  const [restante, setRestante] = useState([1, 1, 1]);
+  // Desplazamiento pendiente de cada chica en px: ancho de la sección = fuera
+  // por la derecha, 0 = en su lugar. Arranca en un valor enorme para que en
+  // el SSR (sin medidas) también estén fuera.
+  const [offset, setOffset] = useState([9999, 9999, 9999]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -705,7 +704,8 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
       const fase1 = Math.min(progress / 0.33, 1);
       const fase2 = Math.min(Math.max((progress - 0.33) / 0.33, 0), 1);
       const fase3 = Math.min(Math.max((progress - 0.66) / 0.34, 0), 1);
-      setRestante([1 - fase1, 1 - fase2, 1 - fase3]);
+      const w = rect.width;
+      setOffset([(1 - fase1) * w, (1 - fase2) * w, (1 - fase3) * w]);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleScroll);
@@ -717,7 +717,7 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
   }, []);
 
   return (
-    <section ref={chicasRef} style={{ position: "relative", overflowX: "clip", overflowY: "visible", lineHeight: 0 }}>
+    <section ref={chicasRef} style={{ position: "relative", overflow: "hidden", lineHeight: 0 }}>
       <img src={`${photosPath}/chicas-fondo.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
       {CHICAS.map((c, i) => (
         <img
@@ -728,10 +728,17 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
           style={{
             position: "absolute",
             bottom: 0,
-            left: `${c.left}%`,
-            width: `${c.width}%`,
+            height: "100%",
+            width: "auto",
+            maxWidth: "none",
+            ...(c.anchor === "left" && { left: 0 }),
+            ...(c.anchor === "center" && { left: "50%" }),
+            ...(c.anchor === "right" && { right: 0 }),
             zIndex: c.z,
-            transform: `translateX(${(restante[i] * (100 - c.left) * 100) / c.width}%)`,
+            transform:
+              c.anchor === "center"
+                ? `translateX(calc(-50% + ${offset[i]}px))`
+                : `translateX(${offset[i]}px)`,
           }}
         />
       ))}
@@ -987,9 +994,9 @@ function FiestaSection({ demo, photosPath }: { demo: boolean; photosPath: string
       <Stars count={18} seed={37} />
       <Reveal>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-          {decoImg(`${photosPath}/bola-disco-izquierda.png`, { width: 62 })}
+          {decoImg(`${photosPath}/bola-disco-izquierda.png`, { width: 62, marginRight: 12 })}
           <Titulo>¡LA FIESTA!</Titulo>
-          {decoImg(`${photosPath}/bola-disco-derecha.png`, { width: 62 })}
+          {decoImg(`${photosPath}/bola-disco-derecha.png`, { width: 62, marginLeft: 12 })}
         </div>
       </Reveal>
       <Reveal delay={1}>
