@@ -14,7 +14,7 @@ export default function Page() {
   return (
     <InvitationKpop
       photosPath="/kpop-guerreras/emilia/photos"
-      musicSrc="/kpop-guerreras/emilia/music.mp3"
+      musicSrc="/kpop-guerreras/emilia/photos/huntrix.mp3"
     />
   );
 }

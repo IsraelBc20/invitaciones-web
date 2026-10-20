@@ -62,9 +62,16 @@ function getAudio(src: string, group: string) {
   audio.loop = true;
   audio.preload = "auto";
   audio.volume = 0.7;
+  // Si alguien más pausa o reanuda el audio (p. ej. el crossfade con un video
+  // en K-Pop Guerreras), el FAB se entera igual.
+  audio.addEventListener("play", emit);
+  audio.addEventListener("pause", emit);
   emit();
   return audio;
 }
+
+/** El elemento de audio que controla el FAB (null si nunca sonó). */
+export const getMusicAudio = () => audio;
 
 export function useMusic(src: string, group: string) {
   // Al montar lee el estado real del singleton: si se llega a la galería con

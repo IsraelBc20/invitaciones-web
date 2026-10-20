@@ -21,11 +21,11 @@ import {
   Music,
   Music2,
   PartyPopper,
-  Play,
+  RotateCcw,
   Star,
   type LucideIcon,
 } from "lucide-react";
-import { useMusic } from "@/app/components/shared/useMusic";
+import { getMusicAudio, useMusic } from "@/app/components/shared/useMusic";
 import { VENUE_EMILIA, venueFor } from "@/lib/venue";
 
 const DESIGN_ID = "kpop-guerreras";
@@ -35,8 +35,8 @@ const DESIGN_ID = "kpop-guerreras";
 // clientes. La foto de la festejada vive en /kpop-guerreras-demo/photos/ y cada
 // cliente la reemplaza vía props `photosPath` y `musicSrc`
 // (public/kpop-guerreras/<cliente>/).
-export const MUSIC_SRC = "/kpop-guerreras-demo/music.mp3";
 export const DEMO_PHOTOS_PATH = "/kpop-guerreras-demo/photos";
+export const MUSIC_SRC = `${DEMO_PHOTOS_PATH}/huntrix.mp3`;
 const DECO_PATH = "/kpop-guerreras-demo";
 
 // ─── Paleta ──────────────────────────────────────────────────────────────────
@@ -756,21 +756,135 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
   );
 }
 
-// ─── 5b. Video del programa (solo cliente) ──────────────────────────────────
-// Va justo después de ¿QUÉ HAREMOS?. Sin autoplay ni controles: un botón con
-// el ícono Play lo arranca y se esconde, y vuelve a aparecer cuando el video
-// termina. Pesa ~36MB: preload="metadata" evita bajarlo antes de que lo pidan.
+// ─── 5b. Video del programa (las 2 rutas) ───────────────────────────────────
+// Va justo después de ¿QUÉ HAREMOS?. Se reproduce solo UNA vez por visita,
+// cuando el video cruza el centro de la pantalla, con crossfade contra la
+// canción de fondo: la canción baja en 0,5s y se pausa → el video arranca en
+// volumen 0 y sube en 0,5s → al terminar el video baja en 0,5s → la canción
+// retoma donde quedó y sube en 0,5s. Después aparece "Ver de nuevo", que repite
+// la misma secuencia.
+//
+// La canción es el MISMO elemento Audio que controla el FAB (getMusicAudio de
+// useMusic), así que el FAB se ve en pausa durante el video. Si la canción ya
+// estaba en pausa (el invitado la apagó), el video no la toca ni la reanuda.
+//
+// Limitaciones: en iOS el volumen de audio/video es de solo lectura, así que
+// los fades son cortes secos (la pausa y la reanudación sí funcionan). Y si el
+// navegador no deja arrancar el video con sonido, se reproduce sin sonido y la
+// canción no se interrumpe.
+
+const FADE_MS = 500;
+// Fade en curso por elemento: un fade nuevo cancela el anterior
+const fades = new WeakMap<HTMLMediaElement, number>();
+
+function fadeTo(el: HTMLMediaElement, target: number, duration: number, onComplete?: () => void) {
+  const prev = fades.get(el);
+  if (prev !== undefined) window.clearInterval(prev);
+  const steps = 20;
+  const from = el.volume;
+  let i = 0;
+  const timer = window.setInterval(() => {
+    i++;
+    el.volume = Math.min(Math.max(from + ((target - from) * i) / steps, 0), 1);
+    if (i < steps) return;
+    window.clearInterval(timer);
+    fades.delete(el);
+    onComplete?.();
+  }, duration / steps);
+  fades.set(el, timer);
+}
 
 function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
   const videoProgramaRef = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
+  const hasAutoPlayed = useRef(false);
+  // Estado de la canción al arrancar el video, para devolverla igual
+  const musica = useRef<{ sonaba: boolean; posicion: number; volumen: number }>({
+    sonaba: false,
+    posicion: 0,
+    volumen: 0.7,
+  });
+  const [estado, setEstado] = useState<"esperando" | "reproduciendo" | "terminado">("esperando");
 
-  const handlePlay = () => {
+  const arrancarVideo = () => {
     const video = videoProgramaRef.current;
     if (!video) return;
-    setPlaying(true);
-    video.play().catch(() => setPlaying(false));
+    video.currentTime = 0;
+    video.muted = false;
+    video.volume = 0;
+    video
+      .play()
+      .then(() => fadeTo(video, 1, FADE_MS))
+      .catch(() => {
+        // Sin permiso para sonar: va sin sonido y la canción vuelve
+        video.muted = true;
+        video.play().catch(() => {});
+        reanudarMusica();
+      });
   };
+
+  const reanudarMusica = () => {
+    const audio = getMusicAudio();
+    const m = musica.current;
+    if (!audio || !m.sonaba) return;
+    audio.currentTime = m.posicion;
+    audio.volume = 0;
+    audio
+      .play()
+      .then(() => fadeTo(audio, m.volumen, FADE_MS))
+      .catch(() => {});
+  };
+
+  const reproducir = () => {
+    setEstado("reproduciendo");
+    const audio = getMusicAudio();
+    const sonaba = !!audio && !audio.paused;
+    // Si la canción todavía está subiendo (tocaron "Ver de nuevo" en medio del
+    // fade), su volumen actual es intermedio: se conserva el de antes
+    const volumen = audio && !fades.has(audio) ? audio.volume || 0.7 : musica.current.volumen;
+    musica.current = { sonaba, posicion: audio?.currentTime ?? 0, volumen };
+    if (!audio || !sonaba) {
+      arrancarVideo();
+      return;
+    }
+    fadeTo(audio, 0, FADE_MS, () => {
+      audio.pause();
+      musica.current.posicion = audio.currentTime;
+      // pause() no toca el volumen: se deja como estaba para el FAB
+      audio.volume = musica.current.volumen;
+      arrancarVideo();
+    });
+  };
+
+  const handleEnded = () => {
+    const video = videoProgramaRef.current;
+    // Al disparar onEnded el video ya no suena: el fade de salida solo deja el
+    // volumen en 0 antes de devolver la canción
+    const terminar = () => {
+      reanudarMusica();
+      setEstado("terminado");
+    };
+    if (video && !video.muted) fadeTo(video, 0, FADE_MS, terminar);
+    else terminar();
+  };
+
+  // Autoplay una sola vez: la franja de 1px en el centro de la pantalla
+  // (rootMargin -50%) detecta cuando el video cruza el centro.
+  useEffect(() => {
+    const video = videoProgramaRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || hasAutoPlayed.current) return;
+        hasAutoPlayed.current = true;
+        observer.disconnect();
+        reproducir();
+      },
+      { rootMargin: "-50% 0px -50% 0px", threshold: 0 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section style={{ position: "relative", lineHeight: 0 }}>
@@ -783,30 +897,37 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
         preload="metadata"
         controls={false}
         draggable={false}
-        onEnded={() => setPlaying(false)}
+        onEnded={handleEnded}
         style={{ width: "100%", display: "block", background: "#000" }}
       />
-      {!playing && (
+      {estado === "terminado" && (
         <button
-          onClick={handlePlay}
-          aria-label="Reproducir video"
+          onClick={reproducir}
           style={{
             position: "absolute",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 76,
-            height: 76,
-            borderRadius: "50%",
-            border: `2px solid ${PINK_SOFT}`,
-            background: GRADIENT,
-            boxShadow: `0 0 24px ${GLOW}, 0 0 50px ${GLOW}`,
-            display: "grid",
-            placeItems: "center",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "13px 24px",
+            borderRadius: 999,
+            border: `1.5px solid ${PINK_SOFT}`,
+            background: "rgba(10, 10, 25, 0.62)",
+            backdropFilter: "blur(4px)",
+            color: WHITE,
+            fontFamily: FONT,
+            fontWeight: 600,
+            fontSize: 16,
+            letterSpacing: "0.04em",
+            lineHeight: 1,
             cursor: "pointer",
+            boxShadow: `0 0 20px ${GLOW}`,
           }}
         >
-          <Play size={32} color={WHITE} fill={WHITE} style={{ marginLeft: 4 }} aria-hidden="true" />
+          <RotateCcw size={20} color={WHITE} strokeWidth={2.3} aria-hidden="true" />
+          Ver de nuevo
         </button>
       )}
     </section>
@@ -1139,10 +1260,10 @@ const PROGRAMA = [
   { icon: Music2, nombre: "¡A bailar!", hora: "6:30 PM" },
 ];
 
-// En Emilia (con `photosPath`) va en dos columnas: la lista a la izquierda
+// Con `photosPath` (las 2 rutas) va en dos columnas: la lista a la izquierda
 // (60%) y programa-chicas.png a la derecha (40%), que entra desde la derecha
 // con el scroll, con el mismo recorrido que las chicas (de asomar por abajo a
-// quedar centrada). El demo no la trae y sigue en una columna.
+// quedar centrada). Sin `photosPath` queda la lista sola en una columna.
 
 const PROGRAMA_PAD_X = 26;
 
@@ -1403,7 +1524,7 @@ export default function InvitationKpop({
 }: {
   demo?: boolean;
   // Las rutas de clientes pasan sus propios assets
-  // (public/kpop-guerreras/<cliente>/photos y .../music.mp3). Las decoraciones
+  // (public/kpop-guerreras/<cliente>/photos, canción incluida: huntrix.mp3). Las decoraciones
   // son fijas del diseño y se comparten desde /kpop-guerreras-demo/.
   photosPath?: string;
   musicSrc?: string;
@@ -1428,19 +1549,9 @@ export default function InvitationKpop({
         {!demo && <PortadaVideoSection photosPath={photosPath} opened={opened} />}
         <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={demo} />
         <ChicasSection photosPath={photosPath} />
-        {demo ? (
-          <>
-            <FiestaSection demo photosPath={photosPath} />
-            <ProgramaSection />
-          </>
-        ) : (
-          // Emilia: el programa (con su imagen y su video) va antes de la fiesta
-          <>
-            <ProgramaSection photosPath={photosPath} />
-            <ProgramaVideoSection photosPath={photosPath} />
-            <FiestaSection demo={false} photosPath={photosPath} />
-          </>
-        )}
+        <FiestaSection demo={demo} photosPath={photosPath} />
+        <ProgramaSection photosPath={photosPath} />
+        <ProgramaVideoSection photosPath={photosPath} />
         <ConfirmarSection demo={demo} />
         <CierreSection demo={demo} />
       </main>
