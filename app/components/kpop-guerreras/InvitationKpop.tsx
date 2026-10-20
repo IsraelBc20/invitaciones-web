@@ -21,6 +21,7 @@ import {
   Music,
   Music2,
   PartyPopper,
+  Play,
   Star,
   type LucideIcon,
 } from "lucide-react";
@@ -676,11 +677,15 @@ function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opene
 //
 // `z`: capas de abajo hacia arriba fondo (0) → pelirroja (1) → pelinegra (2)
 // → morada (3), que queda encima de todas.
+//
+// `tope`: % de su propio ancho en que la chica se detiene a la derecha de su
+// anclaje. La pelinegra centrada llegaría a tapar del todo a la pelirroja, así
+// que frena antes.
 
-const CHICAS: { file: string; anchor: "left" | "center" | "right"; z: number }[] = [
-  { file: "chica-pelirroja.png", anchor: "left", z: 1 },
-  { file: "chica-pelinegra.png", anchor: "center", z: 2 },
-  { file: "chica-morada.png", anchor: "right", z: 3 },
+const CHICAS: { file: string; anchor: "left" | "center" | "right"; z: number; tope: number }[] = [
+  { file: "chica-pelirroja.png", anchor: "left", z: 1, tope: 0 },
+  { file: "chica-pelinegra.png", anchor: "center", z: 2, tope: 20 },
+  { file: "chica-morada.png", anchor: "right", z: 3, tope: 0 },
 ];
 
 function ChicasSection({ photosPath }: { photosPath: string }) {
@@ -742,11 +747,108 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
             zIndex: c.z,
             transform:
               c.anchor === "center"
-                ? `translateX(calc(-50% + ${offset[i]}px))`
-                : `translateX(${offset[i]}px)`,
+                ? `translateX(calc(${c.tope - 50}% + ${offset[i]}px))`
+                : `translateX(calc(${c.tope}% + ${offset[i]}px))`,
           }}
         />
       ))}
+    </section>
+  );
+}
+
+// ─── 2c. Programa: imagen + video (solo cliente) ─────────────────────────────
+// programa-chicas.png entra desde la derecha con el scroll (mismo recorrido
+// que las chicas: de asomar por abajo a quedar centrada) y debajo va
+// video-programa.mp4, que solo arranca al tocar el botón de play. El video
+// pesa ~36MB: preload="metadata" evita bajarlo antes de que lo pidan.
+//
+// La imagen es chica (139×339): al 100% del ancho quedaría ampliada casi 3x y
+// más alta que la pantalla, por eso va al 50%.
+
+function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  // 1 = fuera por la derecha, 0 = en su lugar
+  const [restante, setRestante] = useState(1);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!imgRef.current) return;
+      const rect = imgRef.current.getBoundingClientRect();
+      const start = window.innerHeight;
+      const end = (window.innerHeight - rect.height) / 2;
+      setRestante(1 - Math.min(Math.max((start - rect.top) / (start - end), 0), 1));
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
+
+  const handlePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    setStarted(true);
+    video.play().catch(() => {});
+  };
+
+  return (
+    <section style={{ position: "relative", overflow: "hidden", padding: "40px 0 0" }}>
+      <img
+        ref={imgRef}
+        src={`${photosPath}/programa-chicas.png`}
+        alt=""
+        draggable={false}
+        style={{
+          width: "50%",
+          height: "auto",
+          display: "block",
+          margin: "0 auto",
+          // translateX en % es del ancho propio: 150% saca la imagen centrada
+          // al 50% por completo del borde derecho
+          transform: `translateX(${restante * 150}%)`,
+        }}
+      />
+      <div style={{ position: "relative", marginTop: 32, lineHeight: 0 }}>
+        <video
+          ref={videoRef}
+          // #t=0.1 hace que el navegador pinte el primer cuadro como portada
+          src={`${photosPath}/video-programa.mp4#t=0.1`}
+          muted
+          playsInline
+          preload="metadata"
+          controls={started}
+          draggable={false}
+          style={{ width: "100%", display: "block", margin: 0, padding: 0, background: "#000" }}
+        />
+        {!started && (
+          <button
+            onClick={handlePlay}
+            aria-label="Reproducir video"
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 76,
+              height: 76,
+              borderRadius: "50%",
+              border: `2px solid ${PINK_SOFT}`,
+              background: GRADIENT,
+              boxShadow: `0 0 24px ${GLOW}, 0 0 50px ${GLOW}`,
+              display: "grid",
+              placeItems: "center",
+              cursor: "pointer",
+            }}
+          >
+            <Play size={32} color={WHITE} fill={WHITE} style={{ marginLeft: 4 }} aria-hidden="true" />
+          </button>
+        )}
+      </div>
     </section>
   );
 }
@@ -1309,6 +1411,7 @@ export default function InvitationKpop({
         {!demo && <PortadaVideoSection photosPath={photosPath} opened={opened} />}
         <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={demo} />
         <ChicasSection photosPath={photosPath} />
+        {!demo && <ProgramaVideoSection photosPath={photosPath} />}
         <FiestaSection demo={demo} photosPath={photosPath} />
         <ProgramaSection />
         <ConfirmarSection demo={demo} />
