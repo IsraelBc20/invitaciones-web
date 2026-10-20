@@ -592,17 +592,33 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
 // (y en pausa) hasta recargar: al volver a subir se ve la imagen fija, no el
 // video. Antes de eso el frame está oculto y el video se ve normal.
 
-function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opened: boolean }) {
-  const sectionRef = useRef<HTMLElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [frameVisible, setFrameVisible] = useState(false);
+// Suena con audio al 100%. Lo arranca `playPortada` desde el clic de
+// "¡Abrir invitación!" (no un useEffect posterior): iOS solo deja reproducir
+// con sonido dentro del gesto del usuario.
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!opened || !video) return;
-    video.currentTime = 0;
+function playPortada(video: HTMLVideoElement | null) {
+  if (!video) return;
+  video.currentTime = 0;
+  video.muted = false;
+  video.volume = 1;
+  video.play().catch(() => {
+    // Si igual lo bloquean, al menos se ve (sin sonido)
+    video.muted = true;
     video.play().catch(() => {});
-  }, [opened]);
+  });
+}
+
+function PortadaVideoSection({
+  photosPath,
+  opened,
+  videoRef,
+}: {
+  photosPath: string;
+  opened: boolean;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+}) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [frameVisible, setFrameVisible] = useState(false);
 
   // Se observa recién al abrir: detrás del IntroGate la página está en top 0
   // y el video siempre "visible", así que no cambia nada antes.
@@ -630,7 +646,6 @@ function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opene
       <video
         ref={videoRef}
         src={`${photosPath}/video-portada.mp4`}
-        muted
         playsInline
         preload="auto"
         draggable={false}
@@ -810,6 +825,7 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
     if (!video) return;
     video.currentTime = 0;
     video.muted = false;
+    // Fade in de 0 a 1 (volumen al 100%), igual en el autoplay y en el replay
     video.volume = 0;
     video
       .play()
@@ -1532,9 +1548,12 @@ export default function InvitationKpop({
   const [opened, setOpened] = useState(false);
   const { playing, play, toggle } = useMusic(musicSrc, DESIGN_ID);
 
+  const portadaRef = useRef<HTMLVideoElement>(null);
+
   const handleOpen = () => {
     setOpened(true);
     play();
+    playPortada(portadaRef.current);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1546,7 +1565,7 @@ export default function InvitationKpop({
 
       <main style={{ position: "relative", zIndex: 1 }}>
         {/* Emilia: video + estrellas abren la invitación (el demo no tiene video) */}
-        {!demo && <PortadaVideoSection photosPath={photosPath} opened={opened} />}
+        {!demo && <PortadaVideoSection photosPath={photosPath} opened={opened} videoRef={portadaRef} />}
         <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={demo} />
         <ChicasSection photosPath={photosPath} />
         <FiestaSection demo={demo} photosPath={photosPath} />
