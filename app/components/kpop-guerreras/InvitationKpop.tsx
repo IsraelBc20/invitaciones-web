@@ -617,16 +617,36 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
 // monta. El video arranca recién al abrir la invitación (si corriera detrás
 // del IntroGate podría terminar antes de que se vea) y, al terminar, la
 // página baja sola hasta lo que sigue.
+//
+// Una vez que el video sale del viewport queda tapado por video-frame.png
+// (y en pausa) hasta recargar: al volver a subir se ve la imagen fija, no el
+// video. Antes de eso el frame está oculto y el video se ve normal.
 
 function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opened: boolean }) {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [frameVisible, setFrameVisible] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!opened || !video) return;
     video.currentTime = 0;
     video.play().catch(() => {});
+  }, [opened]);
+
+  // Se observa recién al abrir: detrás del IntroGate la página está en top 0
+  // y el video siempre "visible", así que no cambia nada antes.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!opened || !video) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) return;
+      video.pause();
+      setFrameVisible(true);
+      observer.disconnect();
+    });
+    observer.observe(video);
+    return () => observer.disconnect();
   }, [opened]);
 
   const handleVideoEnded = () => {
@@ -648,6 +668,21 @@ function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opene
         style={{ width: "100%", display: "block", margin: 0, padding: 0 }}
       />
       <img
+        src={`${photosPath}/video-frame.png`}
+        alt=""
+        draggable={false}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          visibility: frameVisible ? "visible" : "hidden",
+          zIndex: 1,
+        }}
+      />
+      <img
         src={`${photosPath}/estrellas.png`}
         alt=""
         draggable={false}
@@ -661,6 +696,23 @@ function PortadaVideoSection({ photosPath, opened }: { photosPath: string; opene
 
 function BienvenidaSection({ photosPath, demo }: { photosPath: string; demo: boolean }) {
   const f = festejadaFor(demo);
+  // Emilia: solo título + subtexto (sin foto circular, corona ni
+  // deco-estrellas); le sigue directo la sección de las chicas.
+  if (!demo) {
+    return (
+      <section style={{ position: "relative", padding: "56px 26px 44px", textAlign: "center", overflow: "hidden" }}>
+        <Stars count={18} seed={11} />
+        <Reveal>
+          <Titulo size="clamp(28px, 9vw, 36px)">¡Hola! Soy {f.nombre}</Titulo>
+          <p style={{ fontFamily: FONT, fontSize: 18, lineHeight: 1.5, color: PINK_SOFT, marginTop: 16 }}>
+            ¡Y quiero que seas parte
+            <br />
+            de mi fiesta más especial!
+          </p>
+        </Reveal>
+      </section>
+    );
+  }
   return (
     <section style={{ position: "relative", padding: "86px 26px 64px", textAlign: "center", overflow: "hidden" }}>
       <Stars count={24} seed={11} />
@@ -707,6 +759,75 @@ function BienvenidaSection({ photosPath, demo }: { photosPath: string; demo: boo
       <Reveal delay={2}>
         <Deco file="deco-estrellas.png" width={170} ratio="3 / 1" style={{ margin: "28px auto 0" }} />
       </Reveal>
+    </section>
+  );
+}
+
+// ─── 2b. Las chicas (parallax por scroll) ────────────────────────────────────
+// Fondo fijo (chicas-fondo.png) y encima las 3 chicas superpuestas, apoyadas en
+// el borde inferior: pelirroja a la izquierda, pelinegra al centro y morada a
+// la derecha. Cada una entra desde fuera por la derecha en su tercio del
+// recorrido (desde que la sección asoma por abajo hasta que queda centrada),
+// sin transition: sigue al scroll.
+//
+// `left` y `width` son % de la sección. Para salir desde el borde derecho, el
+// desplazamiento inicial es (100 - left) / width veces el ancho propio, que es
+// la unidad de los % de translateX.
+
+const CHICAS = [
+  { file: "chica-pelirroja.png", left: 0, width: 46 },
+  { file: "chica-pelinegra.png", left: 28, width: 44 },
+  { file: "chica-morada.png", left: 60, width: 40 },
+];
+
+function ChicasSection({ photosPath }: { photosPath: string }) {
+  const chicasRef = useRef<HTMLElement>(null);
+  // Fracción pendiente de cada chica: 1 = fuera por la derecha, 0 = en su lugar
+  const [restante, setRestante] = useState([1, 1, 1]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!chicasRef.current) return;
+      const rect = chicasRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      // De 0 (la sección asoma por abajo) a 1 (la sección centrada en
+      // pantalla). Medido hasta que sale por arriba, la última chica
+      // terminaría de entrar fuera de la vista.
+      const start = windowHeight;
+      const end = (windowHeight - rect.height) / 2;
+      const progress = Math.min(Math.max((start - rect.top) / (start - end), 0), 1);
+      const fase1 = Math.min(progress / 0.33, 1);
+      const fase2 = Math.min(Math.max((progress - 0.33) / 0.33, 0), 1);
+      const fase3 = Math.min(Math.max((progress - 0.66) / 0.34, 0), 1);
+      setRestante([1 - fase1, 1 - fase2, 1 - fase3]);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
+
+  return (
+    <section ref={chicasRef} style={{ position: "relative", overflow: "hidden", lineHeight: 0 }}>
+      <img src={`${photosPath}/chicas-fondo.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
+      {CHICAS.map((c, i) => (
+        <img
+          key={c.file}
+          src={`${photosPath}/${c.file}`}
+          alt=""
+          draggable={false}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: `${c.left}%`,
+            width: `${c.width}%`,
+            transform: `translateX(${(restante[i] * (100 - c.left) * 100) / c.width}%)`,
+          }}
+        />
+      ))}
     </section>
   );
 }
@@ -945,14 +1066,30 @@ function DatoFila({ icon: Icon, children }: { icon: LucideIcon; children: React.
   );
 }
 
-function FiestaSection({ demo }: { demo: boolean }) {
+// Decoraciones de ¡LA FIESTA! (bolas de disco y soda): fotos del diseño que
+// cada ruta trae en su photosPath.
+const decoImg = (src: string, style: React.CSSProperties) => (
+  <img
+    src={src}
+    alt=""
+    aria-hidden="true"
+    draggable={false}
+    style={{ position: "absolute", pointerEvents: "none", ...style }}
+  />
+);
+
+function FiestaSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
   const venue = venueFor(demo, VENUE_EMILIA);
   return (
     <section style={{ position: "relative", padding: "60px 22px 64px", overflow: "hidden" }}>
       <Stars count={18} seed={37} />
       <Reveal>
-        <Titulo>¡LA FIESTA!</Titulo>
+        <div style={{ position: "relative", width: "fit-content", margin: "0 auto", padding: "0 52px" }}>
+          {decoImg(`${photosPath}/bola-disco-izquierda.png`, { top: -30, left: 0, width: 60 })}
+          {decoImg(`${photosPath}/bola-disco-derecha.png`, { top: -30, right: 0, width: 60 })}
+          <Titulo>¡LA FIESTA!</Titulo>
+        </div>
       </Reveal>
       <Reveal delay={1}>
         <div
@@ -969,6 +1106,14 @@ function FiestaSection({ demo }: { demo: boolean }) {
             gap: 18,
           }}
         >
+          {/* A la altura de la fila de la hora (la más corta) para no tapar texto */}
+          {decoImg(`${photosPath}/soda-pop.png`, {
+            top: "50%",
+            right: -22,
+            width: 78,
+            zIndex: 2,
+            transform: "translateY(-55%) rotate(12deg)",
+          })}
           <DatoFila icon={CalendarDays}>{fechaLarga(f.iso)}</DatoFila>
           <DatoFila icon={Clock}>{f.hora}</DatoFila>
           <DatoFila icon={MapPin}>
@@ -1264,7 +1409,8 @@ export default function InvitationKpop({
             <BienvenidaSection photosPath={photosPath} demo={demo} />
           </>
         )}
-        <FiestaSection demo={demo} />
+        <ChicasSection photosPath={photosPath} />
+        <FiestaSection demo={demo} photosPath={photosPath} />
         <ProgramaSection />
         <ConfirmarSection demo={demo} />
         <CierreSection demo={demo} />
