@@ -21,6 +21,16 @@
   font-display: swap;
 }
 
+/* Montserrat Arabic: etiquetas del contador (Días/Horas/Min/Seg) de la
+   invitación de Emilia (K-Pop Guerreras). */
+@font-face {
+  font-family: "Montserrat Arabic";
+  src: url("/fonts/Montserrat-Arabic%20Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #f6f2ee;
   --bg-2: #ece6df;

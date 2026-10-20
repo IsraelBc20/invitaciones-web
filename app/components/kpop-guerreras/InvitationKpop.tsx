@@ -611,6 +611,32 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
   );
 }
 
+// ─── 1b. Portada con video (solo cliente) ────────────────────────────────────
+// Video a ancho completo y debajo la tira de estrellas. Ambos son assets del
+// cliente (photosPath), así que el demo no la monta.
+
+function PortadaVideoSection({ photosPath }: { photosPath: string }) {
+  return (
+    <section style={{ position: "relative", lineHeight: 0 }}>
+      <video
+        src={`${photosPath}/video-portada.mp4`}
+        autoPlay
+        loop
+        muted
+        playsInline
+        draggable={false}
+        style={{ width: "100%", display: "block", margin: 0, padding: 0 }}
+      />
+      <img
+        src={`${photosPath}/estrellas.png`}
+        alt=""
+        draggable={false}
+        style={{ width: "100%", display: "block", margin: 0 }}
+      />
+    </section>
+  );
+}
+
 // ─── 2. Bienvenida ───────────────────────────────────────────────────────────
 
 function BienvenidaSection({ photosPath, demo }: { photosPath: string; demo: boolean }) {
@@ -678,16 +704,133 @@ function getTimeLeft(iso: string) {
   };
 }
 
-function CountdownSection({ partyIso }: { partyIso: string }) {
-  // Arranca en null y se calcula recién en el cliente: depende de Date.now() y
-  // renderizarlo en SSR causa hydration mismatch (gotcha del proyecto).
+// Arranca en null y se calcula recién en el cliente: depende de Date.now() y
+// renderizarlo en SSR causa hydration mismatch (gotcha del proyecto).
+function useTimeLeft(iso: string) {
   const [t, setT] = useState<ReturnType<typeof getTimeLeft> | null>(null);
   useEffect(() => {
-    const tick = () => setT(getTimeLeft(partyIso));
+    const tick = () => setT(getTimeLeft(iso));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [partyIso]);
+  }, [iso]);
+  return t;
+}
+
+// Contador de Emilia: tarjeta crema con patitas (contador-base.png) y la
+// cabeza del gato asomándose por detrás. La cabeza va DETRÁS de la tarjeta
+// (zIndex menor) para que las patitas del PNG queden delante, y sube/baja
+// cada vez que el contador entra/sale del viewport.
+const CAT_INK = "#1d2758"; // azul marino del contorno de la tarjeta
+const CAT_BLUE = "#3a78c9"; // azul de las patitas
+const LABEL_FONT = "'Montserrat Arabic', 'Fredoka', sans-serif";
+
+function ContadorGato({ partyIso, photosPath }: { partyIso: string; photosPath: string }) {
+  const t = useTimeLeft(partyIso);
+  const ref = useRef<HTMLDivElement>(null);
+  const [cabeceraVisible, setCabeceraVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setCabeceraVisible(entry.isIntersecting),
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const unit = (value: number | null, label: string) => (
+    <div style={{ textAlign: "center", minWidth: "2ch" }}>
+      <div
+        style={{
+          fontFamily: TITLE_FONT,
+          fontWeight: "normal",
+          fontSize: "clamp(28px, 8vw, 48px)",
+          lineHeight: 1,
+          color: CAT_INK,
+        }}
+      >
+        {value === null ? "--" : String(value).padStart(2, "0")}
+      </div>
+      <div
+        style={{
+          fontFamily: LABEL_FONT,
+          fontSize: "clamp(10px, 3vw, 14px)",
+          color: CAT_BLUE,
+          marginTop: 4,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+  const sep = (
+    <span
+      aria-hidden="true"
+      style={{
+        fontFamily: TITLE_FONT,
+        fontSize: "clamp(22px, 6vw, 36px)",
+        lineHeight: 1,
+        color: CAT_INK,
+        alignSelf: "flex-start",
+      }}
+    >
+      :
+    </span>
+  );
+
+  // Proporciones medidas sobre contador-base.png (425×149): el borde superior
+  // de la tarjeta está al ~28% del alto y su centro al ~60%.
+  return (
+    <div ref={ref} style={{ position: "relative", marginTop: 76 }}>
+      <img
+        src={`${photosPath}/gato-cabeza.png`}
+        alt=""
+        draggable={false}
+        style={{
+          position: "absolute",
+          bottom: "66%",
+          left: "50%",
+          width: "29%",
+          zIndex: 0,
+          transition: "opacity 0.4s ease, transform 0.4s ease",
+          opacity: cabeceraVisible ? 1 : 0,
+          transform: cabeceraVisible ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(20px)",
+        }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <img
+          src={`${photosPath}/contador-base.png`}
+          alt=""
+          draggable={false}
+          style={{ width: "100%", display: "block" }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: "60%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+          }}
+        >
+          {unit(t?.d ?? null, "Días")}
+          {sep}
+          {unit(t?.h ?? null, "Horas")}
+          {sep}
+          {unit(t?.m ?? null, "Min")}
+          {sep}
+          {unit(t?.s ?? null, "Seg")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CountdownSection({ partyIso, photosPath, demo }: { partyIso: string; photosPath: string; demo: boolean }) {
+  const t = useTimeLeft(partyIso);
 
   const unit = (value: number | null, label: string) => (
     <div
@@ -725,14 +868,18 @@ function CountdownSection({ partyIso }: { partyIso: string }) {
         <Deco file="deco-microfono.png" width={70} ratio="1 / 2" style={{ margin: "0 auto 18px" }} />
         <Titulo>¡SOLO FALTAN!</Titulo>
       </Reveal>
-      <Reveal delay={1}>
-        <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 30 }}>
-          {unit(t?.d ?? null, "DÍAS")}
-          {unit(t?.h ?? null, "HRS")}
-          {unit(t?.m ?? null, "MIN")}
-          {unit(t?.s ?? null, "SEG")}
-        </div>
-      </Reveal>
+      {demo ? (
+        <Reveal delay={1}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 30 }}>
+            {unit(t?.d ?? null, "DÍAS")}
+            {unit(t?.h ?? null, "HRS")}
+            {unit(t?.m ?? null, "MIN")}
+            {unit(t?.s ?? null, "SEG")}
+          </div>
+        </Reveal>
+      ) : (
+        <ContadorGato partyIso={partyIso} photosPath={photosPath} />
+      )}
     </section>
   );
 }
@@ -1068,8 +1215,19 @@ export default function InvitationKpop({
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        <BienvenidaSection photosPath={photosPath} demo={demo} />
-        <CountdownSection partyIso={festejadaFor(demo).iso} />
+        {demo ? (
+          <>
+            <BienvenidaSection photosPath={photosPath} demo={demo} />
+            <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo />
+          </>
+        ) : (
+          // Emilia: video + estrellas + contador con gatito abren la invitación
+          <>
+            <PortadaVideoSection photosPath={photosPath} />
+            <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={false} />
+            <BienvenidaSection photosPath={photosPath} demo={demo} />
+          </>
+        )}
         <FiestaSection demo={demo} />
         <ProgramaSection />
         <ConfirmarSection demo={demo} />
