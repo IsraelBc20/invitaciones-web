@@ -22,7 +22,6 @@ import {
   Music2,
   PartyPopper,
   RotateCcw,
-  Star,
   type LucideIcon,
 } from "lucide-react";
 import { getMusicAudio, useMusic } from "@/app/components/shared/useMusic";
@@ -256,95 +255,43 @@ function Reveal({
 
 /* eslint-disable @next/next/no-img-element */
 
-// ─── Imagen con placeholder ──────────────────────────────────────────────────
-// Carga `src` y, mientras no exista, muestra un placeholder en degradado
-// magenta/morado con el nombre esperado del archivo: basta copiar el PNG con
-// ese nombre para que aparezca. A diferencia del `Deco` de las bodas, aquí
-// también las decoraciones muestran placeholder (todavía no hay ninguna).
+// ─── Decoraciones opcionales ────────────────────────────────────────────────
+// Igual que el `Deco` de las bodas: la imagen queda oculta (display none, que
+// igual la descarga) hasta que carga, y si el archivo no existe no se muestra
+// nada ni ocupa lugar. Basta copiar el PNG con ese nombre a
+// /kpop-guerreras-demo/ para que aparezca.
 
-function Imagen({
-  src,
-  label,
+function Deco({
+  file,
   width,
-  ratio = "1 / 1",
-  round = false,
   style,
 }: {
-  src: string;
-  label: string;
+  file: string;
   width: number | string;
-  ratio?: string;
-  round?: boolean;
   style?: React.CSSProperties;
 }) {
   const [loaded, setLoaded] = useState(false);
-  const [missing, setMissing] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Si la imagen del HTML SSR ya terminó (o falló) antes de hidratar, onLoad y
-  // onError no volverán a dispararse: se lee el estado real.
+  // Si la imagen del HTML SSR ya terminó antes de hidratar, onLoad no vuelve a
+  // dispararse: se lee el estado real.
   useEffect(() => {
     const img = imgRef.current;
-    if (!img || !img.complete) return;
-    if (img.naturalWidth > 0) setLoaded(true);
-    else setMissing(true);
+    if (img?.complete && img.naturalWidth > 0) setLoaded(true);
   }, []);
 
-  const radius = round ? "50%" : 16;
   return (
-    <div style={{ position: "relative", width, aspectRatio: ratio, ...style }}>
-      {!loaded && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: radius,
-            background: `repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0 6px, transparent 6px 12px), ${GRADIENT}`,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            padding: 8,
-            color: "rgba(255,255,255,0.9)",
-            fontFamily: FONT,
-            fontSize: 10,
-            letterSpacing: "0.06em",
-            textAlign: "center",
-            overflow: "hidden",
-          }}
-        >
-          <Star size={18} fill="currentColor" strokeWidth={0} aria-hidden="true" />
-          <span style={{ wordBreak: "break-all" }}>{label}</span>
-        </div>
-      )}
-      {!missing && (
-        <img
-          ref={imgRef}
-          src={src}
-          alt=""
-          draggable={false}
-          onLoad={() => setLoaded(true)}
-          onError={() => setMissing(true)}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: round ? "cover" : "contain",
-            borderRadius: round ? "50%" : 0,
-            opacity: loaded ? 1 : 0,
-          }}
-        />
-      )}
-    </div>
+    <img
+      ref={imgRef}
+      src={`${DECO_PATH}/${file}`}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      onLoad={() => setLoaded(true)}
+      style={{ display: loaded ? "block" : "none", width, height: "auto", ...style }}
+    />
   );
 }
-
-const Deco = (props: Omit<React.ComponentProps<typeof Imagen>, "src" | "label"> & { file: string }) => {
-  const { file, ...rest } = props;
-  return <Imagen src={`${DECO_PATH}/${file}`} label={file} {...rest} />;
-};
 
 // ─── Piezas comunes ──────────────────────────────────────────────────────────
 
@@ -554,7 +501,7 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
           gap: 18,
         }}
       >
-        <Deco file="deco-portada.png" width={220} ratio="4 / 3" />
+        <Deco file="deco-portada.png" width={220} />
 
         <h1
           style={{
@@ -840,6 +787,9 @@ const CHICAS: { file: string; anchor: "left" | "center" | "right"; z: number; to
   { file: "chica-morada.png", anchor: "right", z: 3, tope: 0 },
 ];
 
+// Recorrido mínimo de scroll (px) para la entrada de las 3 chicas
+const RECORRIDO_MIN = 300;
+
 function ChicasSection({ photosPath }: { photosPath: string }) {
   const chicasRef = useRef<HTMLElement>(null);
   // Desplazamiento pendiente de cada chica en px: ancho de la sección = fuera
@@ -848,16 +798,24 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
   const [offset, setOffset] = useState([9999, 9999, 9999]);
 
   useEffect(() => {
+    const scrollInicial = window.scrollY;
     const handleScroll = () => {
       if (!chicasRef.current) return;
       const rect = chicasRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
-      // De 0 (la sección asoma por abajo) a 1 (la sección centrada en
-      // pantalla). Medido hasta que sale por arriba, la última chica
+      const y = window.scrollY;
+      const top = rect.top + y; // posición de la sección en la página
+      // En scroll de la página: de 0 (la sección asoma por abajo) a 1 (la
+      // sección centrada). Medido hasta que sale por arriba, la última chica
       // terminaría de entrar fuera de la vista.
-      const start = windowHeight;
-      const end = (windowHeight - rect.height) / 2;
-      const progress = Math.min(Math.max((start - rect.top) / (start - end), 0), 1);
+      //
+      // Si la sección ya se ve al cargar (el demo, que no tiene video de
+      // portada), el recorrido arranca donde estaba el scroll al montar y dura
+      // al menos RECORRIDO_MIN px: así las chicas siempre empiezan fuera por la
+      // derecha y entran con el scroll, en vez de aparecer ya colocadas.
+      const start = Math.max(top - windowHeight, scrollInicial);
+      const end = Math.max(top - (windowHeight - rect.height) / 2, start + RECORRIDO_MIN);
+      const progress = Math.min(Math.max((y - start) / (end - start), 0), 1);
       const fase1 = Math.min(progress / 0.33, 1);
       const fase2 = Math.min(Math.max((progress - 0.33) / 0.33, 0), 1);
       const fase3 = Math.min(Math.max((progress - 0.66) / 0.34, 0), 1);
@@ -1269,7 +1227,7 @@ function CountdownSection({ partyIso, photosPath, demo }: { partyIso: string; ph
     >
       <Stars count={20} seed={23} />
       <Reveal>
-        {demo && <Deco file="deco-microfono.png" width={70} ratio="1 / 2" style={{ margin: "0 auto 18px" }} />}
+        {demo && <Deco file="deco-microfono.png" width={70} style={{ margin: "0 auto 18px" }} />}
         <Titulo>¡SOLO FALTAN!</Titulo>
       </Reveal>
       {demo ? (
@@ -1607,7 +1565,7 @@ function CierreSection({ demo }: { demo: boolean }) {
       <Stars count={20} seed={89} />
       <Confetti />
       <div style={{ position: "relative", zIndex: 2 }}>
-        <Deco file="deco-confetti.png" width={150} ratio="2 / 1" style={{ margin: "0 auto 24px" }} />
+        <Deco file="deco-confetti.png" width={150} style={{ margin: "0 auto 24px" }} />
         <Titulo size="clamp(30px, 10vw, 44px)">¡TE ESPERAMOS!</Titulo>
         <div
           style={{
