@@ -787,40 +787,46 @@ const CHICAS: { file: string; anchor: "left" | "center" | "right"; z: number; to
   { file: "chica-morada.png", anchor: "right", z: 3, tope: 0 },
 ];
 
-// Recorrido mínimo de scroll (px) para la entrada de las 3 chicas
-const RECORRIDO_MIN = 300;
+// Si la sección ya está a la vista al abrir la invitación (el demo, que no
+// tiene video de portada), las chicas no podrían entrar con el scroll: bajar
+// la sacaría de la pantalla. En ese caso entran solas en ENTRADA_MS, en
+// secuencia, hasta donde indique el scroll; después manda el scroll.
+const ENTRADA_MS = 1200;
 
-function ChicasSection({ photosPath }: { photosPath: string }) {
+function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boolean }) {
   const chicasRef = useRef<HTMLElement>(null);
   // Desplazamiento pendiente de cada chica en px: ancho de la sección = fuera
   // por la derecha, 0 = en su lugar. Arranca en un valor enorme para que en
   // el SSR (sin medidas) también estén fuera.
   const [offset, setOffset] = useState([9999, 9999, 9999]);
+  // Progreso según el scroll (0..1) y tope de la entrada automática (0..1): se
+  // muestra el menor de los dos
+  const scrollProgress = useRef(0);
+  const entrada = useRef(0);
+  const anchoSeccion = useRef(0);
+
+  const pintar = () => {
+    const progress = Math.min(scrollProgress.current, entrada.current);
+    const fase1 = Math.min(progress / 0.33, 1);
+    const fase2 = Math.min(Math.max((progress - 0.33) / 0.33, 0), 1);
+    const fase3 = Math.min(Math.max((progress - 0.66) / 0.34, 0), 1);
+    const w = anchoSeccion.current;
+    setOffset([(1 - fase1) * w, (1 - fase2) * w, (1 - fase3) * w]);
+  };
 
   useEffect(() => {
-    const scrollInicial = window.scrollY;
     const handleScroll = () => {
       if (!chicasRef.current) return;
       const rect = chicasRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
-      const y = window.scrollY;
-      const top = rect.top + y; // posición de la sección en la página
-      // En scroll de la página: de 0 (la sección asoma por abajo) a 1 (la
-      // sección centrada). Medido hasta que sale por arriba, la última chica
+      // De 0 (la sección asoma por abajo) a 1 (la sección centrada en
+      // pantalla). Medido hasta que sale por arriba, la última chica
       // terminaría de entrar fuera de la vista.
-      //
-      // Si la sección ya se ve al cargar (el demo, que no tiene video de
-      // portada), el recorrido arranca donde estaba el scroll al montar y dura
-      // al menos RECORRIDO_MIN px: así las chicas siempre empiezan fuera por la
-      // derecha y entran con el scroll, en vez de aparecer ya colocadas.
-      const start = Math.max(top - windowHeight, scrollInicial);
-      const end = Math.max(top - (windowHeight - rect.height) / 2, start + RECORRIDO_MIN);
-      const progress = Math.min(Math.max((y - start) / (end - start), 0), 1);
-      const fase1 = Math.min(progress / 0.33, 1);
-      const fase2 = Math.min(Math.max((progress - 0.33) / 0.33, 0), 1);
-      const fase3 = Math.min(Math.max((progress - 0.66) / 0.34, 0), 1);
-      const w = rect.width;
-      setOffset([(1 - fase1) * w, (1 - fase2) * w, (1 - fase3) * w]);
+      const start = windowHeight;
+      const end = (windowHeight - rect.height) / 2;
+      scrollProgress.current = Math.min(Math.max((start - rect.top) / (start - end), 0), 1);
+      anchoSeccion.current = rect.width;
+      pintar();
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleScroll);
@@ -830,6 +836,27 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
       window.removeEventListener("resize", handleScroll);
     };
   }, []);
+
+  // Al abrir: si la sección no está a la vista, el scroll manda desde ya; si ya
+  // se ve, la entrada sube de 0 a 1 en ENTRADA_MS (con ease-out)
+  useEffect(() => {
+    if (!opened) return;
+    if (scrollProgress.current <= 0) {
+      entrada.current = 1;
+      pintar();
+      return;
+    }
+    let frame = 0;
+    const t0 = performance.now();
+    const paso = (t: number) => {
+      const k = Math.min((t - t0) / ENTRADA_MS, 1);
+      entrada.current = 1 - (1 - k) ** 2;
+      pintar();
+      if (k < 1) frame = requestAnimationFrame(paso);
+    };
+    frame = requestAnimationFrame(paso);
+    return () => cancelAnimationFrame(frame);
+  }, [opened]);
 
   return (
     <section ref={chicasRef} style={{ position: "relative", overflow: "hidden", lineHeight: 0 }}>
@@ -1683,7 +1710,7 @@ export default function InvitationKpop({
           />
         )}
         <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={demo} />
-        <ChicasSection photosPath={photosPath} />
+        <ChicasSection photosPath={photosPath} opened={opened} />
         <FiestaSection demo={demo} photosPath={photosPath} />
         <ProgramaSection photosPath={photosPath} />
         <ProgramaVideoSection photosPath={photosPath} />
