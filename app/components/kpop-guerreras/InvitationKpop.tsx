@@ -47,7 +47,11 @@ const WHITE = "#ffffff";
 const PINK_SOFT = "#f0a0d0"; // texto secundario
 const GLOW = "rgba(233, 30, 140, 0.4)";
 
+// Fredoka queda para botones, el aviso de demo y los números del contador del
+// demo. El texto corrido (párrafos, datos, programa, etiquetas) va en
+// Montserrat Arabic (@font-face en globals.css), que solo trae peso normal.
 const FONT = "'Fredoka', 'Segoe UI', Arial, sans-serif";
+const BODY_FONT = "'Montserrat Arabic', 'Fredoka', 'Segoe UI', Arial, sans-serif";
 // Títulos (nombre de la portada y títulos de sección); @font-face en globals.css
 const TITLE_FONT = "'Hunters K-Pop', 'Fredoka', 'Segoe UI', Arial, sans-serif";
 
@@ -295,7 +299,15 @@ function Deco({
 
 // ─── Piezas comunes ──────────────────────────────────────────────────────────
 
-function Titulo({ children, size = 34 }: { children: React.ReactNode; size?: number | string }) {
+function Titulo({
+  children,
+  size = 34,
+  style,
+}: {
+  children: React.ReactNode;
+  size?: number | string;
+  style?: React.CSSProperties;
+}) {
   return (
     <h2
       style={{
@@ -308,6 +320,7 @@ function Titulo({ children, size = 34 }: { children: React.ReactNode; size?: num
         textAlign: "center",
         whiteSpace: "nowrap",
         animation: "kpop-glow 3s ease-in-out infinite",
+        ...style,
       }}
     >
       {children}
@@ -486,7 +499,7 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
         overflow: "hidden",
         padding: 24,
         textAlign: "center",
-        fontFamily: FONT,
+        fontFamily: BODY_FONT,
       }}
     >
       <Stars count={40} seed={3} />
@@ -1097,7 +1110,6 @@ function useTimeLeft(iso: string) {
 // contador entra por abajo, del todo asomada cuando llega al centro.
 const CAT_INK = "#1d2758"; // azul marino del contorno de la tarjeta
 const CAT_BLUE = "#3a78c9"; // azul de las patitas
-const LABEL_FONT = "'Montserrat Arabic', 'Fredoka', sans-serif";
 
 function ContadorGato({ partyIso, photosPath }: { partyIso: string; photosPath: string }) {
   const t = useTimeLeft(partyIso);
@@ -1138,7 +1150,7 @@ function ContadorGato({ partyIso, photosPath }: { partyIso: string; photosPath: 
       </div>
       <div
         style={{
-          fontFamily: LABEL_FONT,
+          fontFamily: BODY_FONT,
           fontSize: "clamp(10px, 3vw, 14px)",
           color: CAT_BLUE,
           marginTop: 4,
@@ -1237,7 +1249,7 @@ function CountdownSection({ partyIso, photosPath, demo }: { partyIso: string; ph
       <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 34, lineHeight: 1, color: WHITE }}>
         {value === null ? "--" : String(value).padStart(2, "0")}
       </div>
-      <div style={{ fontFamily: FONT, fontWeight: 600, fontSize: 11, letterSpacing: "0.14em", color: GOLD, marginTop: 8 }}>
+      <div style={{ fontFamily: BODY_FONT, fontWeight: 600, fontSize: 11, letterSpacing: "0.14em", color: GOLD, marginTop: 8 }}>
         {label}
       </div>
     </div>
@@ -1293,7 +1305,7 @@ function DatoFila({ icon: Icon, children }: { icon: LucideIcon; children: React.
       >
         <Icon size={21} color={WHITE} strokeWidth={2.2} />
       </span>
-      <div style={{ fontFamily: FONT, fontSize: 17, lineHeight: 1.35, color: WHITE }}>{children}</div>
+      <div style={{ fontFamily: BODY_FONT, fontSize: 17, lineHeight: 1.35, color: WHITE }}>{children}</div>
     </div>
   );
 }
@@ -1457,7 +1469,7 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
               >
                 <it.icon size={24} color={GOLD} strokeWidth={2.1} />
               </span>
-              <div style={{ fontFamily: FONT }}>
+              <div style={{ fontFamily: BODY_FONT }}>
                 <div style={{ fontSize: photosPath ? 16 : 18, fontWeight: 600, color: WHITE, lineHeight: 1.2 }}>
                   {it.nombre}
                 </div>
@@ -1523,19 +1535,11 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
     <section style={{ background: BG, position: "relative", overflow: "hidden" }}>
       <img src={`${photosPath}/rsvp-chicas.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
 
-      <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: FONT }}>
-        <h2
-          style={{
-            fontFamily: TITLE_FONT,
-            fontWeight: "normal",
-            color: WHITE,
-            fontSize: "clamp(28px, 8vw, 48px)",
-            wordSpacing: "0.25em",
-            marginBottom: 16,
-          }}
-        >
+      <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: BODY_FONT }}>
+        {/* Mismo Titulo (glow magenta/morado) que el resto de las secciones */}
+        <Titulo size="clamp(28px, 8vw, 48px)" style={{ wordSpacing: "0.25em", marginBottom: 16 }}>
           ¿VAS A VENIR?
-        </h2>
+        </Titulo>
         <p style={{ color: PINK_SOFT, marginBottom: 8, fontSize: 17 }}>¡Necesitamos saber si contamos contigo!</p>
         <p style={{ color: WHITE, marginBottom: 24, fontSize: 17 }}>
           Confirma tu asistencia antes del <strong style={{ color: GOLD }}>{f.rsvpHasta}:</strong>
@@ -1596,7 +1600,7 @@ function CierreSection({ demo }: { demo: boolean }) {
         <Titulo size="clamp(30px, 10vw, 44px)">¡TE ESPERAMOS!</Titulo>
         <div
           style={{
-            fontFamily: FONT,
+            fontFamily: BODY_FONT,
             fontWeight: 500,
             fontSize: 19,
             letterSpacing: "0.1em",
