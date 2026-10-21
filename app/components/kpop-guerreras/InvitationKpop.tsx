@@ -619,26 +619,38 @@ function fadeTo(el: HTMLMediaElement, target: number, duration: number, onComple
   fades.set(el, timer);
 }
 
-/** Cómo estaba la canción antes de que la bajara un video. */
+/** Cómo estaba la canción antes de que la bajara el primer video. */
 interface MusicaGuardada {
   sonaba: boolean;
   posicion: number;
   volumen: number;
 }
 
-const MUSICA_INICIAL: MusicaGuardada = { sonaba: false, posicion: 0, volumen: 0.7 };
+// Cuántos videos tienen la canción "tomada" (bajada y en pausa) y cómo estaba
+// antes del primero. Con un contador compartido la canción solo vuelve cuando
+// la suelta el ÚLTIMO video: si la portada la devolviera mientras suena el
+// programa (pasa si el invitado baja rápido), sonarían los dos a la vez. Cada
+// video debe llamar a soltarMusica exactamente una vez por cada tomarMusica.
+let tomas = 0;
+let guardada: MusicaGuardada = { sonaba: false, posicion: 0, volumen: 0.7 };
 
-// Baja la canción en FADE_MS y la pausa (onPausada se llama al terminar, o
-// enseguida si no sonaba). Devuelve su estado para subirMusica. `prev` aporta
-// el volumen "normal" si la canción está a mitad de un fade (volumen intermedio).
-function bajarMusica(prev: MusicaGuardada, onPausada?: () => void): MusicaGuardada {
+// Baja la canción en FADE_MS y la pausa. onPausada se llama al terminar, o
+// enseguida si no sonaba o si ya la había bajado otro video.
+function tomarMusica(onPausada?: () => void) {
+  tomas++;
   const audio = getMusicAudio();
+  if (tomas > 1) {
+    onPausada?.();
+    return;
+  }
   const sonaba = !!audio && !audio.paused;
-  const volumen = audio && !fades.has(audio) ? audio.volume || MUSICA_INICIAL.volumen : prev.volumen;
+  // A mitad de un fade el volumen es intermedio: se conserva el "normal"
+  const volumen = audio && !fades.has(audio) ? audio.volume || 0.7 : guardada.volumen;
   const m: MusicaGuardada = { sonaba, posicion: audio?.currentTime ?? 0, volumen };
+  guardada = m;
   if (!audio || !sonaba) {
     onPausada?.();
-    return m;
+    return;
   }
   fadeTo(audio, 0, FADE_MS, () => {
     audio.pause();
@@ -647,14 +659,24 @@ function bajarMusica(prev: MusicaGuardada, onPausada?: () => void): MusicaGuarda
     audio.volume = m.volumen;
     onPausada?.();
   });
-  return m;
 }
 
-// Retoma la canción donde quedó y la sube en FADE_MS hasta su volumen previo
-// (0,7 por defecto, el de useMusic; no 1). No hace nada si no sonaba.
-function subirMusica(m: MusicaGuardada) {
+// Cuando la suelta el último video, la canción retoma donde quedó y sube en
+// FADE_MS hasta su volumen previo (0,7 por defecto, el de useMusic; no 1). No
+// hace nada si no sonaba antes del primer video.
+function soltarMusica() {
+  if (tomas === 0) return;
+  tomas--;
+  if (tomas > 0) return;
   const audio = getMusicAudio();
+  const m = guardada;
   if (!audio || !m.sonaba) return;
+  // Todavía bajando (se cancela ese fade) o el invitado la prendió con el FAB:
+  // solo se sube, sin saltar de posición
+  if (!audio.paused) {
+    fadeTo(audio, m.volumen, FADE_MS);
+    return;
+  }
   audio.currentTime = m.posicion;
   audio.volume = 0;
   audio
@@ -686,12 +708,14 @@ function subirMusica(m: MusicaGuardada) {
 // cuando sale de la pantalla antes de terminar: en ese caso queda en pausa
 // bajo video-frame.png y onEnded nunca llegaría.
 
-function playPortada(video: HTMLVideoElement | null): MusicaGuardada | null {
-  if (!video) return null;
+// Devuelve true si tomó la canción (hay video). onSinSonido la devuelve si el
+// navegador no deja sonar al video.
+function playPortada(video: HTMLVideoElement | null, onSinSonido: () => void): boolean {
+  if (!video) return false;
   video.currentTime = 0;
   video.muted = false;
   video.volume = 0;
-  const musica = bajarMusica(MUSICA_INICIAL);
+  tomarMusica();
   video
     .play()
     .then(() => fadeTo(video, 1, FADE_MS))
@@ -700,9 +724,9 @@ function playPortada(video: HTMLVideoElement | null): MusicaGuardada | null {
       video.muted = true;
       video.volume = 1;
       video.play().catch(() => {});
-      subirMusica(musica);
+      onSinSonido();
     });
-  return musica;
+  return true;
 }
 
 function PortadaVideoSection({
@@ -893,17 +917,44 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
 // la misma secuencia (ver "Crossfade de audio" arriba). Si el navegador no
 // deja arrancar el video con sonido, se reproduce sin sonido y la canción
 // vuelve.
+//
+// Si el video sale de la pantalla mientras suena (IntersectionObserver con
+// threshold 0.1), su audio baja en 0,5s, se pausa, vuelve la canción y queda
+// "Ver de nuevo": al regresar no se reproduce solo. Si sale mientras la
+// canción todavía está bajando, el video ni arranca.
 
 function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
   const videoProgramaRef = useRef<HTMLVideoElement>(null);
   const hasAutoPlayed = useRef(false);
-  // Estado de la canción al arrancar el video, para devolverla igual
-  const musica = useRef<MusicaGuardada>(MUSICA_INICIAL);
+  // Si este video tiene la canción tomada: garantiza un único soltarMusica
+  const tieneMusica = useRef(false);
   const [estado, setEstado] = useState<"esperando" | "reproduciendo" | "terminado">("esperando");
+  // El observer lee este ref (su callback no ve el estado nuevo)
+  const reproduciendo = useRef(false);
+
+  const soltar = () => {
+    if (!tieneMusica.current) return;
+    tieneMusica.current = false;
+    soltarMusica();
+  };
+
+  const terminar = () => {
+    reproduciendo.current = false;
+    soltar();
+    setEstado("terminado");
+  };
 
   const arrancarVideo = () => {
     const video = videoProgramaRef.current;
     if (!video) return;
+    // Se fue de la pantalla mientras bajaba la canción: no arranca. Se mide en
+    // el momento y no con el observer de salida: el del centro puede disparar
+    // antes que ese (salto rápido de scroll) y lo daría por fuera.
+    const r = video.getBoundingClientRect();
+    if (r.bottom <= 0 || r.top >= window.innerHeight) {
+      terminar();
+      return;
+    }
     video.currentTime = 0;
     video.muted = false;
     // Fade in de 0 a 1 (volumen al 100%), igual en el autoplay y en el replay
@@ -915,27 +966,51 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
         // Sin permiso para sonar: va sin sonido y la canción vuelve
         video.muted = true;
         video.play().catch(() => {});
-        subirMusica(musica.current);
+        soltar();
       });
   };
 
   // Canción baja en 0,5s y se pausa → recién ahí arranca el video
   const reproducir = () => {
+    reproduciendo.current = true;
     setEstado("reproduciendo");
-    musica.current = bajarMusica(musica.current, arrancarVideo);
+    if (!tieneMusica.current) {
+      tieneMusica.current = true;
+      tomarMusica(arrancarVideo);
+    } else arrancarVideo();
   };
 
   const handleEnded = () => {
     const video = videoProgramaRef.current;
     // Al disparar onEnded el video ya no suena: el fade de salida solo deja el
     // volumen en 0 antes de devolver la canción
-    const terminar = () => {
-      subirMusica(musica.current);
-      setEstado("terminado");
-    };
     if (video && !video.muted) fadeTo(video, 0, FADE_MS, terminar);
     else terminar();
   };
+
+  // Salió de la pantalla: si está sonando, baja su audio, se pausa y vuelve la
+  // canción. Si todavía no arrancó (la canción está bajando), arrancarVideo lo
+  // detecta midiendo su posición.
+  useEffect(() => {
+    const video = videoProgramaRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting || !reproduciendo.current || video.paused) return;
+        reproduciendo.current = false;
+        const pausar = () => {
+          video.pause();
+          terminar();
+        };
+        if (video.muted) pausar();
+        else fadeTo(video, 0, FADE_MS, pausar);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Autoplay una sola vez: la franja de 1px en el centro de la pantalla
   // (rootMargin -50%) detecta cuando el video cruza el centro.
@@ -1454,50 +1529,14 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
 
 // ─── 6. RSVP ─────────────────────────────────────────────────────────────────
 
-// rsvp-chicas.png arriba (baja desde arriba) y rsvp-chicos.png abajo (sube
-// desde abajo), cada una en su propia franja con overflow hidden, con el texto
-// y el botón de WhatsApp en el medio. Cada imagen se mueve según su franja:
-// desde que asoma por abajo de la pantalla hasta que queda centrada, sin
-// transition (igual que las chicas). Se mide la franja y no la imagen porque
-// el translate cambia el rect de la imagen.
-
-function useEntradaPorScroll() {
-  const ref = useRef<HTMLDivElement>(null);
-  // 1 = fuera, 0 = en su lugar
-  const [restante, setRestante] = useState(1);
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!ref.current) return;
-      const rect = ref.current.getBoundingClientRect();
-      const start = window.innerHeight;
-      const end = (window.innerHeight - rect.height) / 2;
-      setRestante(1 - Math.min(Math.max((start - rect.top) / (start - end), 0), 1));
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll);
-    handleScroll();
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
-    };
-  }, []);
-  return [ref, restante] as const;
-}
+// rsvp-chicas.png arriba y rsvp-chicos.png abajo, estáticas, con el texto y
+// el botón de WhatsApp en el medio.
 
 function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
-  const [chicasRef, chicasRestante] = useEntradaPorScroll();
-  const [chicosRef, chicosRestante] = useEntradaPorScroll();
   return (
     <section style={{ background: BG, position: "relative", overflow: "hidden" }}>
-      <div ref={chicasRef} style={{ overflow: "hidden", lineHeight: 0 }}>
-        <img
-          src={`${photosPath}/rsvp-chicas.png`}
-          alt=""
-          draggable={false}
-          style={{ width: "100%", display: "block", transform: `translateY(${-chicasRestante * 100}%)` }}
-        />
-      </div>
+      <img src={`${photosPath}/rsvp-chicas.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
 
       <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: FONT }}>
         <h2
@@ -1544,14 +1583,7 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
         <p style={{ color: PINK_SOFT, fontSize: 12, marginTop: 16 }}>Por favor indícanos el nombre y cuántos asistirán</p>
       </div>
 
-      <div ref={chicosRef} style={{ overflow: "hidden", lineHeight: 0 }}>
-        <img
-          src={`${photosPath}/rsvp-chicos.png`}
-          alt=""
-          draggable={false}
-          style={{ width: "100%", display: "block", transform: `translateY(${chicosRestante * 100}%)` }}
-        />
-      </div>
+      <img src={`${photosPath}/rsvp-chicos.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
     </section>
   );
 }
@@ -1659,20 +1691,20 @@ export default function InvitationKpop({
   const { playing, play, toggle } = useMusic(musicSrc, DESIGN_ID);
 
   const portadaRef = useRef<HTMLVideoElement>(null);
-  // Estado de la canción mientras suena el video de portada (null = nada que
-  // devolver: no hay video o ya se devolvió)
-  const musicaPortada = useRef<MusicaGuardada | null>(null);
+  // Si el video de portada tiene la canción tomada (false = no hay video o ya
+  // la devolvió): garantiza un único soltarMusica
+  const portadaTieneMusica = useRef(false);
 
   const devolverMusicaPortada = () => {
-    const m = musicaPortada.current;
-    musicaPortada.current = null;
-    if (m) subirMusica(m);
+    if (!portadaTieneMusica.current) return;
+    portadaTieneMusica.current = false;
+    soltarMusica();
   };
 
   const handleOpen = () => {
     setOpened(true);
     play();
-    musicaPortada.current = playPortada(portadaRef.current);
+    portadaTieneMusica.current = playPortada(portadaRef.current, devolverMusicaPortada);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
