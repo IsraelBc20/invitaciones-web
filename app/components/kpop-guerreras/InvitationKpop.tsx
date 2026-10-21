@@ -47,7 +47,6 @@ const GOLD = "#f5d800";
 const WHITE = "#ffffff";
 const PINK_SOFT = "#f0a0d0"; // texto secundario
 const GLOW = "rgba(233, 30, 140, 0.4)";
-const WHATSAPP = "#25D366";
 
 const FONT = "'Fredoka', 'Segoe UI', Arial, sans-serif";
 // Títulos (nombre de la portada y títulos de sección); @font-face en globals.css
@@ -106,10 +105,19 @@ function fechaLarga(iso: string) {
   return `${DIAS[dia]} ${d} de ${MESES[m - 1]} de ${y}`;
 }
 
-const waConfirm = (demo: boolean) =>
-  `https://wa.me/51993092110?text=${encodeURIComponent(
-    `¡Hola! Confirmo mi asistencia al cumpleaños de ${festejadaFor(demo).nombre}.\nNombre: \nAsistentes: `
+// "27 de noviembre", para el mensaje de WhatsApp
+function diaYMes(iso: string) {
+  const [, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return `${d} de ${MESES[m - 1].toLowerCase()}`;
+}
+
+// Mensaje prellenado: [nombre] y [N] quedan para que el invitado los complete
+const waConfirm = (demo: boolean) => {
+  const f = festejadaFor(demo);
+  return `https://wa.me/51993092110?text=${encodeURIComponent(
+    `Hola, quiero confirmar mi asistencia al cumpleaños de ${f.nombre} el ${diaYMes(f.iso)}. Mi nombre es [nombre] y asistiremos [N] personas.`
   )}`;
+};
 
 // ─── Aleatorio con semilla ───────────────────────────────────────────────────
 // Estrellas y confetti van en posiciones "aleatorias" pero FIJAS: con
@@ -581,6 +589,80 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
   );
 }
 
+// ─── Crossfade de audio (videos ↔ canción de fondo) ──────────────────────────
+// La canción es el MISMO elemento Audio que controla el FAB (getMusicAudio de
+// useMusic), así que el FAB se ve en pausa mientras suena un video. Si la
+// canción ya estaba en pausa (el invitado la apagó), los videos no la tocan ni
+// la reanudan.
+//
+// Limitación: en iOS el volumen de audio/video es de solo lectura, así que los
+// fades son cortes secos (la pausa y la reanudación sí funcionan).
+
+const FADE_MS = 500;
+// Fade en curso por elemento: un fade nuevo cancela el anterior
+const fades = new WeakMap<HTMLMediaElement, number>();
+
+function fadeTo(el: HTMLMediaElement, target: number, duration: number, onComplete?: () => void) {
+  const prev = fades.get(el);
+  if (prev !== undefined) window.clearInterval(prev);
+  const steps = 20;
+  const from = el.volume;
+  let i = 0;
+  const timer = window.setInterval(() => {
+    i++;
+    el.volume = Math.min(Math.max(from + ((target - from) * i) / steps, 0), 1);
+    if (i < steps) return;
+    window.clearInterval(timer);
+    fades.delete(el);
+    onComplete?.();
+  }, duration / steps);
+  fades.set(el, timer);
+}
+
+/** Cómo estaba la canción antes de que la bajara un video. */
+interface MusicaGuardada {
+  sonaba: boolean;
+  posicion: number;
+  volumen: number;
+}
+
+const MUSICA_INICIAL: MusicaGuardada = { sonaba: false, posicion: 0, volumen: 0.7 };
+
+// Baja la canción en FADE_MS y la pausa (onPausada se llama al terminar, o
+// enseguida si no sonaba). Devuelve su estado para subirMusica. `prev` aporta
+// el volumen "normal" si la canción está a mitad de un fade (volumen intermedio).
+function bajarMusica(prev: MusicaGuardada, onPausada?: () => void): MusicaGuardada {
+  const audio = getMusicAudio();
+  const sonaba = !!audio && !audio.paused;
+  const volumen = audio && !fades.has(audio) ? audio.volume || MUSICA_INICIAL.volumen : prev.volumen;
+  const m: MusicaGuardada = { sonaba, posicion: audio?.currentTime ?? 0, volumen };
+  if (!audio || !sonaba) {
+    onPausada?.();
+    return m;
+  }
+  fadeTo(audio, 0, FADE_MS, () => {
+    audio.pause();
+    m.posicion = audio.currentTime;
+    // pause() no toca el volumen: se deja como estaba para el FAB
+    audio.volume = m.volumen;
+    onPausada?.();
+  });
+  return m;
+}
+
+// Retoma la canción donde quedó y la sube en FADE_MS hasta su volumen previo
+// (0,7 por defecto, el de useMusic; no 1). No hace nada si no sonaba.
+function subirMusica(m: MusicaGuardada) {
+  const audio = getMusicAudio();
+  if (!audio || !m.sonaba) return;
+  audio.currentTime = m.posicion;
+  audio.volume = 0;
+  audio
+    .play()
+    .then(() => fadeTo(audio, m.volumen, FADE_MS))
+    .catch(() => {});
+}
+
 // ─── 1b. Portada con video (solo cliente) ────────────────────────────────────
 // Video a ancho completo con la tira de estrellas pegada sobre su borde
 // inferior. Ambos son assets del cliente (photosPath), así que el demo no la
@@ -592,33 +674,61 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
 // (y en pausa) hasta recargar: al volver a subir se ve la imagen fija, no el
 // video. Antes de eso el frame está oculto y el video se ve normal.
 
-// Suena con audio al 100%. Lo arranca `playPortada` desde el clic de
-// "¡Abrir invitación!" (no un useEffect posterior): iOS solo deja reproducir
-// con sonido dentro del gesto del usuario.
+// Audio al 100% con crossfade contra la canción: `playPortada` arranca el
+// video en volumen 0 y lo sube en 0,5s mientras la canción baja en 0,5s y se
+// pausa. Se llama desde el clic de "¡Abrir invitación!" (no un useEffect
+// posterior) porque iOS solo deja reproducir con sonido dentro del gesto del
+// usuario; por eso la canción también arranca en ese clic, aunque enseguida
+// baje. El crossfade es simultáneo y no "canción baja → video arranca" como en
+// el programa: esperar 0,5s sacaría el play del gesto.
+//
+// La canción vuelve (`onTerminar`, una sola vez) cuando el video termina o
+// cuando sale de la pantalla antes de terminar: en ese caso queda en pausa
+// bajo video-frame.png y onEnded nunca llegaría.
 
-function playPortada(video: HTMLVideoElement | null) {
-  if (!video) return;
+function playPortada(video: HTMLVideoElement | null): MusicaGuardada | null {
+  if (!video) return null;
   video.currentTime = 0;
   video.muted = false;
-  video.volume = 1;
-  video.play().catch(() => {
-    // Si igual lo bloquean, al menos se ve (sin sonido)
-    video.muted = true;
-    video.play().catch(() => {});
-  });
+  video.volume = 0;
+  const musica = bajarMusica(MUSICA_INICIAL);
+  video
+    .play()
+    .then(() => fadeTo(video, 1, FADE_MS))
+    .catch(() => {
+      // Si igual lo bloquean, al menos se ve (sin sonido) y la canción vuelve
+      video.muted = true;
+      video.volume = 1;
+      video.play().catch(() => {});
+      subirMusica(musica);
+    });
+  return musica;
 }
 
 function PortadaVideoSection({
   photosPath,
   opened,
   videoRef,
+  onTerminar,
 }: {
   photosPath: string;
   opened: boolean;
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  /** Devuelve la canción de fondo (el padre se encarga de hacerlo una sola vez). */
+  onTerminar: () => void;
 }) {
   const sectionRef = useRef<HTMLElement>(null);
   const [frameVisible, setFrameVisible] = useState(false);
+
+  // Baja el audio del video en 0,5s y devuelve la canción
+  const soltarAudio = (video: HTMLVideoElement, pausar: boolean) => {
+    const listo = () => {
+      if (pausar) video.pause();
+      onTerminar();
+    };
+    if (video.muted || video.paused) listo();
+    else fadeTo(video, 0, FADE_MS, listo);
+  };
 
   // Se observa recién al abrir: detrás del IntroGate la página está en top 0
   // y el video siempre "visible", así que no cambia nada antes.
@@ -627,15 +737,18 @@ function PortadaVideoSection({
     if (!opened || !video) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) return;
-      video.pause();
       setFrameVisible(true);
+      soltarAudio(video, true);
       observer.disconnect();
     });
     observer.observe(video);
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
   const handleVideoEnded = () => {
+    const video = videoRef.current;
+    if (video) soltarAudio(video, false);
     const section = sectionRef.current;
     if (!section) return;
     window.scrollTo({ top: section.getBoundingClientRect().bottom + window.scrollY, behavior: "smooth" });
@@ -777,47 +890,15 @@ function ChicasSection({ photosPath }: { photosPath: string }) {
 // canción de fondo: la canción baja en 0,5s y se pausa → el video arranca en
 // volumen 0 y sube en 0,5s → al terminar el video baja en 0,5s → la canción
 // retoma donde quedó y sube en 0,5s. Después aparece "Ver de nuevo", que repite
-// la misma secuencia.
-//
-// La canción es el MISMO elemento Audio que controla el FAB (getMusicAudio de
-// useMusic), así que el FAB se ve en pausa durante el video. Si la canción ya
-// estaba en pausa (el invitado la apagó), el video no la toca ni la reanuda.
-//
-// Limitaciones: en iOS el volumen de audio/video es de solo lectura, así que
-// los fades son cortes secos (la pausa y la reanudación sí funcionan). Y si el
-// navegador no deja arrancar el video con sonido, se reproduce sin sonido y la
-// canción no se interrumpe.
-
-const FADE_MS = 500;
-// Fade en curso por elemento: un fade nuevo cancela el anterior
-const fades = new WeakMap<HTMLMediaElement, number>();
-
-function fadeTo(el: HTMLMediaElement, target: number, duration: number, onComplete?: () => void) {
-  const prev = fades.get(el);
-  if (prev !== undefined) window.clearInterval(prev);
-  const steps = 20;
-  const from = el.volume;
-  let i = 0;
-  const timer = window.setInterval(() => {
-    i++;
-    el.volume = Math.min(Math.max(from + ((target - from) * i) / steps, 0), 1);
-    if (i < steps) return;
-    window.clearInterval(timer);
-    fades.delete(el);
-    onComplete?.();
-  }, duration / steps);
-  fades.set(el, timer);
-}
+// la misma secuencia (ver "Crossfade de audio" arriba). Si el navegador no
+// deja arrancar el video con sonido, se reproduce sin sonido y la canción
+// vuelve.
 
 function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
   const videoProgramaRef = useRef<HTMLVideoElement>(null);
   const hasAutoPlayed = useRef(false);
   // Estado de la canción al arrancar el video, para devolverla igual
-  const musica = useRef<{ sonaba: boolean; posicion: number; volumen: number }>({
-    sonaba: false,
-    posicion: 0,
-    volumen: 0.7,
-  });
+  const musica = useRef<MusicaGuardada>(MUSICA_INICIAL);
   const [estado, setEstado] = useState<"esperando" | "reproduciendo" | "terminado">("esperando");
 
   const arrancarVideo = () => {
@@ -834,41 +915,14 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
         // Sin permiso para sonar: va sin sonido y la canción vuelve
         video.muted = true;
         video.play().catch(() => {});
-        reanudarMusica();
+        subirMusica(musica.current);
       });
   };
 
-  const reanudarMusica = () => {
-    const audio = getMusicAudio();
-    const m = musica.current;
-    if (!audio || !m.sonaba) return;
-    audio.currentTime = m.posicion;
-    audio.volume = 0;
-    audio
-      .play()
-      .then(() => fadeTo(audio, m.volumen, FADE_MS))
-      .catch(() => {});
-  };
-
+  // Canción baja en 0,5s y se pausa → recién ahí arranca el video
   const reproducir = () => {
     setEstado("reproduciendo");
-    const audio = getMusicAudio();
-    const sonaba = !!audio && !audio.paused;
-    // Si la canción todavía está subiendo (tocaron "Ver de nuevo" en medio del
-    // fade), su volumen actual es intermedio: se conserva el de antes
-    const volumen = audio && !fades.has(audio) ? audio.volume || 0.7 : musica.current.volumen;
-    musica.current = { sonaba, posicion: audio?.currentTime ?? 0, volumen };
-    if (!audio || !sonaba) {
-      arrancarVideo();
-      return;
-    }
-    fadeTo(audio, 0, FADE_MS, () => {
-      audio.pause();
-      musica.current.posicion = audio.currentTime;
-      // pause() no toca el volumen: se deja como estaba para el FAB
-      audio.volume = musica.current.volumen;
-      arrancarVideo();
-    });
+    musica.current = bajarMusica(musica.current, arrancarVideo);
   };
 
   const handleEnded = () => {
@@ -876,7 +930,7 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
     // Al disparar onEnded el video ya no suena: el fade de salida solo deja el
     // volumen en 0 antes de devolver la canción
     const terminar = () => {
-      reanudarMusica();
+      subirMusica(musica.current);
       setEstado("terminado");
     };
     if (video && !video.muted) fadeTo(video, 0, FADE_MS, terminar);
@@ -1400,19 +1454,68 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
 
 // ─── 6. RSVP ─────────────────────────────────────────────────────────────────
 
-function ConfirmarSection({ demo }: { demo: boolean }) {
+// rsvp-chicas.png arriba (baja desde arriba) y rsvp-chicos.png abajo (sube
+// desde abajo), cada una en su propia franja con overflow hidden, con el texto
+// y el botón de WhatsApp en el medio. Cada imagen se mueve según su franja:
+// desde que asoma por abajo de la pantalla hasta que queda centrada, sin
+// transition (igual que las chicas). Se mide la franja y no la imagen porque
+// el translate cambia el rect de la imagen.
+
+function useEntradaPorScroll() {
+  const ref = useRef<HTMLDivElement>(null);
+  // 1 = fuera, 0 = en su lugar
+  const [restante, setRestante] = useState(1);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      const start = window.innerHeight;
+      const end = (window.innerHeight - rect.height) / 2;
+      setRestante(1 - Math.min(Math.max((start - rect.top) / (start - end), 0), 1));
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
+  return [ref, restante] as const;
+}
+
+function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
+  const [chicasRef, chicasRestante] = useEntradaPorScroll();
+  const [chicosRef, chicosRestante] = useEntradaPorScroll();
   return (
-    <section style={{ position: "relative", padding: "60px 26px 64px", textAlign: "center", overflow: "hidden" }}>
-      <Stars count={18} seed={71} />
-      <Reveal>
-        <Titulo>¿VAS A VENIR?</Titulo>
-        <p style={{ fontFamily: FONT, fontSize: 17, lineHeight: 1.55, color: WHITE, marginTop: 18 }}>
-          ¡Necesitamos saber si contamos contigo! Confirma tu asistencia antes del{" "}
-          <span style={{ color: GOLD, fontWeight: 600 }}>{f.rsvpHasta}</span>:
+    <section style={{ background: BG, position: "relative", overflow: "hidden" }}>
+      <div ref={chicasRef} style={{ overflow: "hidden", lineHeight: 0 }}>
+        <img
+          src={`${photosPath}/rsvp-chicas.png`}
+          alt=""
+          draggable={false}
+          style={{ width: "100%", display: "block", transform: `translateY(${-chicasRestante * 100}%)` }}
+        />
+      </div>
+
+      <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: FONT }}>
+        <h2
+          style={{
+            fontFamily: TITLE_FONT,
+            fontWeight: "normal",
+            color: WHITE,
+            fontSize: "clamp(28px, 8vw, 48px)",
+            wordSpacing: "0.25em",
+            marginBottom: 16,
+          }}
+        >
+          ¿VAS A VENIR?
+        </h2>
+        <p style={{ color: PINK_SOFT, marginBottom: 8, fontSize: 17 }}>¡Necesitamos saber si contamos contigo!</p>
+        <p style={{ color: WHITE, marginBottom: 24, fontSize: 17 }}>
+          Confirma tu asistencia antes del <strong style={{ color: GOLD }}>{f.rsvpHasta}:</strong>
         </p>
-      </Reveal>
-      <Reveal delay={1}>
         <a
           href={waConfirm(demo)}
           target="_blank"
@@ -1420,28 +1523,35 @@ function ConfirmarSection({ demo }: { demo: boolean }) {
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 10,
-            marginTop: 26,
-            padding: "17px 30px",
-            borderRadius: 999,
-            background: WHATSAPP,
+            gap: 8,
+            background: "transparent",
+            border: `2px solid ${MAGENTA}`,
+            borderRadius: 50,
+            padding: "14px 32px",
             color: WHITE,
-            fontFamily: FONT,
-            fontWeight: 700,
-            fontSize: 17,
-            letterSpacing: "0.06em",
+            fontFamily: TITLE_FONT,
+            fontWeight: "normal",
+            fontSize: 18,
+            // El espacio de Hunters K-Pop casi no tiene ancho: sin esto se lee
+            // "CONFIRMARASISTENCIA"
+            wordSpacing: "0.35em",
             textDecoration: "none",
-            boxShadow: "0 0 22px rgba(37, 211, 102, 0.45), 0 12px 26px -10px rgba(0,0,0,0.6)",
-            animation: "pulse-soft 2.4s ease-in-out infinite",
           }}
         >
+          <MessageCircle size={20} color={WHITE} aria-hidden="true" />
           CONFIRMAR ASISTENCIA
-          <MessageCircle size={20} color={WHITE} strokeWidth={2.3} aria-hidden="true" />
         </a>
-        <p style={{ fontFamily: FONT, fontSize: 14.5, color: PINK_SOFT, marginTop: 18 }}>
-          Por favor indícanos el nombre y cuántos asistirán
-        </p>
-      </Reveal>
+        <p style={{ color: PINK_SOFT, fontSize: 12, marginTop: 16 }}>Por favor indícanos el nombre y cuántos asistirán</p>
+      </div>
+
+      <div ref={chicosRef} style={{ overflow: "hidden", lineHeight: 0 }}>
+        <img
+          src={`${photosPath}/rsvp-chicos.png`}
+          alt=""
+          draggable={false}
+          style={{ width: "100%", display: "block", transform: `translateY(${chicosRestante * 100}%)` }}
+        />
+      </div>
     </section>
   );
 }
@@ -1549,11 +1659,20 @@ export default function InvitationKpop({
   const { playing, play, toggle } = useMusic(musicSrc, DESIGN_ID);
 
   const portadaRef = useRef<HTMLVideoElement>(null);
+  // Estado de la canción mientras suena el video de portada (null = nada que
+  // devolver: no hay video o ya se devolvió)
+  const musicaPortada = useRef<MusicaGuardada | null>(null);
+
+  const devolverMusicaPortada = () => {
+    const m = musicaPortada.current;
+    musicaPortada.current = null;
+    if (m) subirMusica(m);
+  };
 
   const handleOpen = () => {
     setOpened(true);
     play();
-    playPortada(portadaRef.current);
+    musicaPortada.current = playPortada(portadaRef.current);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1565,13 +1684,20 @@ export default function InvitationKpop({
 
       <main style={{ position: "relative", zIndex: 1 }}>
         {/* Emilia: video + estrellas abren la invitación (el demo no tiene video) */}
-        {!demo && <PortadaVideoSection photosPath={photosPath} opened={opened} videoRef={portadaRef} />}
+        {!demo && (
+          <PortadaVideoSection
+            photosPath={photosPath}
+            opened={opened}
+            videoRef={portadaRef}
+            onTerminar={devolverMusicaPortada}
+          />
+        )}
         <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={demo} />
         <ChicasSection photosPath={photosPath} />
         <FiestaSection demo={demo} photosPath={photosPath} />
         <ProgramaSection photosPath={photosPath} />
         <ProgramaVideoSection photosPath={photosPath} />
-        <ConfirmarSection demo={demo} />
+        <ConfirmarSection demo={demo} photosPath={photosPath} />
         <CierreSection demo={demo} />
       </main>
     </div>
