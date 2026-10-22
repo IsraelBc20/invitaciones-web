@@ -667,6 +667,19 @@ function IntroVideos({
     pointerEvents: visible ? "auto" : "none",
   });
 
+  const introTexto = (visible: boolean): React.CSSProperties => ({
+    position: "absolute",
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "90%",
+    textAlign: "center",
+    color: WHITE,
+    zIndex: 51,
+    pointerEvents: "none",
+    opacity: visible ? 1 : 0,
+    transition: "opacity 0.3s ease",
+  });
+
   return (
     <div
       style={{
@@ -697,6 +710,32 @@ function IntroVideos({
         onClick={handleClicEspera}
         style={{ ...capa(estado === "espera"), cursor: "pointer" }}
       />
+      {/* Textos sobre intro-espera: no reciben el clic (pointerEvents none),
+          así toda la pantalla sigue abriendo la invitación */}
+      <div
+        style={{
+          ...introTexto(estado === "espera"),
+          top: "15%",
+          fontFamily: TITLE_FONT,
+          fontSize: "clamp(24px, 7vw, 40px)",
+          // El espacio de Hunters K-Pop casi no tiene ancho
+          wordSpacing: "0.25em",
+          textShadow: `0 0 10px ${MAGENTA}, 0 0 20px ${MAGENTA}, 0 0 40px ${PURPLE}`,
+        }}
+      >
+        TIENES UNA INVITACIÓN
+      </div>
+      <div
+        style={{
+          ...introTexto(estado === "espera"),
+          bottom: "20%",
+          fontFamily: "'Montserrat Arabic', sans-serif",
+          fontSize: "clamp(14px, 4vw, 18px)",
+          textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+        }}
+      >
+        Haz tap en cualquier parte de la pantalla
+      </div>
       <video
         ref={abrirRef}
         src={`${photosPath}/intro-abrir.mp4`}
@@ -1735,9 +1774,8 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
 // ─── 6. RSVP ─────────────────────────────────────────────────────────────────
 
 // rsvp-chicas.png arriba y rsvp-chicos.png abajo, estáticas, con el texto y
-// el botón de WhatsApp en el medio; corazones.png va pegado debajo de los
-// chicos. El fondo (rsvp-fondo.png) ya viene editado: sin overlay ni
-// opacidad.
+// el botón de WhatsApp en el medio. El fondo (rsvp-fondo.png) ya viene
+// editado: sin overlay ni opacidad.
 
 function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
@@ -1791,14 +1829,6 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
       </div>
 
       <img src={`${photosPath}/rsvp-chicos.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
-      {/* Corazones pegados debajo de los chicos, todavía dentro de la sección */}
-      <img
-        src={`${photosPath}/corazones.png`}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        style={{ width: "100%", display: "block", margin: 0, padding: 0 }}
-      />
     </section>
   );
 }
@@ -1989,6 +2019,20 @@ export default function InvitationKpop({
         <ProgramaSection photosPath={photosPath} />
         <VideoCrossfadeSection src={`${photosPath}/video-programa.mp4`} />
         <ConfirmarSection demo={demo} photosPath={photosPath} />
+        {/* Corazones centrados sobre la unión de ¿VAS A VENIR? y el video de
+            cierre, para tapar la línea. corazones.png mide 525×97 y su
+            franja más tupida está a media altura: márgenes de -50% de su
+            alto (en %, relativos al ancho: 97 / 525 / 2) la dejan justo
+            sobre la unión sin sumar altura a la página. */}
+        <div style={{ position: "relative", zIndex: 2, marginTop: "-9.24%", marginBottom: "-9.24%", pointerEvents: "none" }}>
+          <img
+            src={`${photosPath}/corazones.png`}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            style={{ width: "100%", display: "block" }}
+          />
+        </div>
         <VideoCrossfadeSection
           src={`${photosPath}/video-cierre.mp4`}
           frameFinal={`${photosPath}/cierre-frame.png`}
