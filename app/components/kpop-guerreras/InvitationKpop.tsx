@@ -560,23 +560,21 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
 // Sonido: el navegador solo deja arrancar con sonido sin gesto del usuario si
 // ya hubo interacción con el sitio. Si intro-llamada no puede sonar, va sin
 // sonido, sin avisar. El clic en intro-espera arranca intro-abrir dentro del
-// gesto y llama a `onToque`, que desbloquea la canción y el video de portada:
-// la invitación se abre al terminar intro-abrir, ya sin gesto.
+// gesto y llama a `onToque`, que desbloquea la canción: la invitación se abre
+// al terminar intro-abrir, ya sin gesto. El video de portada recién se monta
+// al abrir (ver el componente principal).
 //
 // Si falta algún video (onError) se salta al estado siguiente, para que el
-// invitado nunca quede trabado en una pantalla negra.
+// invitado nunca quede trabado en una pantalla negra. Y si un estado dura más
+// de SALTAR_MS (algo falló, o el invitado no se anima a tocar), aparece un
+// botón discreto "Saltar intro" que abre la invitación directo.
+//
+// Los videos e intro-espera.png son verticales (1080×1906 y 544×960): van con
+// object-fit contain sobre negro, así se ven completos en cualquier pantalla.
 
 const INTRO_FADE_MS = 300;
+const SALTAR_MS = 30000;
 type EstadoIntro = "llamada" | "espera" | "abrir" | "done";
-
-// play() + pause() dentro de un gesto deja al elemento habilitado para sonar
-// después sin gesto (iOS). La promesa rechazada (AbortError) no importa.
-function desbloquear(media: HTMLMediaElement | null) {
-  if (!media || !media.paused) return;
-  media.muted = false;
-  media.play().catch(() => {});
-  media.pause();
-}
 
 // Con sonido; si el navegador lo bloquea, sin sonido
 function reproducirIntro(video: HTMLVideoElement | null) {
@@ -608,6 +606,9 @@ function IntroVideos({
   const [estado, setEstado] = useState<EstadoIntro>("llamada");
   // Los handlers de los videos leen el estado actual de aquí
   const estadoRef = useRef<EstadoIntro>("llamada");
+  // Estado en el que se cumplieron los SALTAR_MS (el botón se ve solo si
+  // seguimos en ese mismo estado)
+  const [saltarEn, setSaltarEn] = useState<EstadoIntro | null>(null);
 
   const irA = (siguiente: EstadoIntro) => {
     estadoRef.current = siguiente;
@@ -617,6 +618,13 @@ function IntroVideos({
   useEffect(() => {
     reproducirIntro(llamadaRef.current);
   }, []);
+
+  // El botón de escape aparece si el estado actual lleva SALTAR_MS sin cambiar
+  useEffect(() => {
+    if (estado === "done") return;
+    const id = window.setTimeout(() => setSaltarEn(estado), SALTAR_MS);
+    return () => window.clearTimeout(id);
+  }, [estado]);
 
   const pasarAEspera = () => {
     if (estadoRef.current !== "llamada") return;
@@ -631,19 +639,29 @@ function IntroVideos({
     reproducirIntro(abrirRef.current);
   };
 
-  const terminar = () => {
-    if (estadoRef.current !== "abrir") return;
+  const cerrar = () => {
     irA("done");
+    llamadaRef.current?.pause();
+    abrirRef.current?.pause();
     onAbrir();
     window.setTimeout(onOculta, INTRO_FADE_MS);
+  };
+
+  const terminar = () => {
+    if (estadoRef.current === "abrir") cerrar();
+  };
+
+  const saltar = () => {
+    if (estadoRef.current !== "done") cerrar();
   };
 
   const capa = (visible: boolean): React.CSSProperties => ({
     position: "fixed",
     inset: 0,
     width: "100%",
-    height: "100%",
-    objectFit: "cover",
+    height: "100vh",
+    objectFit: "contain",
+    background: "#000000",
     opacity: visible ? 1 : 0,
     transition: "opacity 0.3s ease",
     pointerEvents: visible ? "auto" : "none",
@@ -691,6 +709,28 @@ function IntroVideos({
         onError={terminar}
         style={capa(estado === "abrir")}
       />
+      {saltarEn === estado && estado !== "done" && (
+        <button
+          onClick={saltar}
+          style={{
+            position: "fixed",
+            right: 14,
+            bottom: 14,
+            zIndex: 1,
+            padding: "7px 14px",
+            borderRadius: 999,
+            border: "1px solid rgba(255, 255, 255, 0.25)",
+            background: "rgba(0, 0, 0, 0.5)",
+            color: WHITE,
+            fontFamily: BODY_FONT,
+            fontSize: 12,
+            opacity: 0.75,
+            cursor: "pointer",
+          }}
+        >
+          Saltar intro
+        </button>
+      )}
     </div>
   );
 }
@@ -1854,10 +1894,10 @@ export default function InvitationKpop({
     soltarMusica();
   };
 
+  // Demo: botón "¡Abrir invitación!" de IntroGate (no tiene video de portada)
   const handleOpen = () => {
     setOpened(true);
     play();
-    portadaTieneMusica.current = playPortada(portadaRef.current, devolverMusicaPortada);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1865,16 +1905,16 @@ export default function InvitationKpop({
   // terminar su fade de salida
   const [introVisible, setIntroVisible] = useState(!demo);
 
-  // Clic en intro-espera (gesto del usuario): habilita la canción y el video
-  // de portada para que puedan sonar al abrir, que ya no es dentro del gesto
+  // Clic en intro-espera (gesto del usuario): habilita la canción para que
+  // pueda sonar al abrir, que ya no es dentro del gesto
   const desbloquearInvitacion = () => {
     play(); // crea el Audio de la canción
     getMusicAudio()?.pause();
-    desbloquear(portadaRef.current);
   };
 
-  // Terminó intro-abrir: la canción entra con fade in de 0,5s y arranca el
-  // video de portada, que la toma con el mismo crossfade de siempre
+  // Terminó intro-abrir (o "Saltar intro"): la canción entra con fade in de
+  // 0,5s. El video de portada se monta recién ahora y arranca en el efecto de
+  // abajo
   const handleOpenVideos = () => {
     setOpened(true);
     play();
@@ -1883,9 +1923,19 @@ export default function InvitationKpop({
       audio.volume = 0;
       fadeTo(audio, MUSIC_VOLUME, FADE_MS);
     }
-    portadaTieneMusica.current = playPortada(portadaRef.current, devolverMusicaPortada);
     window.scrollTo({ top: 0 });
   };
+
+  // Emilia: PortadaVideoSection solo existe en el DOM una vez abierta la
+  // invitación (antes podía sonar detrás de la intro). Los efectos de los
+  // hijos corren antes que este, así que portadaRef ya apunta al video recién
+  // montado. Ya no está dentro del gesto: si el navegador no lo deja sonar
+  // (iOS), va sin sonido y la canción vuelve.
+  useEffect(() => {
+    if (!opened || demo) return;
+    portadaTieneMusica.current = playPortada(portadaRef.current, devolverMusicaPortada);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened]);
 
   return (
     <div id="invitation-root" style={{ background: BG, color: WHITE, fontFamily: FONT }}>
@@ -1903,7 +1953,7 @@ export default function InvitationKpop({
 
       <main style={{ position: "relative", zIndex: 1 }}>
         {/* Emilia: video + estrellas abren la invitación (el demo no tiene video) */}
-        {!demo && (
+        {!demo && opened && (
           <PortadaVideoSection
             photosPath={photosPath}
             opened={opened}
