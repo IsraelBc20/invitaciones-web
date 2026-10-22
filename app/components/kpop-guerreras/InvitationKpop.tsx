@@ -667,19 +667,6 @@ function IntroVideos({
     pointerEvents: visible ? "auto" : "none",
   });
 
-  const introTexto = (visible: boolean): React.CSSProperties => ({
-    position: "absolute",
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "90%",
-    textAlign: "center",
-    color: WHITE,
-    zIndex: 51,
-    pointerEvents: "none",
-    opacity: visible ? 1 : 0,
-    transition: "opacity 0.3s ease",
-  });
-
   return (
     <div
       style={{
@@ -710,31 +697,48 @@ function IntroVideos({
         onClick={handleClicEspera}
         style={{ ...capa(estado === "espera"), cursor: "pointer" }}
       />
-      {/* Textos sobre intro-espera: no reciben el clic (pointerEvents none),
-          así toda la pantalla sigue abriendo la invitación */}
+      {/* Textos sobre intro-espera, juntos arriba. No reciben el clic
+          (pointerEvents none): toda la pantalla sigue abriendo la invitación */}
       <div
         style={{
-          ...introTexto(estado === "espera"),
-          top: "15%",
-          fontFamily: TITLE_FONT,
-          fontSize: "clamp(24px, 7vw, 40px)",
-          // El espacio de Hunters K-Pop casi no tiene ancho
-          wordSpacing: "0.25em",
-          textShadow: `0 0 10px ${MAGENTA}, 0 0 20px ${MAGENTA}, 0 0 40px ${PURPLE}`,
+          position: "absolute",
+          top: "12%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "90%",
+          textAlign: "center",
+          color: WHITE,
+          zIndex: 51,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          pointerEvents: "none",
+          opacity: estado === "espera" ? 1 : 0,
+          transition: "opacity 0.3s ease",
         }}
       >
-        TIENES UNA INVITACIÓN
-      </div>
-      <div
-        style={{
-          ...introTexto(estado === "espera"),
-          bottom: "20%",
-          fontFamily: "'Montserrat Arabic', sans-serif",
-          fontSize: "clamp(14px, 4vw, 18px)",
-          textShadow: "0 2px 4px rgba(0,0,0,0.8)",
-        }}
-      >
-        Haz tap en cualquier parte de la pantalla
+        <p
+          style={{
+            margin: 0,
+            fontFamily: TITLE_FONT,
+            fontSize: "clamp(24px, 7vw, 40px)",
+            // El espacio de Hunters K-Pop casi no tiene ancho
+            wordSpacing: "0.25em",
+            textShadow: "0 0 10px #0058ab, 0 0 20px #0058ab, 0 0 40px #0058ab, 0 0 80px #003d7a",
+          }}
+        >
+          TIENES UNA INVITACIÓN
+        </p>
+        <p
+          style={{
+            margin: 0,
+            fontFamily: "'Montserrat Arabic', sans-serif",
+            fontSize: "clamp(14px, 4vw, 18px)",
+            textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+          }}
+        >
+          Haz tap en cualquier parte de la pantalla
+        </p>
       </div>
       <video
         ref={abrirRef}
@@ -1267,7 +1271,8 @@ function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal?: 
   }, []);
 
   return (
-    <section style={{ position: "relative", lineHeight: 0 }}>
+    // zIndex 1: debajo de los corazones (zIndex 2) que se le superponen
+    <section style={{ position: "relative", zIndex: 1, lineHeight: 0 }}>
       <video
         ref={videoRef}
         // #t=0.1 hace que el navegador pinte el primer cuadro como portada
@@ -2019,12 +2024,26 @@ export default function InvitationKpop({
         <ProgramaSection photosPath={photosPath} />
         <VideoCrossfadeSection src={`${photosPath}/video-programa.mp4`} />
         <ConfirmarSection demo={demo} photosPath={photosPath} />
-        {/* Corazones centrados sobre la unión de ¿VAS A VENIR? y el video de
-            cierre, para tapar la línea. corazones.png mide 525×97 y su
-            franja más tupida está a media altura: márgenes de -50% de su
-            alto (en %, relativos al ancho: 97 / 525 / 2) la dejan justo
-            sobre la unión sin sumar altura a la página. */}
-        <div style={{ position: "relative", zIndex: 2, marginTop: "-9.24%", marginBottom: "-9.24%", pointerEvents: "none" }}>
+        {/* Corazones sobre la unión de ¿VAS A VENIR? y el video de cierre,
+            para tapar la línea, sobresaliendo más hacia el video.
+            corazones.png mide 525×97 (alto = 18,48% del ancho): la unión pasa
+            por su fila 36, donde los corazones ya cubren el 98% del ancho.
+            Arriba quedan 36/97 de su alto (6,86% del ancho) y abajo 61/97
+            (11,62%); los márgenes en % son relativos al ancho, y suman su
+            alto exacto para no mover al video (más margen inferior lo
+            subiría sobre los chicos). translateZ(0) los lleva a su propia
+            capa: en iOS el <video> puede pintarse encima de un hermano con
+            más z-index. */}
+        <div
+          style={{
+            position: "relative",
+            zIndex: 2,
+            marginTop: "-6.86%",
+            marginBottom: "-11.62%",
+            transform: "translateZ(0)",
+            pointerEvents: "none",
+          }}
+        >
           <img
             src={`${photosPath}/corazones.png`}
             alt=""
