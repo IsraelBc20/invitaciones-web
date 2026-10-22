@@ -6,7 +6,8 @@
 //
 // A diferencia de las bodas NO tiene galería, subida de fotos, regalos,
 // playlist ni historia: es portada → countdown → chicas → la fiesta →
-// programa → RSVP → cierre con confetti (Emilia abre además con su video).
+// programa → RSVP → video de cierre → cierre con confetti. Emilia entra por
+// una intro de 3 videos (en vez de IntroGate) y abre además con su video.
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -22,6 +23,7 @@ import {
   Music2,
   PartyPopper,
   RotateCcw,
+  VolumeX,
   type LucideIcon,
 } from "lucide-react";
 import { getMusicAudio, useMusic } from "@/app/components/shared/useMusic";
@@ -549,6 +551,217 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
   );
 }
 
+// ─── 1c. Portada con 3 videos (solo cliente; reemplaza a IntroGate) ──────────
+// intro-llamada.mp4 (una vez) → intro-espera.mp4 (en loop hasta que tocan la
+// pantalla) → intro-abrir.mp4 (una vez) → se abre la invitación. Los 3 videos
+// están montados y precargados desde el inicio, apilados a pantalla completa:
+// el paso actual tiene opacity 1 y el resto 0, con una transición de 0,3s.
+//
+// Sonido: el navegador solo deja arrancar con sonido sin gesto del usuario si
+// ya hubo interacción con el sitio. Si intro-llamada no puede sonar, va sin
+// sonido con un aviso "Toca para activar el sonido"; ese toque lo desmuta y,
+// de paso, "desbloquea" los otros dos videos (iOS exige un gesto por
+// elemento) para que intro-espera arranque con sonido. El toque en
+// intro-espera arranca intro-abrir dentro del gesto y llama a `onToque`, que
+// desbloquea la canción y el video de portada: la invitación se abre al
+// terminar intro-abrir, ya sin gesto.
+//
+// Si falta algún archivo (onError) se salta al paso siguiente, para que el
+// invitado nunca quede trabado en una pantalla negra.
+
+const INTRO_FADE_MS = 300;
+type PasoIntro = "llamada" | "espera" | "abrir";
+const PASOS_INTRO: PasoIntro[] = ["llamada", "espera", "abrir"];
+
+// play() + pause() dentro de un gesto deja al elemento habilitado para sonar
+// después sin gesto (iOS). La promesa rechazada (AbortError) no importa.
+function desbloquear(media: HTMLMediaElement | null) {
+  if (!media || !media.paused) return;
+  media.muted = false;
+  media.play().catch(() => {});
+  media.pause();
+}
+
+function IntroVideos({
+  photosPath,
+  onToque,
+  onAbrir,
+  onOculta,
+}: {
+  photosPath: string;
+  /** Toque en intro-espera (dentro del gesto): desbloquear audio de la invitación. */
+  onToque: () => void;
+  /** Terminó intro-abrir: revelar la invitación. */
+  onAbrir: () => void;
+  /** Terminó el fade de salida: desmontar la intro. */
+  onOculta: () => void;
+}) {
+  const llamadaRef = useRef<HTMLVideoElement>(null);
+  const esperaRef = useRef<HTMLVideoElement>(null);
+  const abrirRef = useRef<HTMLVideoElement>(null);
+  const refs = { llamada: llamadaRef, espera: esperaRef, abrir: abrirRef };
+
+  const [paso, setPaso] = useState<PasoIntro>("llamada");
+  // Los handlers de los videos leen el paso actual de aquí
+  const pasoRef = useRef<PasoIntro>("llamada");
+  const [sinSonido, setSinSonido] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
+  const saliendoRef = useRef(false);
+  const [esperaFallo, setEsperaFallo] = useState(false);
+
+  // Con sonido; si el navegador lo bloquea, sin sonido y con el aviso
+  const reproducir = (video: HTMLVideoElement | null) => {
+    if (!video) return;
+    video.currentTime = 0;
+    video.muted = false;
+    video.play().catch(() => {
+      video.muted = true;
+      setSinSonido(true);
+      video.play().catch(() => {});
+    });
+  };
+
+  const irA = (siguiente: PasoIntro) => {
+    const anterior = refs[pasoRef.current].current;
+    pasoRef.current = siguiente;
+    setPaso(siguiente);
+    reproducir(refs[siguiente].current);
+    // El anterior se pausa recién cuando terminó de desvanecerse
+    window.setTimeout(() => anterior?.pause(), INTRO_FADE_MS);
+  };
+
+  const terminar = () => {
+    if (saliendoRef.current) return;
+    saliendoRef.current = true;
+    setSaliendo(true);
+    onAbrir();
+    window.setTimeout(onOculta, INTRO_FADE_MS);
+  };
+
+  useEffect(() => {
+    reproducir(llamadaRef.current);
+  }, []);
+
+  const handleToque = () => {
+    const actual = pasoRef.current;
+    if (actual === "espera") {
+      setSinSonido(false);
+      onToque();
+      irA("abrir");
+      return;
+    }
+    if (actual === "llamada" && sinSonido) {
+      const video = llamadaRef.current;
+      if (video) video.muted = false;
+      setSinSonido(false);
+      desbloquear(esperaRef.current);
+      desbloquear(abrirRef.current);
+    }
+  };
+
+  const fin = (p: PasoIntro) => () => {
+    if (pasoRef.current !== p) return;
+    if (p === "llamada") irA("espera");
+    else if (p === "abrir") terminar();
+  };
+
+  const error = (p: PasoIntro) => () => {
+    if (pasoRef.current !== p) return;
+    if (p === "llamada") irA("espera");
+    else if (p === "espera") setEsperaFallo(true);
+    else terminar();
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        width: "100vw",
+        height: "100%",
+        zIndex: 100,
+        background: "#000",
+        opacity: saliendo ? 0 : 1,
+        transition: `opacity ${INTRO_FADE_MS}ms ease`,
+      }}
+    >
+      {PASOS_INTRO.map((p) => (
+        <video
+          key={p}
+          ref={refs[p]}
+          src={`${photosPath}/intro-${p}.mp4`}
+          preload="auto"
+          playsInline
+          controls={false}
+          loop={p === "espera"}
+          draggable={false}
+          onEnded={fin(p)}
+          onError={error(p)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: paso === p ? 1 : 0,
+            transition: `opacity ${INTRO_FADE_MS}ms ease`,
+          }}
+        />
+      ))}
+
+      {/* Área clickeable a pantalla completa (desmuta en llamada, abre en espera) */}
+      <div
+        onClick={handleToque}
+        aria-label={paso === "espera" ? "Abrir invitación" : undefined}
+        role={paso === "espera" ? "button" : undefined}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 2,
+          cursor: paso === "espera" ? "pointer" : "default",
+          background: "transparent",
+        }}
+      />
+
+      {(sinSonido && paso !== "abrir") || (esperaFallo && paso === "espera") ? (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 40,
+            transform: "translateX(-50%)",
+            zIndex: 3,
+            pointerEvents: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 18px",
+            borderRadius: 999,
+            background: "rgba(10, 10, 25, 0.62)",
+            backdropFilter: "blur(4px)",
+            color: WHITE,
+            fontFamily: BODY_FONT,
+            fontSize: 14,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {paso === "llamada" ? (
+            <>
+              <VolumeX size={17} color={WHITE} />
+              Toca para activar el sonido
+            </>
+          ) : (
+            "Toca para abrir tu invitación"
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // ─── Crossfade de audio (videos ↔ canción de fondo) ──────────────────────────
 // La canción es el MISMO elemento Audio que controla el FAB (getMusicAudio de
 // useMusic), así que el FAB se ve en pausa mientras suena un video. Si la
@@ -559,6 +772,8 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
 // fades son cortes secos (la pausa y la reanudación sí funcionan).
 
 const FADE_MS = 500;
+// Volumen normal de la canción (el que pone useMusic)
+const MUSIC_VOLUME = 0.7;
 // Fade en curso por elemento: un fade nuevo cancela el anterior
 const fades = new WeakMap<HTMLMediaElement, number>();
 
@@ -906,8 +1121,10 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
   );
 }
 
-// ─── 5b. Video del programa (las 2 rutas) ───────────────────────────────────
-// Va justo después de ¿QUÉ HAREMOS?. Se reproduce solo UNA vez por visita,
+// ─── 5b / 6b. Videos con crossfade (las 2 rutas) ─────────────────────────────
+// video-programa.mp4 va justo después de ¿QUÉ HAREMOS? y video-cierre.mp4
+// (con corazones.png encima, como `children`) entre ¿VAS A VENIR? y el cierre.
+// Cada uno se reproduce solo UNA vez por visita,
 // cuando el video cruza el centro de la pantalla, con crossfade contra la
 // canción de fondo: la canción baja en 0,5s y se pausa → el video arranca en
 // volumen 0 y sube en 0,5s → al terminar el video baja en 0,5s → la canción
@@ -921,8 +1138,8 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
 // "Ver de nuevo": al regresar no se reproduce solo. Si sale mientras la
 // canción todavía está bajando, el video ni arranca.
 
-function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
-  const videoProgramaRef = useRef<HTMLVideoElement>(null);
+function VideoCrossfadeSection({ src, children }: { src: string; children?: React.ReactNode }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const hasAutoPlayed = useRef(false);
   // Si este video tiene la canción tomada: garantiza un único soltarMusica
   const tieneMusica = useRef(false);
@@ -943,7 +1160,7 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
   };
 
   const arrancarVideo = () => {
-    const video = videoProgramaRef.current;
+    const video = videoRef.current;
     if (!video) return;
     // Se fue de la pantalla mientras bajaba la canción: no arranca. Se mide en
     // el momento y no con el observer de salida: el del centro puede disparar
@@ -979,7 +1196,7 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
   };
 
   const handleEnded = () => {
-    const video = videoProgramaRef.current;
+    const video = videoRef.current;
     // Al disparar onEnded el video ya no suena: el fade de salida solo deja el
     // volumen en 0 antes de devolver la canción
     if (video && !video.muted) fadeTo(video, 0, FADE_MS, terminar);
@@ -990,7 +1207,7 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
   // canción. Si todavía no arrancó (la canción está bajando), arrancarVideo lo
   // detecta midiendo su posición.
   useEffect(() => {
-    const video = videoProgramaRef.current;
+    const video = videoRef.current;
     if (!video) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -1013,7 +1230,7 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
   // Autoplay una sola vez: la franja de 1px en el centro de la pantalla
   // (rootMargin -50%) detecta cuando el video cruza el centro.
   useEffect(() => {
-    const video = videoProgramaRef.current;
+    const video = videoRef.current;
     if (!video) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -1032,22 +1249,25 @@ function ProgramaVideoSection({ photosPath }: { photosPath: string }) {
   return (
     <section style={{ position: "relative", lineHeight: 0 }}>
       <video
-        ref={videoProgramaRef}
+        ref={videoRef}
         // #t=0.1 hace que el navegador pinte el primer cuadro como portada
-        src={`${photosPath}/video-programa.mp4#t=0.1`}
+        src={`${src}#t=0.1`}
         muted
         playsInline
         preload="metadata"
         controls={false}
+        loop={false}
         draggable={false}
         onEnded={handleEnded}
         style={{ width: "100%", display: "block", background: "#000" }}
       />
+      {children}
       {estado === "terminado" && (
         <button
           onClick={reproducir}
           style={{
             position: "absolute",
+            zIndex: 3,
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
@@ -1527,12 +1747,23 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
 // ─── 6. RSVP ─────────────────────────────────────────────────────────────────
 
 // rsvp-chicas.png arriba y rsvp-chicos.png abajo, estáticas, con el texto y
-// el botón de WhatsApp en el medio.
+// el botón de WhatsApp en el medio. El fondo (rsvp-fondo.png) ya viene editado:
+// sin overlay ni opacidad.
 
 function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
   return (
-    <section style={{ background: BG, position: "relative", overflow: "hidden" }}>
+    <section
+      style={{
+        backgroundColor: BG,
+        backgroundImage: `url('${photosPath}/rsvp-fondo.png')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
       <img src={`${photosPath}/rsvp-chicas.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
 
       <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: BODY_FONT }}>
@@ -1697,10 +1928,44 @@ export default function InvitationKpop({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Emilia: la intro de 3 videos reemplaza a IntroGate y queda montada hasta
+  // terminar su fade de salida
+  const [introVisible, setIntroVisible] = useState(!demo);
+
+  // Toque en intro-espera (gesto del usuario): habilita la canción y el video
+  // de portada para que puedan sonar al abrir, que ya no es dentro del gesto
+  const desbloquearInvitacion = () => {
+    play(); // crea el Audio de la canción
+    getMusicAudio()?.pause();
+    desbloquear(portadaRef.current);
+  };
+
+  // Terminó intro-abrir: la canción entra con fade in de 0,5s y arranca el
+  // video de portada, que la toma con el mismo crossfade de siempre
+  const handleOpenVideos = () => {
+    setOpened(true);
+    play();
+    const audio = getMusicAudio();
+    if (audio) {
+      audio.volume = 0;
+      fadeTo(audio, MUSIC_VOLUME, FADE_MS);
+    }
+    portadaTieneMusica.current = playPortada(portadaRef.current, devolverMusicaPortada);
+    window.scrollTo({ top: 0 });
+  };
+
   return (
     <div id="invitation-root" style={{ background: BG, color: WHITE, fontFamily: FONT }}>
       {demo && <DemoBanner />}
-      {!opened && <IntroGate onOpen={handleOpen} demo={demo} />}
+      {demo && !opened && <IntroGate onOpen={handleOpen} demo={demo} />}
+      {introVisible && (
+        <IntroVideos
+          photosPath={photosPath}
+          onToque={desbloquearInvitacion}
+          onAbrir={handleOpenVideos}
+          onOculta={() => setIntroVisible(false)}
+        />
+      )}
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
@@ -1717,8 +1982,26 @@ export default function InvitationKpop({
         <ChicasSection photosPath={photosPath} opened={opened} />
         <FiestaSection demo={demo} photosPath={photosPath} />
         <ProgramaSection photosPath={photosPath} />
-        <ProgramaVideoSection photosPath={photosPath} />
+        <VideoCrossfadeSection src={`${photosPath}/video-programa.mp4`} />
         <ConfirmarSection demo={demo} photosPath={photosPath} />
+        <VideoCrossfadeSection src={`${photosPath}/video-cierre.mp4`}>
+          {/* Corazones pegados al borde inferior, como las estrellas de la portada */}
+          <img
+            src={`${photosPath}/corazones.png`}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              width: "100%",
+              display: "block",
+              zIndex: 2,
+              pointerEvents: "none",
+            }}
+          />
+        </VideoCrossfadeSection>
         <CierreSection demo={demo} />
       </main>
     </div>
