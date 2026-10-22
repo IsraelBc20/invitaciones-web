@@ -17,7 +17,7 @@ export interface Venue {
   city: string;
   /** "Calle 123 - Ciudad", el formato de una línea que usan playa y tortuga. */
   line: string;
-  /** "lat,lng" para los enlaces de Google Maps. */
+  /** "lat,lng" para los enlaces de Google Maps ("" si se busca por nombre). */
   coords: string;
   /** Botón "Ver en Google Maps" / "Ver en maps". */
   mapsUrl: string;
@@ -54,14 +54,21 @@ export const VENUE_DEMO = venue(
 );
 
 /**
- * Local del cumpleaños de Emilia (K-Pop Guerreras). Placeholder hasta tener la
- * dirección real: mientras tanto el mapa apunta a la Plaza de Armas de Lima.
+ * Local del cumpleaños de Emilia (K-Pop Guerreras): Plaza de Armas de Huaral
+ * (21 oct 2026). Sin coordenadas: los enlaces y el iframe buscan el lugar por
+ * nombre. No usar un embed `pb=` con -11.489522,-77.206264: esas son las
+ * coordenadas del local de la boda (VENUE_REAL), no de la plaza.
  */
-export const VENUE_EMILIA = venue(
-  "Dirección por confirmar",
-  "Lima",
-  "-12.045833,-77.030278",
-);
+const HUARAL_PLAZA = "plaza+de+armas+huaral";
+export const VENUE_EMILIA: Venue = {
+  street: "Plaza de Armas de Huaral",
+  city: "Huaral",
+  line: "Plaza de Armas de Huaral",
+  coords: "",
+  mapsUrl: `https://www.google.com/maps?q=${HUARAL_PLAZA}`,
+  directionsUrl: `https://www.google.com/maps/dir/?api=1&destination=${HUARAL_PLAZA}`,
+  embedUrl: `https://maps.google.com/maps?q=${HUARAL_PLAZA}&output=embed`,
+};
 
 /**
  * Elige la dirección según la prop `demo` de la invitación. `real` es el local

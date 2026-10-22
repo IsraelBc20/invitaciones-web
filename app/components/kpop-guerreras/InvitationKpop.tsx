@@ -87,7 +87,6 @@ const FESTEJADA_CLIENTE: Festejada = {
   edad: 4,
   iso: "2026-11-27T16:00:00",
   hora: "4:00 PM",
-  // Placeholder hasta tener el local real (ver VENUE_EMILIA en lib/venue.ts)
   lugar: "Salón de fiestas",
   rsvpHasta: "20 de noviembre",
 };
@@ -575,6 +574,20 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
 const INTRO_FADE_MS = 300;
 const SALTAR_MS = 30000;
 type EstadoIntro = "llamada" | "espera" | "abrir" | "done";
+
+// play() + pause() dentro de un gesto del usuario deja al elemento habilitado
+// para sonar después sin gesto: iOS lo exige por elemento, y sin esto los
+// videos con crossfade (que arrancan solos al llegar al centro, fuera de
+// cualquier gesto) caían a muted y no se escuchaban. La promesa rechazada
+// (AbortError) no importa.
+function desbloquearVideos() {
+  document.querySelectorAll<HTMLVideoElement>("video[data-desbloquear]").forEach((video) => {
+    if (!video.paused) return;
+    video.muted = false;
+    video.play().catch(() => {});
+    video.pause();
+  });
+}
 
 // Con sonido; si el navegador lo bloquea, sin sonido
 function reproducirIntro(video: HTMLVideoElement | null) {
@@ -1277,6 +1290,8 @@ function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal?: 
         ref={videoRef}
         // #t=0.1 hace que el navegador pinte el primer cuadro como portada
         src={`${src}#t=0.1`}
+        // Lo habilita para sonar desbloquearVideos (gesto de abrir la invitación)
+        data-desbloquear
         muted
         playsInline
         preload="metadata"
@@ -1955,6 +1970,7 @@ export default function InvitationKpop({
   const handleOpen = () => {
     setOpened(true);
     play();
+    desbloquearVideos();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1963,10 +1979,12 @@ export default function InvitationKpop({
   const [introVisible, setIntroVisible] = useState(!demo);
 
   // Clic en intro-espera (gesto del usuario): habilita la canción para que
-  // pueda sonar al abrir, que ya no es dentro del gesto
+  // pueda sonar al abrir, que ya no es dentro del gesto, y los videos con
+  // crossfade (programa y cierre)
   const desbloquearInvitacion = () => {
     play(); // crea el Audio de la canción
     getMusicAudio()?.pause();
+    desbloquearVideos();
   };
 
   // Terminó intro-abrir (o "Saltar intro"): la canción entra con fade in de
