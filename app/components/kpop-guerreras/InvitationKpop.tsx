@@ -7,7 +7,7 @@
 // A diferencia de las bodas NO tiene galería, subida de fotos, regalos,
 // playlist ni historia: es portada → countdown → chicas → la fiesta →
 // programa → RSVP → video de cierre → cierre con confetti. Emilia entra por
-// una intro de 3 videos (en vez de IntroGate) y abre además con su video.
+// una intro de 3 estados (en vez de IntroGate) y abre además con su video.
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -23,7 +23,6 @@ import {
   Music2,
   PartyPopper,
   RotateCcw,
-  VolumeX,
   type LucideIcon,
 } from "lucide-react";
 import { getMusicAudio, useMusic } from "@/app/components/shared/useMusic";
@@ -551,27 +550,24 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
   );
 }
 
-// ─── 1c. Portada con 3 videos (solo cliente; reemplaza a IntroGate) ──────────
-// intro-llamada.mp4 (una vez) → intro-espera.mp4 (en loop hasta que tocan la
-// pantalla) → intro-abrir.mp4 (una vez) → se abre la invitación. Los 3 videos
-// están montados y precargados desde el inicio, apilados a pantalla completa:
-// el paso actual tiene opacity 1 y el resto 0, con una transición de 0,3s.
+// ─── 1c. Portada en 3 estados (solo cliente; reemplaza a IntroGate) ──────────
+// intro-llamada.mp4 (una vez) → intro-espera.png (imagen fija; toda la
+// pantalla es clickeable) → intro-abrir.mp4 (una vez) → se abre la
+// invitación. Las 3 capas están montadas desde el inicio, apiladas a pantalla
+// completa: la del estado actual tiene opacity 1 y el resto 0, con una
+// transición de 0,3s; al terminar, toda la intro se desvanece igual.
 //
 // Sonido: el navegador solo deja arrancar con sonido sin gesto del usuario si
 // ya hubo interacción con el sitio. Si intro-llamada no puede sonar, va sin
-// sonido con un aviso "Toca para activar el sonido"; ese toque lo desmuta y,
-// de paso, "desbloquea" los otros dos videos (iOS exige un gesto por
-// elemento) para que intro-espera arranque con sonido. El toque en
-// intro-espera arranca intro-abrir dentro del gesto y llama a `onToque`, que
-// desbloquea la canción y el video de portada: la invitación se abre al
-// terminar intro-abrir, ya sin gesto.
+// sonido, sin avisar. El clic en intro-espera arranca intro-abrir dentro del
+// gesto y llama a `onToque`, que desbloquea la canción y el video de portada:
+// la invitación se abre al terminar intro-abrir, ya sin gesto.
 //
-// Si falta algún archivo (onError) se salta al paso siguiente, para que el
+// Si falta algún video (onError) se salta al estado siguiente, para que el
 // invitado nunca quede trabado en una pantalla negra.
 
 const INTRO_FADE_MS = 300;
-type PasoIntro = "llamada" | "espera" | "abrir";
-const PASOS_INTRO: PasoIntro[] = ["llamada", "espera", "abrir"];
+type EstadoIntro = "llamada" | "espera" | "abrir" | "done";
 
 // play() + pause() dentro de un gesto deja al elemento habilitado para sonar
 // después sin gesto (iOS). La promesa rechazada (AbortError) no importa.
@@ -582,6 +578,17 @@ function desbloquear(media: HTMLMediaElement | null) {
   media.pause();
 }
 
+// Con sonido; si el navegador lo bloquea, sin sonido
+function reproducirIntro(video: HTMLVideoElement | null) {
+  if (!video) return;
+  video.currentTime = 0;
+  video.muted = false;
+  video.play().catch(() => {
+    video.muted = true;
+    video.play().catch(() => {});
+  });
+}
+
 function IntroVideos({
   photosPath,
   onToque,
@@ -589,7 +596,7 @@ function IntroVideos({
   onOculta,
 }: {
   photosPath: string;
-  /** Toque en intro-espera (dentro del gesto): desbloquear audio de la invitación. */
+  /** Clic en intro-espera (dentro del gesto): desbloquear audio de la invitación. */
   onToque: () => void;
   /** Terminó intro-abrir: revelar la invitación. */
   onAbrir: () => void;
@@ -597,167 +604,93 @@ function IntroVideos({
   onOculta: () => void;
 }) {
   const llamadaRef = useRef<HTMLVideoElement>(null);
-  const esperaRef = useRef<HTMLVideoElement>(null);
   const abrirRef = useRef<HTMLVideoElement>(null);
-  const refs = { llamada: llamadaRef, espera: esperaRef, abrir: abrirRef };
+  const [estado, setEstado] = useState<EstadoIntro>("llamada");
+  // Los handlers de los videos leen el estado actual de aquí
+  const estadoRef = useRef<EstadoIntro>("llamada");
 
-  const [paso, setPaso] = useState<PasoIntro>("llamada");
-  // Los handlers de los videos leen el paso actual de aquí
-  const pasoRef = useRef<PasoIntro>("llamada");
-  const [sinSonido, setSinSonido] = useState(false);
-  const [saliendo, setSaliendo] = useState(false);
-  const saliendoRef = useRef(false);
-  const [esperaFallo, setEsperaFallo] = useState(false);
-
-  // Con sonido; si el navegador lo bloquea, sin sonido y con el aviso
-  const reproducir = (video: HTMLVideoElement | null) => {
-    if (!video) return;
-    video.currentTime = 0;
-    video.muted = false;
-    video.play().catch(() => {
-      video.muted = true;
-      setSinSonido(true);
-      video.play().catch(() => {});
-    });
+  const irA = (siguiente: EstadoIntro) => {
+    estadoRef.current = siguiente;
+    setEstado(siguiente);
   };
 
-  const irA = (siguiente: PasoIntro) => {
-    const anterior = refs[pasoRef.current].current;
-    pasoRef.current = siguiente;
-    setPaso(siguiente);
-    reproducir(refs[siguiente].current);
-    // El anterior se pausa recién cuando terminó de desvanecerse
-    window.setTimeout(() => anterior?.pause(), INTRO_FADE_MS);
+  useEffect(() => {
+    reproducirIntro(llamadaRef.current);
+  }, []);
+
+  const pasarAEspera = () => {
+    if (estadoRef.current !== "llamada") return;
+    irA("espera");
+    window.setTimeout(() => llamadaRef.current?.pause(), INTRO_FADE_MS);
+  };
+
+  const handleClicEspera = () => {
+    if (estadoRef.current !== "espera") return;
+    onToque();
+    irA("abrir");
+    reproducirIntro(abrirRef.current);
   };
 
   const terminar = () => {
-    if (saliendoRef.current) return;
-    saliendoRef.current = true;
-    setSaliendo(true);
+    if (estadoRef.current !== "abrir") return;
+    irA("done");
     onAbrir();
     window.setTimeout(onOculta, INTRO_FADE_MS);
   };
 
-  useEffect(() => {
-    reproducir(llamadaRef.current);
-  }, []);
-
-  const handleToque = () => {
-    const actual = pasoRef.current;
-    if (actual === "espera") {
-      setSinSonido(false);
-      onToque();
-      irA("abrir");
-      return;
-    }
-    if (actual === "llamada" && sinSonido) {
-      const video = llamadaRef.current;
-      if (video) video.muted = false;
-      setSinSonido(false);
-      desbloquear(esperaRef.current);
-      desbloquear(abrirRef.current);
-    }
-  };
-
-  const fin = (p: PasoIntro) => () => {
-    if (pasoRef.current !== p) return;
-    if (p === "llamada") irA("espera");
-    else if (p === "abrir") terminar();
-  };
-
-  const error = (p: PasoIntro) => () => {
-    if (pasoRef.current !== p) return;
-    if (p === "llamada") irA("espera");
-    else if (p === "espera") setEsperaFallo(true);
-    else terminar();
-  };
+  const capa = (visible: boolean): React.CSSProperties => ({
+    position: "fixed",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    opacity: visible ? 1 : 0,
+    transition: "opacity 0.3s ease",
+    pointerEvents: visible ? "auto" : "none",
+  });
 
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        width: "100vw",
-        height: "100%",
-        zIndex: 100,
+        zIndex: 50,
         background: "#000",
-        opacity: saliendo ? 0 : 1,
-        transition: `opacity ${INTRO_FADE_MS}ms ease`,
+        opacity: estado === "done" ? 0 : 1,
+        transition: "opacity 0.3s ease",
       }}
     >
-      {PASOS_INTRO.map((p) => (
-        <video
-          key={p}
-          ref={refs[p]}
-          src={`${photosPath}/intro-${p}.mp4`}
-          preload="auto"
-          playsInline
-          controls={false}
-          loop={p === "espera"}
-          draggable={false}
-          onEnded={fin(p)}
-          onError={error(p)}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: paso === p ? 1 : 0,
-            transition: `opacity ${INTRO_FADE_MS}ms ease`,
-          }}
-        />
-      ))}
-
-      {/* Área clickeable a pantalla completa (desmuta en llamada, abre en espera) */}
-      <div
-        onClick={handleToque}
-        aria-label={paso === "espera" ? "Abrir invitación" : undefined}
-        role={paso === "espera" ? "button" : undefined}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: 2,
-          cursor: paso === "espera" ? "pointer" : "default",
-          background: "transparent",
-        }}
+      <video
+        ref={llamadaRef}
+        src={`${photosPath}/intro-llamada.mp4`}
+        preload="auto"
+        playsInline
+        controls={false}
+        loop={false}
+        draggable={false}
+        onEnded={pasarAEspera}
+        onError={pasarAEspera}
+        style={capa(estado === "llamada")}
       />
-
-      {(sinSonido && paso !== "abrir") || (esperaFallo && paso === "espera") ? (
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: "50%",
-            bottom: 40,
-            transform: "translateX(-50%)",
-            zIndex: 3,
-            pointerEvents: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 18px",
-            borderRadius: 999,
-            background: "rgba(10, 10, 25, 0.62)",
-            backdropFilter: "blur(4px)",
-            color: WHITE,
-            fontFamily: BODY_FONT,
-            fontSize: 14,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {paso === "llamada" ? (
-            <>
-              <VolumeX size={17} color={WHITE} />
-              Toca para activar el sonido
-            </>
-          ) : (
-            "Toca para abrir tu invitación"
-          )}
-        </div>
-      ) : null}
+      <img
+        src={`${photosPath}/intro-espera.png`}
+        alt="Toca para abrir tu invitación"
+        draggable={false}
+        onClick={handleClicEspera}
+        style={{ ...capa(estado === "espera"), cursor: "pointer" }}
+      />
+      <video
+        ref={abrirRef}
+        src={`${photosPath}/intro-abrir.mp4`}
+        preload="auto"
+        playsInline
+        controls={false}
+        loop={false}
+        draggable={false}
+        onEnded={terminar}
+        onError={terminar}
+        style={capa(estado === "abrir")}
+      />
     </div>
   );
 }
@@ -1928,11 +1861,11 @@ export default function InvitationKpop({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Emilia: la intro de 3 videos reemplaza a IntroGate y queda montada hasta
+  // Emilia: la intro de 3 estados reemplaza a IntroGate y queda montada hasta
   // terminar su fade de salida
   const [introVisible, setIntroVisible] = useState(!demo);
 
-  // Toque en intro-espera (gesto del usuario): habilita la canción y el video
+  // Clic en intro-espera (gesto del usuario): habilita la canción y el video
   // de portada para que puedan sonar al abrir, que ya no es dentro del gesto
   const desbloquearInvitacion = () => {
     play(); // crea el Audio de la canción
