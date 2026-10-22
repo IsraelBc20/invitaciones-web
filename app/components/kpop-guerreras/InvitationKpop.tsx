@@ -1096,8 +1096,8 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
 
 // ─── 5b / 6b. Videos con crossfade (las 2 rutas) ─────────────────────────────
 // video-programa.mp4 va justo después de ¿QUÉ HAREMOS? y video-cierre.mp4
-// (con corazones.png encima, como `children`) entre ¿VAS A VENIR? y el cierre.
-// Cada uno se reproduce solo UNA vez por visita,
+// entre los corazones (separador bajo ¿VAS A VENIR?) y el cierre. Cada uno se
+// reproduce solo UNA vez por visita,
 // cuando el video cruza el centro de la pantalla, con crossfade contra la
 // canción de fondo: la canción baja en 0,5s y se pausa → el video arranca en
 // volumen 0 y sube en 0,5s → al terminar el video baja en 0,5s → la canción
@@ -1110,8 +1110,12 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
 // threshold 0.1), su audio baja en 0,5s, se pausa, vuelve la canción y queda
 // "Ver de nuevo": al regresar no se reproduce solo. Si sale mientras la
 // canción todavía está bajando, el video ni arranca.
+//
+// Con `frameFinal` (video-cierre) no hay "Ver de nuevo": al terminar (o al
+// salir de la pantalla mientras suena) esa imagen tapa al video para siempre,
+// igual que video-frame.png en la portada. Solo se vuelve a ver recargando.
 
-function VideoCrossfadeSection({ src, children }: { src: string; children?: React.ReactNode }) {
+function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hasAutoPlayed = useRef(false);
   // Si este video tiene la canción tomada: garantiza un único soltarMusica
@@ -1170,6 +1174,10 @@ function VideoCrossfadeSection({ src, children }: { src: string; children?: Reac
 
   const handleEnded = () => {
     const video = videoRef.current;
+    // El frame final tapa al video en el acto, sin esperar el fade del audio
+    // (sin frameFinal no se adelanta: "Ver de nuevo" a mitad del fade
+    // devolvería la canción con el video sonando)
+    if (frameFinal) setEstado("terminado");
     // Al disparar onEnded el video ya no suena: el fade de salida solo deja el
     // volumen en 0 antes de devolver la canción
     if (video && !video.muted) fadeTo(video, 0, FADE_MS, terminar);
@@ -1234,8 +1242,15 @@ function VideoCrossfadeSection({ src, children }: { src: string; children?: Reac
         onEnded={handleEnded}
         style={{ width: "100%", display: "block", background: "#000" }}
       />
-      {children}
-      {estado === "terminado" && (
+      {frameFinal && estado === "terminado" && (
+        <img
+          src={frameFinal}
+          alt=""
+          draggable={false}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 3 }}
+        />
+      )}
+      {!frameFinal && estado === "terminado" && (
         <button
           onClick={reproducir}
           style={{
@@ -1967,24 +1982,18 @@ export default function InvitationKpop({
         <ProgramaSection photosPath={photosPath} />
         <VideoCrossfadeSection src={`${photosPath}/video-programa.mp4`} />
         <ConfirmarSection demo={demo} photosPath={photosPath} />
-        <VideoCrossfadeSection src={`${photosPath}/video-cierre.mp4`}>
-          {/* Corazones pegados al borde inferior, como las estrellas de la portada */}
-          <img
-            src={`${photosPath}/corazones.png`}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              width: "100%",
-              display: "block",
-              zIndex: 2,
-              pointerEvents: "none",
-            }}
-          />
-        </VideoCrossfadeSection>
+        {/* Corazones: separador entre ¿VAS A VENIR? y el video de cierre */}
+        <img
+          src={`${photosPath}/corazones.png`}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          style={{ width: "100%", display: "block", margin: 0, padding: 0 }}
+        />
+        <VideoCrossfadeSection
+          src={`${photosPath}/video-cierre.mp4`}
+          frameFinal={`${photosPath}/cierre-frame.png`}
+        />
         <CierreSection demo={demo} />
       </main>
     </div>
