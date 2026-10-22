@@ -1096,7 +1096,7 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
 
 // ─── 5b / 6b. Videos con crossfade (las 2 rutas) ─────────────────────────────
 // video-programa.mp4 va justo después de ¿QUÉ HAREMOS? y video-cierre.mp4
-// entre los corazones (separador bajo ¿VAS A VENIR?) y el cierre. Cada uno se
+// entre ¿VAS A VENIR? y el cierre. Cada uno se
 // reproduce solo UNA vez por visita,
 // cuando el video cruza el centro de la pantalla, con crossfade contra la
 // canción de fondo: la canción baja en 0,5s y se pausa → el video arranca en
@@ -1735,8 +1735,9 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
 // ─── 6. RSVP ─────────────────────────────────────────────────────────────────
 
 // rsvp-chicas.png arriba y rsvp-chicos.png abajo, estáticas, con el texto y
-// el botón de WhatsApp en el medio. El fondo (rsvp-fondo.png) ya viene editado:
-// sin overlay ni opacidad.
+// el botón de WhatsApp en el medio; corazones.png va pegado debajo de los
+// chicos. El fondo (rsvp-fondo.png) ya viene editado: sin overlay ni
+// opacidad.
 
 function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
@@ -1776,22 +1777,28 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
             borderRadius: 50,
             padding: "14px 32px",
             color: WHITE,
-            fontFamily: TITLE_FONT,
+            fontFamily: "'Montserrat Arabic', sans-serif",
             fontWeight: "normal",
-            fontSize: 18,
-            // El espacio de Hunters K-Pop casi no tiene ancho: sin esto se lee
-            // "CONFIRMARASISTENCIA"
-            wordSpacing: "0.35em",
+            fontSize: "clamp(14px, 4vw, 18px)",
+            textTransform: "uppercase",
             textDecoration: "none",
           }}
         >
           <MessageCircle size={20} color={WHITE} aria-hidden="true" />
-          CONFIRMAR ASISTENCIA
+          Confirmar asistencia
         </a>
         <p style={{ color: PINK_SOFT, fontSize: 12, marginTop: 16 }}>Por favor indícanos el nombre y cuántos asistirán</p>
       </div>
 
       <img src={`${photosPath}/rsvp-chicos.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
+      {/* Corazones pegados debajo de los chicos, todavía dentro de la sección */}
+      <img
+        src={`${photosPath}/corazones.png`}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        style={{ width: "100%", display: "block", margin: 0, padding: 0 }}
+      />
     </section>
   );
 }
@@ -1982,14 +1989,6 @@ export default function InvitationKpop({
         <ProgramaSection photosPath={photosPath} />
         <VideoCrossfadeSection src={`${photosPath}/video-programa.mp4`} />
         <ConfirmarSection demo={demo} photosPath={photosPath} />
-        {/* Corazones: separador entre ¿VAS A VENIR? y el video de cierre */}
-        <img
-          src={`${photosPath}/corazones.png`}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-          style={{ width: "100%", display: "block", margin: 0, padding: 0 }}
-        />
         <VideoCrossfadeSection
           src={`${photosPath}/video-cierre.mp4`}
           frameFinal={`${photosPath}/cierre-frame.png`}
