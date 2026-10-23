@@ -2001,6 +2001,24 @@ export default function InvitationKpop({
     window.scrollTo({ top: 0 });
   };
 
+  // Emilia: precarga video-portada.mp4 con un <video> oculto desde que carga
+  // la página, mientras corre la intro. Se quita al abrir la invitación (el
+  // video real sigue desde la caché) para no descargarlo dos veces en paralelo
+  useEffect(() => {
+    if (demo || opened) return;
+    const preload = document.createElement("video");
+    preload.src = `${photosPath}/video-portada.mp4`;
+    preload.preload = "auto";
+    preload.muted = true;
+    preload.style.display = "none";
+    document.body.appendChild(preload);
+    return () => {
+      preload.removeAttribute("src");
+      preload.load();
+      preload.remove();
+    };
+  }, [demo, opened, photosPath]);
+
   // Emilia: PortadaVideoSection solo existe en el DOM una vez abierta la
   // invitación (antes podía sonar detrás de la intro). Los efectos de los
   // hijos corren antes que este, así que portadaRef ya apunta al video recién
