@@ -6,21 +6,23 @@
 //
 // A diferencia de las bodas NO tiene galería, subida de fotos, regalos,
 // playlist ni historia: es portada → countdown → chicas → la fiesta →
-// programa → RSVP → video de cierre → cierre con confetti. Emilia entra por
-// una intro de 3 estados (en vez de IntroGate) y abre además con su video.
+// programa → RSVP → video de cierre → cierre con confetti. Las 2 rutas entran
+// por la misma intro (intro-espera → intro-abrir). Desde el 23 oct 2026 el demo
+// tiene la misma estructura que Emilia, salvo el video de portada (no tiene) y
+// el de cierre (placeholder "Video de cierre próximamente").
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   CalendarDays,
   Cake,
+  Film,
   Clock,
   Gamepad2,
   Gift,
   MapPin,
   MessageCircle,
   Mic,
-  Music,
   Music2,
   PartyPopper,
   type LucideIcon,
@@ -75,12 +77,12 @@ interface Festejada {
 }
 
 const FESTEJADA_DEMO: Festejada = {
-  nombre: "Valentina",
-  edad: 5,
-  iso: "2027-01-15T16:00:00",
+  nombre: "Emilia",
+  edad: 4,
+  iso: "2028-11-15T16:00:00",
   hora: "4:00 PM",
   lugar: "Salón de Fiestas",
-  rsvpHasta: "10 de enero",
+  rsvpHasta: "10 de noviembre",
 };
 
 const FESTEJADA_CLIENTE: Festejada = {
@@ -115,8 +117,14 @@ function diaYMes(iso: string) {
   return `${d} de ${MESES[m - 1].toLowerCase()}`;
 }
 
-// Mensaje prellenado: [nombre] y [N] quedan para que el invitado los complete
+// Mensaje prellenado: [nombre] y [N] quedan para que el invitado los complete.
+// En el demo el botón es para quien quiere comprar la invitación.
 const waConfirm = (demo: boolean) => {
+  if (demo) {
+    return `https://wa.me/51993092110?text=${encodeURIComponent(
+      "Hola, vi la demo de la invitación K-Pop Guerreras y me interesa comprar una para mi evento."
+    )}`;
+  }
   const f = festejadaFor(demo);
   return `https://wa.me/51993092110?text=${encodeURIComponent(
     `Hola, quiero confirmar mi asistencia al cumpleaños de ${f.nombre} el ${diaYMes(f.iso)}. Mi nombre es [nombre] y asistiremos [N] personas.`
@@ -462,77 +470,7 @@ function DemoBanner() {
   );
 }
 
-// ─── 1. Pantalla de entrada (arranca la música) ──────────────────────────────
-
-function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
-  const f = festejadaFor(demo);
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        margin: "auto",
-        maxWidth: 430,
-        zIndex: 100,
-        background: `radial-gradient(ellipse at 50% 30%, #2d1748 0%, ${BG} 70%)`,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        padding: 24,
-        textAlign: "center",
-        fontFamily: BODY_FONT,
-      }}
-    >
-      <Stars count={40} seed={3} />
-
-      <div
-        style={{
-          position: "relative",
-          zIndex: 2,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 18,
-        }}
-      >
-        <Deco file="deco-portada.png" width={220} />
-
-        <h1
-          style={{
-            fontFamily: TITLE_FONT,
-            fontWeight: "normal",
-            // Se encoge con nombres largos ("VALENTINA") para no tocar los bordes
-            fontSize: "clamp(40px, 14vw, 64px)",
-            lineHeight: 1,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: MAGENTA,
-            textShadow: `0 0 12px ${MAGENTA}, 0 0 30px ${MAGENTA}, 0 0 60px ${PURPLE}`,
-            animation: "kpop-glow 2.6s ease-in-out infinite",
-          }}
-        >
-          {f.nombre}
-        </h1>
-        <div style={{ fontSize: 24, fontWeight: 500, color: WHITE }}>
-          ¡Cumple <span style={{ color: GOLD, textShadow: `0 0 12px ${GOLD}` }}>{f.edad} años</span>!
-        </div>
-
-        <BotonGradiente onClick={onOpen} style={{ marginTop: 10, fontSize: 17, padding: "15px 34px" }}>
-          ¡Abrir invitación!
-        </BotonGradiente>
-
-        <div style={{ fontSize: 12, letterSpacing: "0.08em", color: PINK_SOFT, opacity: 0.9 }}>
-          Sube el volumen para vivirla mejor{" "}
-          <Music size={13} color={GOLD} aria-hidden="true" style={{ verticalAlign: "-2px" }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── 1c. Portada en 2 estados (solo cliente; reemplaza a IntroGate) ──────────
+// ─── 1. Intro en 2 estados (las 2 rutas) ─────────────────────────────────────
 // intro-espera.png (imagen fija desde que carga la página; toda la pantalla es
 // clickeable) → intro-abrir.mp4 (una vez) → se abre la invitación. Las 2 capas
 // están montadas desde el inicio, apiladas a pantalla completa: la del estado
@@ -924,7 +862,7 @@ function soltarMusica() {
 // Video a ancho completo con la tira de estrellas pegada sobre su borde
 // inferior. Ambos son assets del cliente (photosPath), así que el demo no la
 // monta. El video arranca recién al abrir la invitación (si corriera detrás
-// del IntroGate podría terminar antes de que se vea) y, al terminar, la
+// de la intro podría terminar antes de que se vea) y, al terminar, la
 // página baja sola hasta lo que sigue.
 //
 // Una vez que el video sale del viewport queda tapado por video-frame.png
@@ -989,7 +927,7 @@ function PortadaVideoSection({
     else fadeTo(video, 0, FADE_MS, listo);
   };
 
-  // Se observa recién al abrir: detrás del IntroGate la página está en top 0
+  // Se observa recién al abrir: detrás de la intro la página está en top 0
   // y el video siempre "visible", así que no cambia nada antes.
   useEffect(() => {
     const video = videoRef.current;
@@ -1428,6 +1366,34 @@ function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal: s
   );
 }
 
+// Demo: en lugar del video de cierre (se agregará después), un bloque oscuro
+// del mismo formato vertical. zIndex 1 como el video, debajo de los corazones.
+function CierrePlaceholder() {
+  return (
+    <section
+      style={{
+        position: "relative",
+        zIndex: 1,
+        aspectRatio: "9 / 16",
+        background: "#0a0a19",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 14,
+        color: PINK_SOFT,
+        fontFamily: BODY_FONT,
+        fontSize: 17,
+        textAlign: "center",
+        padding: 24,
+      }}
+    >
+      <Film size={36} color={PINK_SOFT} strokeWidth={1.6} aria-hidden="true" />
+      Video de cierre próximamente
+    </section>
+  );
+}
+
 // ─── 3. Cuenta regresiva ─────────────────────────────────────────────────────
 
 function getTimeLeft(iso: string) {
@@ -1583,31 +1549,7 @@ function ContadorGato({ partyIso, photosPath }: { partyIso: string; photosPath: 
   );
 }
 
-function CountdownSection({ partyIso, photosPath, demo }: { partyIso: string; photosPath: string; demo: boolean }) {
-  const t = useTimeLeft(partyIso);
-
-  const unit = (value: number | null, label: string) => (
-    <div
-      style={{
-        flex: 1,
-        maxWidth: 82,
-        padding: "14px 4px 10px",
-        borderRadius: 16,
-        background: GRADIENT,
-        border: `2px solid ${PINK_SOFT}`,
-        boxShadow: `0 0 16px ${GLOW}, inset 0 0 14px rgba(255,255,255,0.15)`,
-        textAlign: "center",
-      }}
-    >
-      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 34, lineHeight: 1, color: WHITE }}>
-        {value === null ? "--" : String(value).padStart(2, "0")}
-      </div>
-      <div style={{ fontFamily: BODY_FONT, fontWeight: 600, fontSize: 11, letterSpacing: "0.14em", color: GOLD, marginTop: 8 }}>
-        {label}
-      </div>
-    </div>
-  );
-
+function CountdownSection({ partyIso, photosPath }: { partyIso: string; photosPath: string }) {
   return (
     <section
       style={{
@@ -1619,21 +1561,9 @@ function CountdownSection({ partyIso, photosPath, demo }: { partyIso: string; ph
     >
       <Stars count={20} seed={23} />
       <Reveal>
-        {demo && <Deco file="deco-microfono.png" width={70} style={{ margin: "0 auto 18px" }} />}
         <Titulo>¡SOLO FALTAN!</Titulo>
       </Reveal>
-      {demo ? (
-        <Reveal delay={1}>
-          <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 30 }}>
-            {unit(t?.d ?? null, "DÍAS")}
-            {unit(t?.h ?? null, "HRS")}
-            {unit(t?.m ?? null, "MIN")}
-            {unit(t?.s ?? null, "SEG")}
-          </div>
-        </Reveal>
-      ) : (
-        <ContadorGato partyIso={partyIso} photosPath={photosPath} />
-      )}
+      <ContadorGato partyIso={partyIso} photosPath={photosPath} />
     </section>
   );
 }
@@ -1922,11 +1852,11 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
             display: "inline-flex",
             alignItems: "center",
             gap: 8,
-            background: "transparent",
-            border: `2px solid ${MAGENTA}`,
+            background: "#25D366",
+            border: "none",
             borderRadius: 50,
             padding: "14px 32px",
-            color: WHITE,
+            color: "#ffffff",
             fontFamily: "'Montserrat Arabic', sans-serif",
             fontWeight: "normal",
             fontSize: "clamp(14px, 4vw, 18px)",
@@ -1934,7 +1864,7 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
             textDecoration: "none",
           }}
         >
-          <MessageCircle size={20} color={WHITE} aria-hidden="true" />
+          <MessageCircle size={20} color="#ffffff" aria-hidden="true" />
           Confirmar asistencia
         </a>
         <p style={{ color: PINK_SOFT, fontSize: 12, marginTop: 16 }}>Por favor indícanos el nombre y cuántos asistirán</p>
@@ -2058,17 +1988,8 @@ export default function InvitationKpop({
     soltarMusica();
   };
 
-  // Demo: botón "¡Abrir invitación!" de IntroGate (no tiene video de portada)
-  const handleOpen = () => {
-    setOpened(true);
-    play();
-    desbloquearVideos();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Emilia: la intro de 3 estados reemplaza a IntroGate y queda montada hasta
-  // terminar su fade de salida
-  const [introVisible, setIntroVisible] = useState(!demo);
+  // La intro (las 2 rutas) queda montada hasta terminar su fade de salida
+  const [introVisible, setIntroVisible] = useState(true);
 
   // Clic en intro-espera (gesto del usuario): habilita la canción para que
   // pueda sonar al abrir, que ya no es dentro del gesto, y el video de cierre
@@ -2132,7 +2053,6 @@ export default function InvitationKpop({
   return (
     <div id="invitation-root" style={{ background: BG, color: WHITE, fontFamily: FONT }}>
       {demo && <DemoBanner />}
-      {demo && !opened && <IntroGate onOpen={handleOpen} demo={demo} />}
       {introVisible && (
         <IntroVideos
           photosPath={photosPath}
@@ -2144,12 +2064,12 @@ export default function InvitationKpop({
       )}
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
-      {/* Emilia: mientras se ve la intro, la invitación queda en display none
+      {/* Mientras se ve la intro, la invitación queda en display none
           para que no descargue nada (las imágenes lazy y los fondos CSS de un
           elemento sin mostrar no se piden) y toda la conexión quede para
           intro-abrir. El video de cierre sigue en el DOM para que
           desbloquearVideos lo encuentre al tocar intro-espera. */}
-      <main style={{ position: "relative", zIndex: 1, display: !demo && !opened ? "none" : undefined }}>
+      <main style={{ position: "relative", zIndex: 1, display: opened ? undefined : "none" }}>
         {/* Emilia: video + estrellas abren la invitación (el demo no tiene video) */}
         {!demo && opened && (
           <PortadaVideoSection
@@ -2159,7 +2079,7 @@ export default function InvitationKpop({
             onTerminar={devolverMusicaPortada}
           />
         )}
-        <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} demo={demo} />
+        <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} />
         <ChicasSection photosPath={photosPath} opened={opened} />
         <FiestaSection demo={demo} photosPath={photosPath} />
         <ProgramaSection photosPath={photosPath} />
@@ -2194,10 +2114,14 @@ export default function InvitationKpop({
             style={{ width: "100%", display: "block" }}
           />
         </div>
-        <VideoCrossfadeSection
-          src={`${photosPath}/video-cierre.mp4`}
-          frameFinal={`${photosPath}/cierre-frame.png`}
-        />
+        {demo ? (
+          <CierrePlaceholder />
+        ) : (
+          <VideoCrossfadeSection
+            src={`${photosPath}/video-cierre.mp4`}
+            frameFinal={`${photosPath}/cierre-frame.png`}
+          />
+        )}
         <CierreSection demo={demo} />
       </main>
     </div>
