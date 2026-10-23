@@ -1904,6 +1904,7 @@ function CierreSection({ demo }: { demo: boolean }) {
             letterSpacing: "0.1em",
             color: PINK_SOFT,
             marginTop: 20,
+            textTransform: "uppercase",
           }}
         >
           {f.nombre} · {f.edad} años · {year}
