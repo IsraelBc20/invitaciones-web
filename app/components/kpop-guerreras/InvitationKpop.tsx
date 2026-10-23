@@ -587,6 +587,7 @@ function IntroVideos({
   onToque,
   onAbrir,
   onOculta,
+  onAbrirListo,
 }: {
   photosPath: string;
   /** Clic en intro-espera (dentro del gesto): desbloquear audio de la invitación. */
@@ -595,6 +596,8 @@ function IntroVideos({
   onAbrir: () => void;
   /** Terminó el fade de salida: desmontar la intro. */
   onOculta: () => void;
+  /** intro-abrir ya se descargó (o falló): puede empezar la precarga de la portada. */
+  onAbrirListo: () => void;
 }) {
   const abrirRef = useRef<HTMLVideoElement>(null);
   const [estado, setEstado] = useState<EstadoIntro>("espera");
@@ -616,11 +619,58 @@ function IntroVideos({
     return () => window.clearTimeout(id);
   }, [estado]);
 
-  const handleClicEspera = () => {
-    if (estadoRef.current !== "espera") return;
+  // intro-abrir se precarga con el propio <video> (preload="auto", viene en el
+  // HTML del servidor, así que arranca antes de hidratar). No se usa un
+  // <video> oculto extra: descargaba el mismo archivo otra vez en paralelo y,
+  // en conexiones lentas, lo hacía tardar más. Para que nada le quite ancho de
+  // banda, la precarga de video-portada espera a que este termine
+  // (onAbrirListo). Si ya terminó antes de hidratar, el evento se perdió:
+  // se revisa readyState al montar.
+  const avisoListo = useRef(false);
+  const avisarListo = () => {
+    if (avisoListo.current) return;
+    avisoListo.current = true;
+    onAbrirListo();
+  };
+  useEffect(() => {
+    const video = abrirRef.current;
+    if (video && (video.readyState >= 4 || video.error)) avisarListo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Evita un segundo clic mientras se espera a que intro-abrir esté listo
+  const abriendo = useRef(false);
+
+  // Si intro-abrir todavía no está listo para reproducirse entero sin cortes
+  // (readyState < 4), espera a canplaythrough antes de darle play. Con canplay
+  // (readyState 3) arrancaba con ~0,3s cargados y en conexiones lentas se
+  // trababa varias veces. Mientras tanto sigue viéndose intro-espera
+  // (el cambio de estado va recién con el play), así no hay pantalla negra.
+  // Como ese play ya no es dentro del gesto, primero se desbloquea el sonido
+  // con play() + pause() en el propio clic, igual que desbloquearVideos.
+  const handleClicEspera = async () => {
+    if (estadoRef.current !== "espera" || abriendo.current) return;
+    abriendo.current = true;
+    const video = abrirRef.current;
     onToque();
+    if (video && video.readyState < 4 && !video.error) {
+      video.muted = false;
+      video.play().catch(() => {});
+      video.pause();
+      await new Promise<void>((resolve) => {
+        video.addEventListener("canplaythrough", () => resolve(), { once: true });
+        video.addEventListener("error", () => resolve(), { once: true });
+      });
+    }
+    // Mientras esperaba pudo tocar "Saltar intro"
+    if (estadoRef.current !== "espera") return;
+    // Si el video no carga, se abre la invitación directo
+    if (!video || video.error) {
+      cerrar();
+      return;
+    }
     irA("abrir");
-    reproducirIntro(abrirRef.current);
+    reproducirIntro(video);
   };
 
   const cerrar = () => {
@@ -721,8 +771,12 @@ function IntroVideos({
         controls={false}
         loop={false}
         draggable={false}
+        onCanPlayThrough={avisarListo}
         onEnded={terminar}
-        onError={terminar}
+        onError={() => {
+          avisarListo();
+          terminar();
+        }}
         style={capa(estado === "abrir")}
       />
       {saltarEn === estado && estado !== "done" && (
@@ -1985,11 +2039,14 @@ export default function InvitationKpop({
     window.scrollTo({ top: 0 });
   };
 
-  // Emilia: precarga video-portada.mp4 con un <video> oculto desde que carga
-  // la página, mientras corre la intro. Se quita al abrir la invitación (el
-  // video real sigue desde la caché) para no descargarlo dos veces en paralelo
+  // Emilia: precarga video-portada.mp4 con un <video> oculto mientras corre la
+  // intro, apenas termina de descargarse intro-abrir (introAbrirListo): antes
+  // le quitaría ancho de banda y en móvil intro-abrir se trababa. Se quita al
+  // abrir la invitación (el video real sigue desde la caché) para no
+  // descargarlo dos veces en paralelo
+  const [introAbrirListo, setIntroAbrirListo] = useState(false);
   useEffect(() => {
-    if (demo || opened) return;
+    if (demo || opened || !introAbrirListo) return;
     const preload = document.createElement("video");
     preload.src = `${photosPath}/video-portada.mp4`;
     preload.preload = "auto";
@@ -2001,7 +2058,7 @@ export default function InvitationKpop({
       preload.load();
       preload.remove();
     };
-  }, [demo, opened, photosPath]);
+  }, [demo, opened, introAbrirListo, photosPath]);
 
   // Emilia: PortadaVideoSection solo existe en el DOM una vez abierta la
   // invitación (antes podía sonar detrás de la intro). Los efectos de los
@@ -2024,6 +2081,7 @@ export default function InvitationKpop({
           onToque={desbloquearInvitacion}
           onAbrir={handleOpenVideos}
           onOculta={() => setIntroVisible(false)}
+          onAbrirListo={() => setIntroAbrirListo(true)}
         />
       )}
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
