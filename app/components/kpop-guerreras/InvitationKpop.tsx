@@ -10,6 +10,7 @@
 // una intro de 3 estados (en vez de IntroGate) y abre además con su video.
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   CalendarDays,
   Cake,
@@ -562,7 +563,17 @@ type EstadoIntro = "espera" | "abrir" | "done";
 // video de cierre (que arranca solo al llegar al centro, fuera de
 // cualquier gesto) caía a muted y no se escuchaba. La promesa rechazada
 // (AbortError) no importa.
+//
+// Solo en iOS: el play() hace que el video empiece a descargarse (con
+// preload="none" igual), y en Chrome/Android no hace falta, porque tras el
+// primer toque la página entera ya puede reproducir con sonido. Así el video
+// de cierre no le quita ancho de banda a intro-abrir (eran ~670 KB al tocar).
+function esIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
 function desbloquearVideos() {
+  if (!esIOS()) return;
   document.querySelectorAll<HTMLVideoElement>("video[data-desbloquear]").forEach((video) => {
     if (!video.paused) return;
     video.muted = false;
@@ -711,15 +722,21 @@ function IntroVideos({
         transition: "opacity 0.3s ease",
       }}
     >
-      <img
-        src={`${photosPath}/intro-espera.png`}
-        alt="Toca para abrir tu invitación"
-        // Es lo primero que se ve: se pide antes que el resto de imágenes
-        fetchPriority="high"
-        draggable={false}
-        onClick={handleClicEspera}
-        style={{ ...capa(estado === "espera"), cursor: "pointer" }}
-      />
+      {/* next/image la sirve en WebP/AVIF y al ancho de la pantalla (el PNG
+          pesa 907 KB). Es lo primero que se ve: eager + fetchPriority high
+          (en Next 16 `priority` está deprecado) */}
+      <div onClick={handleClicEspera} style={{ ...capa(estado === "espera"), cursor: "pointer" }}>
+        <Image
+          src={`${photosPath}/intro-espera.png`}
+          alt="Toca para abrir tu invitación"
+          fill
+          sizes="100vw"
+          loading="eager"
+          fetchPriority="high"
+          draggable={false}
+          style={{ objectFit: "contain" }}
+        />
+      </div>
       {/* Textos sobre intro-espera, juntos arriba. No reciben el clic
           (pointerEvents none): toda la pantalla sigue abriendo la invitación */}
       <div
@@ -1133,6 +1150,7 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
     <section ref={chicasRef} style={{ position: "relative", overflow: "hidden", lineHeight: 0 }}>
       <img
         src={`${photosPath}/chicas-fondo.png`}
+        loading="lazy"
         alt=""
         draggable={false}
         style={{ position: "relative", zIndex: 0, width: "100%", display: "block" }}
@@ -1141,6 +1159,7 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
         <img
           key={c.file}
           src={`${photosPath}/${c.file}`}
+          loading="lazy"
           alt=""
           draggable={false}
           style={{
@@ -1171,9 +1190,33 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
 // lo cruza. Al salir de la pantalla (threshold 0.1) se pausa y al volver a
 // entrar se reanuda, si ya había arrancado alguna vez.
 
+// true desde que el elemento queda a menos de una pantalla de distancia
+// (rootMargin 100%). Dentro de un padre con display none no se cumple nunca,
+// así que detrás de la intro de Emilia no descarga nada.
+function useCerca(ref: React.RefObject<Element | null>) {
+  const [cerca, setCerca] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || cerca) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setCerca(true);
+        observer.disconnect();
+      },
+      { rootMargin: "100% 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, cerca]);
+  return cerca;
+}
+
 function VideoLoopSection({ src }: { src: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const arranco = useRef(false);
+  // Sin precarga hasta que el invitado se acerca a la sección
+  const cerca = useCerca(videoRef);
 
   // Salió de la pantalla: pausa. Volvió a entrar: reanuda
   useEffect(() => {
@@ -1215,7 +1258,7 @@ function VideoLoopSection({ src }: { src: string }) {
         muted
         loop
         playsInline
-        preload="metadata"
+        preload={cerca ? "metadata" : "none"}
         controls={false}
         draggable={false}
         style={{ width: "100%", display: "block", background: "#000" }}
@@ -1244,6 +1287,8 @@ function VideoLoopSection({ src }: { src: string }) {
 
 function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Sin precarga hasta que el invitado se acerca a la sección
+  const cerca = useCerca(videoRef);
   const hasAutoPlayed = useRef(false);
   // Si este video tiene la canción tomada: garantiza un único soltarMusica
   const tieneMusica = useRef(false);
@@ -1363,7 +1408,7 @@ function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal: s
         data-desbloquear
         muted
         playsInline
-        preload="metadata"
+        preload={cerca ? "metadata" : "none"}
         controls={false}
         loop={false}
         draggable={false}
@@ -1373,6 +1418,7 @@ function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal: s
       {estado === "terminado" && (
         <img
           src={frameFinal}
+          loading="lazy"
           alt=""
           draggable={false}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 3 }}
@@ -1493,6 +1539,7 @@ function ContadorGato({ partyIso, photosPath }: { partyIso: string; photosPath: 
       >
         <img
           src={`${photosPath}/gato-cabeza.png`}
+          loading="lazy"
           alt=""
           draggable={false}
           style={{
@@ -1507,6 +1554,7 @@ function ContadorGato({ partyIso, photosPath }: { partyIso: string; photosPath: 
       <div style={{ position: "relative", zIndex: 1 }}>
         <img
           src={`${photosPath}/contador-base.png`}
+          loading="lazy"
           alt=""
           draggable={false}
           style={{ width: "100%", display: "block" }}
@@ -1618,7 +1666,7 @@ function DatoFila({ icon: Icon, children }: { icon: LucideIcon; children: React.
 // Decoraciones de ¡LA FIESTA! (bolas de disco y soda): fotos del diseño que
 // cada ruta trae en su photosPath.
 const decoImg = (src: string, style: React.CSSProperties) => (
-  <img src={src} alt="" aria-hidden="true" draggable={false} style={{ pointerEvents: "none", flexShrink: 0, ...style }} />
+  <img src={src} loading="lazy" alt="" aria-hidden="true" draggable={false} style={{ pointerEvents: "none", flexShrink: 0, ...style }} />
 );
 
 function FiestaSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
@@ -1809,6 +1857,7 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
             <img
               ref={imgRef}
               src={`${photosPath}/programa-chicas.png`}
+              loading="lazy"
               alt=""
               draggable={false}
               style={{
@@ -1837,11 +1886,16 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
 
 function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
+  // rsvp-fondo.png es un fondo CSS (no admite loading="lazy"): se pide recién
+  // cuando la sección está cerca
+  const sectionRef = useRef<HTMLElement>(null);
+  const cerca = useCerca(sectionRef);
   return (
     <section
+      ref={sectionRef}
       style={{
         backgroundColor: BG,
-        backgroundImage: `url('${photosPath}/rsvp-fondo.png')`,
+        backgroundImage: cerca ? `url('${photosPath}/rsvp-fondo.png')` : undefined,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -1849,7 +1903,7 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
         overflow: "hidden",
       }}
     >
-      <img src={`${photosPath}/rsvp-chicas.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
+      <img src={`${photosPath}/rsvp-chicas.png`} loading="lazy" alt="" draggable={false} style={{ width: "100%", display: "block" }} />
 
       <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: BODY_FONT }}>
         {/* Mismo Titulo (glow magenta/morado) que el resto de las secciones */}
@@ -1886,7 +1940,7 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
         <p style={{ color: PINK_SOFT, fontSize: 12, marginTop: 16 }}>Por favor indícanos el nombre y cuántos asistirán</p>
       </div>
 
-      <img src={`${photosPath}/rsvp-chicos.png`} alt="" draggable={false} style={{ width: "100%", display: "block" }} />
+      <img src={`${photosPath}/rsvp-chicos.png`} loading="lazy" alt="" draggable={false} style={{ width: "100%", display: "block" }} />
     </section>
   );
 }
@@ -2068,6 +2122,10 @@ export default function InvitationKpop({
   useEffect(() => {
     if (!opened || demo) return;
     portadaTieneMusica.current = playPortada(portadaRef.current, devolverMusicaPortada);
+    // La invitación acaba de dejar de estar en display none: las secciones con
+    // parallax (chicas, gato, programa) midieron su posición en 0 y recién la
+    // corrigen con un scroll o resize
+    requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
@@ -2086,7 +2144,12 @@ export default function InvitationKpop({
       )}
       {opened && <MusicFab playing={playing} onToggle={toggle} />}
 
-      <main style={{ position: "relative", zIndex: 1 }}>
+      {/* Emilia: mientras se ve la intro, la invitación queda en display none
+          para que no descargue nada (las imágenes lazy y los fondos CSS de un
+          elemento sin mostrar no se piden) y toda la conexión quede para
+          intro-abrir. El video de cierre sigue en el DOM para que
+          desbloquearVideos lo encuentre al tocar intro-espera. */}
+      <main style={{ position: "relative", zIndex: 1, display: !demo && !opened ? "none" : undefined }}>
         {/* Emilia: video + estrellas abren la invitación (el demo no tiene video) */}
         {!demo && opened && (
           <PortadaVideoSection
@@ -2124,6 +2187,7 @@ export default function InvitationKpop({
         >
           <img
             src={`${photosPath}/corazones.png`}
+            loading="lazy"
             alt=""
             aria-hidden="true"
             draggable={false}
