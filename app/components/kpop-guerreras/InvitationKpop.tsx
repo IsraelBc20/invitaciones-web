@@ -22,7 +22,6 @@ import {
   Music,
   Music2,
   PartyPopper,
-  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 import { getMusicAudio, useMusic } from "@/app/components/shared/useMusic";
@@ -559,9 +558,9 @@ const SALTAR_MS = 30000;
 type EstadoIntro = "llamada" | "espera" | "abrir" | "done";
 
 // play() + pause() dentro de un gesto del usuario deja al elemento habilitado
-// para sonar después sin gesto: iOS lo exige por elemento, y sin esto los
-// videos con crossfade (que arrancan solos al llegar al centro, fuera de
-// cualquier gesto) caían a muted y no se escuchaban. La promesa rechazada
+// para sonar después sin gesto: iOS lo exige por elemento, y sin esto el
+// video de cierre (que arranca solo al llegar al centro, fuera de
+// cualquier gesto) caía a muted y no se escuchaba. La promesa rechazada
 // (AbortError) no importa.
 function desbloquearVideos() {
   document.querySelectorAll<HTMLVideoElement>("video[data-desbloquear]").forEach((video) => {
@@ -816,7 +815,7 @@ interface MusicaGuardada {
 // Cuántos videos tienen la canción "tomada" (bajada y en pausa) y cómo estaba
 // antes del primero. Con un contador compartido la canción solo vuelve cuando
 // la suelta el ÚLTIMO video: si la portada la devolviera mientras suena el
-// programa (pasa si el invitado baja rápido), sonarían los dos a la vez. Cada
+// cierre (pasa si el invitado baja rápido), sonarían los dos a la vez. Cada
 // video debe llamar a soltarMusica exactamente una vez por cada tomarMusica.
 let tomas = 0;
 let guardada: MusicaGuardada = { sonaba: false, posicion: 0, volumen: 0.7 };
@@ -889,7 +888,7 @@ function soltarMusica() {
 // posterior) porque iOS solo deja reproducir con sonido dentro del gesto del
 // usuario; por eso la canción también arranca en ese clic, aunque enseguida
 // baje. El crossfade es simultáneo y no "canción baja → video arranca" como en
-// el programa: esperar 0,5s sacaría el play del gesto.
+// el cierre: esperar 0,5s sacaría el play del gesto.
 //
 // La canción vuelve (`onTerminar`, una sola vez) cuando el video termina o
 // cuando sale de la pantalla antes de terminar: en ese caso queda en pausa
@@ -1133,28 +1132,85 @@ function ChicasSection({ photosPath, opened }: { photosPath: string; opened: boo
   );
 }
 
-// ─── 5b / 6b. Videos con crossfade (las 2 rutas) ─────────────────────────────
-// video-programa.mp4 va justo después de ¿QUÉ HAREMOS? y video-cierre.mp4
-// entre ¿VAS A VENIR? y el cierre. Cada uno se
-// reproduce solo UNA vez por visita,
-// cuando el video cruza el centro de la pantalla, con crossfade contra la
-// canción de fondo: la canción baja en 0,5s y se pausa → el video arranca en
-// volumen 0 y sube en 0,5s → al terminar el video baja en 0,5s → la canción
-// retoma donde quedó y sube en 0,5s. Después aparece "Ver de nuevo", que repite
-// la misma secuencia (ver "Crossfade de audio" arriba). Si el navegador no
+// ─── 5b. Video del programa (las 2 rutas) ────────────────────────────────────
+// video-programa.mp4 va justo después de ¿QUÉ HAREMOS?. Es decorativo: siempre
+// muted y en loop, sin tocar la canción (huntrix sigue sonando). Arranca cuando
+// cruza el centro de la pantalla (franja de 1px, rootMargin -50%), cada vez que
+// lo cruza. Al salir de la pantalla (threshold 0.1) se pausa y al volver a
+// entrar se reanuda, si ya había arrancado alguna vez.
+
+function VideoLoopSection({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const arranco = useRef(false);
+
+  // Salió de la pantalla: pausa. Volvió a entrar: reanuda
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) video.pause();
+        else if (arranco.current) video.play().catch(() => {});
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  // Cruzó el centro de la pantalla: arranca (sin flag, puede repetirse)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        arranco.current = true;
+        video.play().catch(() => {});
+      },
+      { rootMargin: "-50% 0px -50% 0px", threshold: 0 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section style={{ position: "relative", lineHeight: 0 }}>
+      <video
+        ref={videoRef}
+        // #t=0.1 hace que el navegador pinte el primer cuadro como portada
+        src={`${src}#t=0.1`}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        controls={false}
+        draggable={false}
+        style={{ width: "100%", display: "block", background: "#000" }}
+      />
+    </section>
+  );
+}
+
+// ─── 6b. Video de cierre con crossfade (las 2 rutas) ─────────────────────────
+// video-cierre.mp4 va entre ¿VAS A VENIR? y el cierre. Es el único video del
+// cuerpo que interrumpe la canción. Se reproduce solo UNA vez por visita,
+// cuando cruza el centro de la pantalla, con crossfade contra la canción de
+// fondo: la canción baja en 0,5s y se pausa → el video arranca en volumen 0 y
+// sube en 0,5s → al terminar el video baja en 0,5s → la canción retoma donde
+// quedó y sube en 0,5s (ver "Crossfade de audio" arriba). Si el navegador no
 // deja arrancar el video con sonido, se reproduce sin sonido y la canción
 // vuelve.
 //
 // Si el video sale de la pantalla mientras suena (IntersectionObserver con
-// threshold 0.1), su audio baja en 0,5s, se pausa, vuelve la canción y queda
-// "Ver de nuevo": al regresar no se reproduce solo. Si sale mientras la
-// canción todavía está bajando, el video ni arranca.
+// threshold 0.1), su audio baja en 0,5s, se pausa y vuelve la canción. Si sale
+// mientras la canción todavía está bajando, el video ni arranca.
 //
-// Con `frameFinal` (video-cierre) no hay "Ver de nuevo": al terminar (o al
-// salir de la pantalla mientras suena) esa imagen tapa al video para siempre,
-// igual que video-frame.png en la portada. Solo se vuelve a ver recargando.
+// Al terminar (o al salir de la pantalla mientras suena) `frameFinal` tapa al
+// video para siempre, igual que video-frame.png en la portada. Solo se vuelve a
+// ver recargando.
 
-function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal?: string }) {
+function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hasAutoPlayed = useRef(false);
   // Si este video tiene la canción tomada: garantiza un único soltarMusica
@@ -1214,9 +1270,7 @@ function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal?: 
   const handleEnded = () => {
     const video = videoRef.current;
     // El frame final tapa al video en el acto, sin esperar el fade del audio
-    // (sin frameFinal no se adelanta: "Ver de nuevo" a mitad del fade
-    // devolvería la canción con el video sonando)
-    if (frameFinal) setEstado("terminado");
+    setEstado("terminado");
     // Al disparar onEnded el video ya no suena: el fade de salida solo deja el
     // volumen en 0 antes de devolver la canción
     if (video && !video.muted) fadeTo(video, 0, FADE_MS, terminar);
@@ -1284,44 +1338,13 @@ function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal?: 
         onEnded={handleEnded}
         style={{ width: "100%", display: "block", background: "#000" }}
       />
-      {frameFinal && estado === "terminado" && (
+      {estado === "terminado" && (
         <img
           src={frameFinal}
           alt=""
           draggable={false}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 3 }}
         />
-      )}
-      {!frameFinal && estado === "terminado" && (
-        <button
-          onClick={reproducir}
-          style={{
-            position: "absolute",
-            zIndex: 3,
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "13px 24px",
-            borderRadius: 999,
-            border: `1.5px solid ${PINK_SOFT}`,
-            background: "rgba(10, 10, 25, 0.62)",
-            backdropFilter: "blur(4px)",
-            color: WHITE,
-            fontFamily: FONT,
-            fontWeight: 600,
-            fontSize: 16,
-            letterSpacing: "0.04em",
-            lineHeight: 1,
-            cursor: "pointer",
-            boxShadow: `0 0 20px ${GLOW}`,
-          }}
-        >
-          <RotateCcw size={20} color={WHITE} strokeWidth={2.3} aria-hidden="true" />
-          Ver de nuevo
-        </button>
       )}
     </section>
   );
@@ -1962,8 +1985,8 @@ export default function InvitationKpop({
   const [introVisible, setIntroVisible] = useState(!demo);
 
   // Clic en intro-espera (gesto del usuario): habilita la canción para que
-  // pueda sonar al abrir, que ya no es dentro del gesto, y los videos con
-  // crossfade (programa y cierre)
+  // pueda sonar al abrir, que ya no es dentro del gesto, y el video de cierre
+  // (crossfade)
   const desbloquearInvitacion = () => {
     play(); // crea el Audio de la canción
     getMusicAudio()?.pause();
@@ -2041,7 +2064,7 @@ export default function InvitationKpop({
         <ChicasSection photosPath={photosPath} opened={opened} />
         <FiestaSection demo={demo} photosPath={photosPath} />
         <ProgramaSection photosPath={photosPath} />
-        <VideoCrossfadeSection src={`${photosPath}/video-programa.mp4`} />
+        <VideoLoopSection src={`${photosPath}/video-programa.mp4`} />
         <ConfirmarSection demo={demo} photosPath={photosPath} />
         {/* Corazones sobre la unión de ¿VAS A VENIR? y el video de cierre,
             para tapar la línea, sobresaliendo más hacia el video.
