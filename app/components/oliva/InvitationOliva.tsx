@@ -12,6 +12,7 @@ import { ACCEPT_ATTR } from "@/lib/media";
 import { venueFor } from "@/lib/venue";
 import { coupleFor, signatureFor } from "@/lib/couple";
 import { Hourglass, Lock, Sparkles } from "lucide-react";
+import WhatsAppButton from "@/app/components/shared/WhatsAppButton";
 
 const DESIGN_ID = "oliva";
 
@@ -1514,14 +1515,6 @@ function RSVPSection({ demo }: { demo: boolean }) {
           Confirmar asistencia
         </a>
       </Reveal>
-      <Reveal delay={3}>
-        <div
-          className="small-caps"
-          style={{ marginTop: 20, fontSize: 11, color: "rgba(248,246,243,0.6)" }}
-        >
-          +51 {phone}
-        </div>
-      </Reveal>
     </section>
   );
 }
@@ -1615,25 +1608,7 @@ function DemoBanner() {
         <Sparkles size={14} color="currentColor" aria-hidden="true" />
         Esta es una demo — ¿Te gusta este diseño?
       </span>
-      <a
-        href={waLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          flexShrink: 0,
-          background: "var(--gold)",
-          color: "#24392c",
-          padding: "6px 14px",
-          borderRadius: 50,
-          textDecoration: "none",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          fontSize: 11,
-        }}
-      >
-        Solicitar
-      </a>
+      <WhatsAppButton href={waLink} compact />
       <button
         onClick={() => setVisible(false)}
         aria-label="Cerrar aviso de demo"

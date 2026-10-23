@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import WhatsAppButton from "@/app/components/shared/WhatsAppButton";
 import { Camera, Clock, MapPin, MessageCircle, Music, Smartphone } from "lucide-react";
 import { designs, PRECIOS, type Categoria, type Design } from "@/lib/designs";
 
@@ -25,7 +26,6 @@ const TEXT = "#222222";
 const MUTED = "#6b6b6b";
 const LINE = "#e4e4e4";
 const LINK = "#3a5f8f"; // nombre del diseño, azulado como un enlace
-const WA_GREEN = "#25D366";
 
 const FONT = "'DM Sans', 'Segoe UI', Arial, sans-serif";
 
@@ -59,14 +59,6 @@ const soles = (n: number) => `S/. ${n}`;
 
 // "2026-11-27" → "27/11/2026" para el mensaje de WhatsApp
 const fechaCorta = (iso: string) => iso.split("-").reverse().join("/");
-
-function WhatsAppIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
-      <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.6.2-.8l.4-.5c.1-.2.1-.3.2-.5v-.5c0-.1-.5-1.3-.7-1.8-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9 2.6 1.1 2.6.8 3.1.7.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2l-.4-.4Z" />
-    </svg>
-  );
-}
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -353,11 +345,8 @@ export default function CatalogPage() {
         .shop-header { background: ${CARD_BG}; border-bottom: 1px solid ${LINE}; }
         .shop-header .shop-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
         .shop-logo { font-weight: 700; font-size: 17px; letter-spacing: 0.14em; text-transform: uppercase; color: ${BLACK}; text-decoration: none; }
-        .shop-contact { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: ${TEXT}; text-decoration: none; }
-        .shop-contact:hover { color: ${BLACK}; text-decoration: underline; }
         @media (max-width: 520px) {
           .shop-logo { font-size: 14px; letter-spacing: 0.1em; }
-          .shop-contact span { display: none; }
         }
 
         .shop-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; }
@@ -453,12 +442,6 @@ export default function CatalogPage() {
         .panel-field input:focus, .panel-field textarea:focus { outline: none; border-color: ${BLACK}; }
 
         .shop-footer { background: #151515; color: #e8e8e8; text-align: center; padding: 48px 16px 36px; margin-top: 70px; }
-        .shop-wa {
-          display: inline-flex; align-items: center; gap: 10px; margin-top: 18px;
-          background: ${WA_GREEN}; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px;
-          padding: 13px 26px; border-radius: 999px; transition: filter 0.2s ease;
-        }
-        .shop-wa:hover { filter: brightness(1.08); }
       `}</style>
 
       {/* ── Header ── */}
@@ -467,10 +450,7 @@ export default function CatalogPage() {
           <Link href="/" className="shop-logo">
             {NEGOCIO}
           </Link>
-          <a href={WA_CATALOGO} target="_blank" rel="noopener noreferrer" className="shop-contact">
-            <WhatsAppIcon size={16} />
-            <span>+51 993 092 110</span>
-          </a>
+          <WhatsAppButton href={WA_CATALOGO} />
         </div>
       </header>
 
@@ -562,10 +542,7 @@ export default function CatalogPage() {
       <footer className="shop-footer">
         <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.14em", textTransform: "uppercase" }}>{NEGOCIO}</div>
         <p style={{ marginTop: 14, color: "#bdbdbd", fontSize: 15 }}>¿Tienes dudas? Contáctanos</p>
-        <a href={WA_CATALOGO} target="_blank" rel="noopener noreferrer" className="shop-wa">
-          <WhatsAppIcon />
-          +51 993 092 110
-        </a>
+        <WhatsAppButton href={WA_CATALOGO} style={{ marginTop: 18 }} />
         <div style={{ marginTop: 34, fontSize: 12, color: "#8a8a8a" }}>© 2026 Invitaciones Digitales</div>
       </footer>
 

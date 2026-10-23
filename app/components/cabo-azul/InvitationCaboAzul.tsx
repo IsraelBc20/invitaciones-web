@@ -23,6 +23,7 @@ import { useMusic } from "@/app/components/shared/useMusic";
 import { venueFor } from "@/lib/venue";
 import { coupleFor } from "@/lib/couple";
 import { Heart, Lock, Sparkles } from "lucide-react";
+import WhatsAppButton from "@/app/components/shared/WhatsAppButton";
 
 const DESIGN_ID = "cabo-azul";
 
@@ -426,24 +427,7 @@ function DemoBanner() {
         <Sparkles size={14} color="currentColor" aria-hidden="true" />
         Esta es una demo — ¿Te gusta este diseño?
       </span>
-      <a
-        href={waLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          flexShrink: 0,
-          background: BG,
-          color: INK,
-          padding: "6px 14px",
-          borderRadius: 50,
-          textDecoration: "none",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          fontSize: 11,
-        }}
-      >
-        Solicitar
-      </a>
+      <WhatsAppButton href={waLink} compact />
       <button
         onClick={() => setVisible(false)}
         aria-label="Cerrar aviso de demo"
