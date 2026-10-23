@@ -531,31 +531,31 @@ function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
   );
 }
 
-// ─── 1c. Portada en 3 estados (solo cliente; reemplaza a IntroGate) ──────────
-// intro-llamada.mp4 (una vez) → intro-espera.png (imagen fija; toda la
-// pantalla es clickeable) → intro-abrir.mp4 (una vez) → se abre la
-// invitación. Las 3 capas están montadas desde el inicio, apiladas a pantalla
-// completa: la del estado actual tiene opacity 1 y el resto 0, con una
-// transición de 0,3s; al terminar, toda la intro se desvanece igual.
+// ─── 1c. Portada en 2 estados (solo cliente; reemplaza a IntroGate) ──────────
+// intro-espera.png (imagen fija desde que carga la página; toda la pantalla es
+// clickeable) → intro-abrir.mp4 (una vez) → se abre la invitación. Las 2 capas
+// están montadas desde el inicio, apiladas a pantalla completa: la del estado
+// actual tiene opacity 1 y la otra 0, con una transición de 0,3s; al terminar,
+// toda la intro se desvanece igual. (Hasta el 23 oct 2026 abría con
+// intro-llamada.mp4; el archivo sigue en la carpeta pero ya no se usa.)
 //
-// Sonido: el navegador solo deja arrancar con sonido sin gesto del usuario si
-// ya hubo interacción con el sitio. Si intro-llamada no puede sonar, va sin
-// sonido, sin avisar. El clic en intro-espera arranca intro-abrir dentro del
-// gesto y llama a `onToque`, que desbloquea la canción: la invitación se abre
-// al terminar intro-abrir, ya sin gesto. El video de portada recién se monta
-// al abrir (ver el componente principal).
+// Sonido: el clic en intro-espera arranca intro-abrir dentro del gesto (por
+// eso suena) y llama a `onToque`, que desbloquea la canción: la invitación se
+// abre al terminar intro-abrir, ya sin gesto. El video de portada recién se
+// monta al abrir (ver el componente principal), que lo precarga mientras se
+// ve la intro.
 //
-// Si falta algún video (onError) se salta al estado siguiente, para que el
+// Si falta intro-abrir (onError) se abre la invitación directo, para que el
 // invitado nunca quede trabado en una pantalla negra. Y si un estado dura más
 // de SALTAR_MS (algo falló, o el invitado no se anima a tocar), aparece un
 // botón discreto "Saltar intro" que abre la invitación directo.
 //
-// Los videos e intro-espera.png son verticales (1080×1906 y 544×960): van con
-// object-fit contain sobre negro, así se ven completos en cualquier pantalla.
+// intro-abrir.mp4 e intro-espera.png son verticales: van con object-fit
+// contain sobre negro, así se ven completos en cualquier pantalla.
 
 const INTRO_FADE_MS = 300;
 const SALTAR_MS = 30000;
-type EstadoIntro = "llamada" | "espera" | "abrir" | "done";
+type EstadoIntro = "espera" | "abrir" | "done";
 
 // play() + pause() dentro de un gesto del usuario deja al elemento habilitado
 // para sonar después sin gesto: iOS lo exige por elemento, y sin esto el
@@ -596,11 +596,10 @@ function IntroVideos({
   /** Terminó el fade de salida: desmontar la intro. */
   onOculta: () => void;
 }) {
-  const llamadaRef = useRef<HTMLVideoElement>(null);
   const abrirRef = useRef<HTMLVideoElement>(null);
-  const [estado, setEstado] = useState<EstadoIntro>("llamada");
+  const [estado, setEstado] = useState<EstadoIntro>("espera");
   // Los handlers de los videos leen el estado actual de aquí
-  const estadoRef = useRef<EstadoIntro>("llamada");
+  const estadoRef = useRef<EstadoIntro>("espera");
   // Estado en el que se cumplieron los SALTAR_MS (el botón se ve solo si
   // seguimos en ese mismo estado)
   const [saltarEn, setSaltarEn] = useState<EstadoIntro | null>(null);
@@ -610,22 +609,12 @@ function IntroVideos({
     setEstado(siguiente);
   };
 
-  useEffect(() => {
-    reproducirIntro(llamadaRef.current);
-  }, []);
-
   // El botón de escape aparece si el estado actual lleva SALTAR_MS sin cambiar
   useEffect(() => {
     if (estado === "done") return;
     const id = window.setTimeout(() => setSaltarEn(estado), SALTAR_MS);
     return () => window.clearTimeout(id);
   }, [estado]);
-
-  const pasarAEspera = () => {
-    if (estadoRef.current !== "llamada") return;
-    irA("espera");
-    window.setTimeout(() => llamadaRef.current?.pause(), INTRO_FADE_MS);
-  };
 
   const handleClicEspera = () => {
     if (estadoRef.current !== "espera") return;
@@ -636,7 +625,6 @@ function IntroVideos({
 
   const cerrar = () => {
     irA("done");
-    llamadaRef.current?.pause();
     abrirRef.current?.pause();
     onAbrir();
     window.setTimeout(onOculta, INTRO_FADE_MS);
@@ -673,21 +661,11 @@ function IntroVideos({
         transition: "opacity 0.3s ease",
       }}
     >
-      <video
-        ref={llamadaRef}
-        src={`${photosPath}/intro-llamada.mp4`}
-        preload="auto"
-        playsInline
-        controls={false}
-        loop={false}
-        draggable={false}
-        onEnded={pasarAEspera}
-        onError={pasarAEspera}
-        style={capa(estado === "llamada")}
-      />
       <img
         src={`${photosPath}/intro-espera.png`}
         alt="Toca para abrir tu invitación"
+        // Es lo primero que se ve: se pide antes que el resto de imágenes
+        fetchPriority="high"
         draggable={false}
         onClick={handleClicEspera}
         style={{ ...capa(estado === "espera"), cursor: "pointer" }}
