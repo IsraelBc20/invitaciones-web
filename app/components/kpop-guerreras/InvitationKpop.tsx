@@ -9,7 +9,8 @@
 // programa → RSVP → video de cierre → cierre con confetti. Las 2 rutas entran
 // por la misma intro (intro-espera → intro-abrir). Desde el 23 oct 2026 el demo
 // tiene la misma estructura que Emilia, salvo el video de portada (no tiene) y
-// el de cierre (placeholder "Video de cierre próximamente").
+// el de cierre (placeholder "Video de cierre próximamente"). Su festejada es
+// Arelis (25 oct 2026).
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -77,7 +78,7 @@ interface Festejada {
 }
 
 const FESTEJADA_DEMO: Festejada = {
-  nombre: "Emilia",
+  nombre: "Arelis",
   edad: 4,
   iso: "2028-11-15T16:00:00",
   hora: "4:00 PM",
@@ -118,13 +119,9 @@ function diaYMes(iso: string) {
 }
 
 // Mensaje prellenado: [nombre] y [N] quedan para que el invitado los complete.
-// En el demo el botón es para quien quiere comprar la invitación.
+// El demo arma el mismo mensaje con su festejada (Arelis); quien quiere
+// comprar la invitación tiene el botón del banner de demo.
 const waConfirm = (demo: boolean) => {
-  if (demo) {
-    return `https://wa.me/51993092110?text=${encodeURIComponent(
-      "Hola, vi la demo de la invitación K-Pop Guerreras y me interesa comprar una para mi evento."
-    )}`;
-  }
   const f = festejadaFor(demo);
   return `https://wa.me/51993092110?text=${encodeURIComponent(
     `Hola, quiero confirmar mi asistencia al cumpleaños de ${f.nombre} el ${diaYMes(f.iso)}. Mi nombre es [nombre] y asistiremos [N] personas.`
@@ -1840,9 +1837,11 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
         <Titulo size="clamp(28px, 8vw, 48px)" style={{ wordSpacing: "0.25em", marginBottom: 16 }}>
           ¿VAS A VENIR?
         </Titulo>
-        <p style={{ color: PINK_SOFT, marginBottom: 8, fontSize: 17 }}>¡Necesitamos saber si contamos contigo!</p>
+        <p style={{ color: PINK_SOFT, marginBottom: 8, fontSize: 17 }}>
+          ¡Prepara tus mejores pasos! El escenario K-Pop está listo para una batalla inolvidable.
+        </p>
         <p style={{ color: WHITE, marginBottom: 24, fontSize: 17 }}>
-          Confirma tu asistencia antes del <strong style={{ color: GOLD }}>{f.rsvpHasta}:</strong>
+          Confirma tu lugar en nuestro equipo antes del <strong style={{ color: GOLD }}>{f.rsvpHasta}</strong>:
         </p>
         <a
           href={waConfirm(demo)}
@@ -1867,7 +1866,7 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
           <MessageCircle size={20} color="#ffffff" aria-hidden="true" />
           Confirmar asistencia
         </a>
-        <p style={{ color: PINK_SOFT, fontSize: 12, marginTop: 16 }}>Por favor indícanos el nombre y cuántos asistirán</p>
+        <p style={{ color: PINK_SOFT, fontSize: 12, marginTop: 16 }}>indicando tu nombre y con cuántos ídolos vendrás.</p>
       </div>
 
       <img src={`${photosPath}/rsvp-chicos.png`} loading="lazy" alt="" draggable={false} style={{ width: "100%", display: "block" }} />
