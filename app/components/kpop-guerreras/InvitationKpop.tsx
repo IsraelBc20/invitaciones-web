@@ -1811,6 +1811,14 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
 // el botón de WhatsApp en el medio. El fondo (rsvp-fondo.png) ya viene
 // editado: sin overlay ni opacidad.
 
+// Textos de ¿VAS A VENIR? en blanco con glow neón
+const NEON_TEXT: React.CSSProperties = {
+  fontFamily: "'Montserrat Arabic', sans-serif",
+  color: "#ffffff",
+  textShadow: "0 0 7px #ffffff, 0 0 10px #ffffff, 0 0 21px #ffffff, 0 0 42px rgba(255,255,255,0.6)",
+  textAlign: "center",
+};
+
 function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
   // rsvp-fondo.png es un fondo CSS (no admite loading="lazy"): se pide recién
@@ -1837,8 +1845,10 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
         <Titulo size="clamp(28px, 8vw, 48px)" style={{ wordSpacing: "0.25em", marginBottom: 16 }}>
           ¿VAS A VENIR?
         </Titulo>
-        <p style={{ color: PINK_SOFT, marginBottom: 8, fontSize: 17 }}>
-          ¡Prepara tus mejores pasos! El escenario K-Pop está listo para una batalla inolvidable.
+        <p style={{ ...NEON_TEXT, fontSize: "clamp(14px, 4vw, 18px)", marginBottom: 8 }}>
+          ¡Prepara tus mejores pasos!
+          <br />
+          El escenario K-Pop está listo para una batalla inolvidable.
         </p>
         <p style={{ color: WHITE, marginBottom: 24, fontSize: 17 }}>
           Confirma tu lugar en nuestro equipo antes del <strong style={{ color: GOLD }}>{f.rsvpHasta}</strong>:
@@ -1866,7 +1876,7 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
           <MessageCircle size={20} color="#ffffff" aria-hidden="true" />
           Confirmar asistencia
         </a>
-        <p style={{ color: PINK_SOFT, fontSize: 12, marginTop: 16 }}>indicando tu nombre y con cuántos ídolos vendrás.</p>
+        <p style={{ ...NEON_TEXT, fontSize: "clamp(12px, 3.5vw, 16px)", marginTop: 16 }}>indicando tu nombre y con cuántos ídolos vendrás.</p>
       </div>
 
       <img src={`${photosPath}/rsvp-chicos.png`} loading="lazy" alt="" draggable={false} style={{ width: "100%", display: "block" }} />
