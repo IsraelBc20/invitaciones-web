@@ -54,20 +54,20 @@ export const VENUE_DEMO = venue(
 );
 
 /**
- * Local del cumpleaños de Emilia (K-Pop Guerreras): Plaza de Armas de Huaral
- * (21 oct 2026). Sin coordenadas: los enlaces y el iframe buscan el lugar por
- * nombre. No usar un embed `pb=` con -11.489522,-77.206264: esas son las
- * coordenadas del local de la boda (VENUE_REAL), no de la plaza.
+ * Local del cumpleaños de Emilia (K-Pop Guerreras), frente al Consultorio
+ * Obstétrico Women Care en Huaral (25 oct 2026; antes, Plaza de Armas de
+ * Huaral). Coordenadas sacadas del link de Google Maps del cliente. No
+ * confundir con -11.489522,-77.206264, que es el local de la boda (VENUE_REAL).
  */
-const HUARAL_PLAZA = "plaza+de+armas+huaral";
+const EMILIA_COORDS = "-11.5036841,-77.2145275";
 export const VENUE_EMILIA: Venue = {
-  street: "Plaza de Armas de Huaral",
+  street: "Frente al Consultorio Obstétrico Women Care",
   city: "Huaral",
-  line: "Plaza de Armas de Huaral",
-  coords: "",
-  mapsUrl: `https://www.google.com/maps?q=${HUARAL_PLAZA}`,
-  directionsUrl: `https://www.google.com/maps/dir/?api=1&destination=${HUARAL_PLAZA}`,
-  embedUrl: `https://maps.google.com/maps?q=${HUARAL_PLAZA}&output=embed`,
+  line: "Frente al Consultorio Obstétrico Women Care - Huaral",
+  coords: EMILIA_COORDS,
+  mapsUrl: `https://www.google.com/maps?q=${EMILIA_COORDS}`,
+  directionsUrl: `https://www.google.com/maps/dir/?api=1&destination=${EMILIA_COORDS}`,
+  embedUrl: `https://maps.google.com/maps?q=${EMILIA_COORDS}&output=embed`,
 };
 
 /**

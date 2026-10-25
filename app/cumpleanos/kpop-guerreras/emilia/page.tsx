@@ -3,7 +3,7 @@ import InvitationKpop from "@/app/components/kpop-guerreras/InvitationKpop";
 
 // Invitación REAL del cumpleaños de Emilia (diseño K-Pop Guerreras): sin banner
 // de demo, con sus datos reales (FESTEJADA_CLIENTE en el componente y
-// VENUE_EMILIA en lib/venue.ts: Plaza de Armas de Huaral).
+// VENUE_EMILIA en lib/venue.ts: frente a Women Care, Huaral).
 
 export const metadata: Metadata = {
   title: "Emilia cumple 4 años — 27 de Noviembre 2026",
