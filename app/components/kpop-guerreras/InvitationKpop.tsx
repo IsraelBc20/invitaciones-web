@@ -8,8 +8,8 @@
 // playlist ni historia: es portada → countdown → chicas → la fiesta →
 // programa → RSVP → video de cierre → cierre con confetti. Las 2 rutas entran
 // por la misma intro (intro-espera → intro-abrir). Desde el 23 oct 2026 el demo
-// tiene la misma estructura que Emilia, salvo el video de portada (no tiene) y
-// el de cierre (placeholder "Video de cierre próximamente"). Su festejada es
+// tiene la misma estructura que Emilia, salvo los videos de portada y cierre:
+// por ahora el demo muestra imágenes fijas en su lugar (25 oct 2026). Su festejada es
 // Arelis (25 oct 2026).
 
 import { useEffect, useRef, useState } from "react";
@@ -17,7 +17,6 @@ import Image from "next/image";
 import {
   CalendarDays,
   Cake,
-  Film,
   Clock,
   Gamepad2,
   Gift,
@@ -1363,30 +1362,48 @@ function VideoCrossfadeSection({ src, frameFinal }: { src: string; frameFinal: s
   );
 }
 
-// Demo: en lugar del video de cierre (se agregará después), un bloque oscuro
-// del mismo formato vertical. zIndex 1 como el video, debajo de los corazones.
-function CierrePlaceholder() {
+// Demo: imágenes fijas (1080×1920, mismo formato que los videos de Emilia) en
+// lugar de los videos de portada y cierre, hasta que se suban los reales a
+// kpop-guerreras-demo/photos/. Entonces se reemplazan por PortadaVideoSection y
+// VideoCrossfadeSection, como en Emilia. Van por next/image (los PNG pesan
+// ~4 MB; llegan como WebP) y en lazy: mientras se ve la intro <main> está en
+// display none y no se descargan, así no le quitan ancho de banda a intro-abrir.
+function DemoFrame({ src }: { src: string }) {
   return (
-    <section
-      style={{
-        position: "relative",
-        zIndex: 1,
-        aspectRatio: "9 / 16",
-        background: "#0a0a19",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 14,
-        color: PINK_SOFT,
-        fontFamily: BODY_FONT,
-        fontSize: 17,
-        textAlign: "center",
-        padding: 24,
-      }}
-    >
-      <Film size={36} color={PINK_SOFT} strokeWidth={1.6} aria-hidden="true" />
-      Video de cierre próximamente
+    <Image
+      src={src}
+      alt=""
+      width={1080}
+      height={1920}
+      sizes="(max-width: 430px) 100vw, 430px"
+      draggable={false}
+      style={{ width: "100%", height: "auto", display: "block", margin: 0, padding: 0 }}
+    />
+  );
+}
+
+// Portada del demo: la imagen con estrellas.png superpuesta sobre su borde
+// inferior, igual que PortadaVideoSection
+function PortadaFrameSection() {
+  return (
+    <section style={{ position: "relative", lineHeight: 0 }}>
+      <DemoFrame src={`${DEMO_PHOTOS_PATH}/video-portada-frame.png`} />
+      <img
+        src={`${DEMO_PHOTOS_PATH}/estrellas.png`}
+        loading="lazy"
+        alt=""
+        draggable={false}
+        style={{ position: "absolute", left: 0, bottom: -20, width: "100%", display: "block", margin: 0, zIndex: 2 }}
+      />
+    </section>
+  );
+}
+
+// Cierre del demo: zIndex 1 como VideoCrossfadeSection, debajo de los corazones
+function CierreFrameSection() {
+  return (
+    <section style={{ position: "relative", zIndex: 1, lineHeight: 0 }}>
+      <DemoFrame src={`${DEMO_PHOTOS_PATH}/video-cierre-frame.png`} />
     </section>
   );
 }
@@ -2080,7 +2097,9 @@ export default function InvitationKpop({
           intro-abrir. El video de cierre sigue en el DOM para que
           desbloquearVideos lo encuentre al tocar intro-espera. */}
       <main style={{ position: "relative", zIndex: 1, display: opened ? undefined : "none" }}>
-        {/* Emilia: video + estrellas abren la invitación (el demo no tiene video) */}
+        {/* Emilia: video + estrellas abren la invitación (el demo, por ahora,
+            una imagen fija con las mismas estrellas) */}
+        {demo && <PortadaFrameSection />}
         {!demo && opened && (
           <PortadaVideoSection
             photosPath={photosPath}
@@ -2125,7 +2144,7 @@ export default function InvitationKpop({
           />
         </div>
         {demo ? (
-          <CierrePlaceholder />
+          <CierreFrameSection />
         ) : (
           <VideoCrossfadeSection
             src={`${photosPath}/video-cierre.mp4`}

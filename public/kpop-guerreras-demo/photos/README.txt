@@ -38,9 +38,14 @@ CHICAS
 MÚSICA
   huntrix.mp3               canción de fondo
 
-PENDIENTES (la demo todavía no los tiene)
+IMÁGENES FIJAS TEMPORALES (en lugar de los videos, 1080x1920)
+  video-portada-frame.png   portada, con estrellas.png encima
+  video-cierre-frame.png    cierre, con corazones.png encima
+
+PENDIENTES (la demo todavía no los tiene; al subirlos hay que cambiar el
+código para que use los videos en lugar de las imágenes fijas)
   video-portada.mp4         video del inicio de la invitación
-  video-cierre.mp4          hoy se muestra "Video de cierre próximamente"
+  video-cierre.mp4          video del cierre
 
 Decoración opcional en la raíz de /kpop-guerreras-demo/:
   deco-confetti.png         sobre "¡Te esperamos!"; si no existe no se muestra
