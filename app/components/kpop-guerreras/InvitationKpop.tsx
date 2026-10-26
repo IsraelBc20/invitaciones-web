@@ -1920,6 +1920,22 @@ function CierreSection({ demo }: { demo: boolean }) {
       <Stars count={20} seed={89} />
       <Confetti />
       <div style={{ position: "relative", zIndex: 2 }}>
+        {/* Solo Emilia: GIF transparente de la niña bailando (3,4MB, lazy
+            para no competir con la intro) */}
+        {!demo && (
+          <img
+            src="/kpop-guerreras/emilia/photos/baile-emilia.gif"
+            loading="lazy"
+            alt=""
+            draggable={false}
+            style={{
+              display: "block",
+              margin: "0 auto 24px",
+              width: "60%",
+              maxWidth: 280,
+            }}
+          />
+        )}
         <Deco file="deco-confetti.png" width={150} style={{ margin: "0 auto 24px" }} />
         <Titulo size="clamp(30px, 10vw, 44px)">¡TE ESPERAMOS!</Titulo>
         <div
