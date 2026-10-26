@@ -1903,6 +1903,31 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
 
 // ─── 7. Cierre ───────────────────────────────────────────────────────────────
 
+// Solo Emilia: la niña bailando, en loop y sin sonido. El MP4 no trae
+// transparencia y su fondo es NEGRO: mixBlendMode screen lo hace invisible
+// (multiply sirve para fondos blancos y aquí dejaba un recuadro negro). El <video> se
+// monta recién cerca de la pantalla (useCerca) para no competir con la intro.
+function BaileVideo() {
+  const ref = useRef<HTMLDivElement>(null);
+  const cerca = useCerca(ref);
+  return (
+    <div ref={ref} style={{ width: "60%", maxWidth: 280, margin: "0 auto 24px" }}>
+      {cerca && (
+        <video
+          src="/kpop-guerreras/emilia/photos/baile-emilia.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          controls={false}
+          draggable={false}
+          style={{ display: "block", width: "100%", mixBlendMode: "screen" }}
+        />
+      )}
+    </div>
+  );
+}
+
 function CierreSection({ demo }: { demo: boolean }) {
   const f = festejadaFor(demo);
   const year = f.iso.slice(0, 4);
@@ -1919,23 +1944,10 @@ function CierreSection({ demo }: { demo: boolean }) {
     >
       <Stars count={20} seed={89} />
       <Confetti />
+      {/* Fuera del div con zIndex: ese div es un contexto de apilamiento y el
+          blend se mezclaría con su fondo transparente, no con el de la sección */}
+      {!demo && <BaileVideo />}
       <div style={{ position: "relative", zIndex: 2 }}>
-        {/* Solo Emilia: GIF transparente de la niña bailando (3,4MB, lazy
-            para no competir con la intro) */}
-        {!demo && (
-          <img
-            src="/kpop-guerreras/emilia/photos/baile-emilia.gif"
-            loading="lazy"
-            alt=""
-            draggable={false}
-            style={{
-              display: "block",
-              margin: "0 auto 24px",
-              width: "60%",
-              maxWidth: 280,
-            }}
-          />
-        )}
         <Deco file="deco-confetti.png" width={150} style={{ margin: "0 auto 24px" }} />
         <Titulo size="clamp(30px, 10vw, 44px)">¡TE ESPERAMOS!</Titulo>
         <div
