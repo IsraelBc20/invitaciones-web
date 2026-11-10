@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import WhatsAppButton from "@/app/components/shared/WhatsAppButton";
+import { CatalogHeader, CatalogHero, HERO_CSS } from "@/app/components/catalog/CatalogHero";
 import { Camera, Clock, MapPin, MessageCircle, Music, Smartphone } from "lucide-react";
 import { designs, PRECIOS, type Categoria, type Design } from "@/lib/designs";
 
@@ -321,6 +322,7 @@ export default function CatalogPage() {
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [panelOpen, setPanelOpen] = useState(false);
   const [elegido, setElegido] = useState<Design | null>(null);
+  const heroRef = useRef<HTMLElement>(null);
 
   const visibles = filtro === "todas" ? designs : designs.filter((d) => d.categoria === filtro);
   const contar = (c: Filtro) => (c === "todas" ? designs.length : designs.filter((d) => d.categoria === c).length);
@@ -342,12 +344,7 @@ export default function CatalogPage() {
         .shop-inner { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
         @media (min-width: 768px) { .shop-inner { padding: 0 32px; } }
 
-        .shop-header { background: ${CARD_BG}; border-bottom: 1px solid ${LINE}; }
-        .shop-header .shop-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
-        .shop-logo { font-weight: 700; font-size: 17px; letter-spacing: 0.14em; text-transform: uppercase; color: ${BLACK}; text-decoration: none; }
-        @media (max-width: 520px) {
-          .shop-logo { font-size: 14px; letter-spacing: 0.1em; }
-        }
+        ${HERO_CSS}
 
         .shop-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; }
         .shop-pills::-webkit-scrollbar { display: none; }
@@ -444,19 +441,13 @@ export default function CatalogPage() {
         .shop-footer { background: #151515; color: #e8e8e8; text-align: center; padding: 48px 16px 36px; margin-top: 70px; }
       `}</style>
 
-      {/* ── Header ── */}
-      <header className="shop-header">
-        <div className="shop-inner">
-          <Link href="/" className="shop-logo">
-            {NEGOCIO}
-          </Link>
-          <WhatsAppButton href={WA_CATALOGO} />
-        </div>
-      </header>
+      {/* ── Header fijo + hero a pantalla completa ── */}
+      <CatalogHeader waHref={WA_CATALOGO} heroRef={heroRef} />
+      <CatalogHero heroRef={heroRef} />
 
       <main className="shop-inner">
-        <div style={{ padding: "36px 0 20px" }}>
-          <h1 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 700, color: BLACK }}>Invitaciones digitales</h1>
+        <div id="catalogo" style={{ padding: "48px 0 20px" }}>
+          <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 700, color: BLACK }}>Nuestros diseños</h2>
           <p style={{ color: MUTED, fontSize: 15, marginTop: 8 }}>
             Diseños con música, cuenta regresiva, mapa y confirmación por WhatsApp.
           </p>
@@ -510,7 +501,7 @@ export default function CatalogPage() {
         </section>
 
         {/* ── Cómo funciona ── */}
-        <section style={{ marginTop: 64 }}>
+        <section id="como-funciona" style={{ marginTop: 64 }}>
           <h2 className="shop-section-title">Cómo funciona</h2>
           <div className="shop-steps">
             {PASOS.map((p) => (
@@ -539,7 +530,7 @@ export default function CatalogPage() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="shop-footer">
+      <footer id="contacto" className="shop-footer">
         <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.14em", textTransform: "uppercase" }}>{NEGOCIO}</div>
         <p style={{ marginTop: 14, color: "#bdbdbd", fontSize: 15 }}>¿Tienes dudas? Contáctanos</p>
         <WhatsAppButton href={WA_CATALOGO} style={{ marginTop: 18 }} />

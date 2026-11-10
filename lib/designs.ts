@@ -83,6 +83,7 @@ export const designs: Design[] = [
     // Los cumpleaños viven bajo /cumpleanos/<id> y no tienen galería.
     ruta: "/cumpleanos/kpop-guerreras",
     galeriaRuta: null,
+    preview: "/catalogo/kpop-guerreras.png",
     disponible: true,
     colores: ["#6b0fa8", "#e91e8c", "#1a1a2e", "#f5d800"],
     tags: ["Cumpleaños", "Infantil", "K-pop"],
