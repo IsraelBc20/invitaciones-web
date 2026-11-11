@@ -8,11 +8,15 @@
 //   existe, no pinta nada) → encima el video, en opacity 0 hasta que arranca.
 // - Logos: se precargan con `new Image()` y solo se renderizan si cargaron;
 //   el header cae al texto "INVITACIONES DIGITALES".
+// - El header también lo usa /nosotros, que no tiene hero: sin `heroRef` es
+//   blanco desde el inicio. Los enlaces del menú son rutas absolutas con
+//   ancla (/#faq) para que funcionen desde cualquier página.
 // - El video NO se pide en la carga inicial: su src se asigna recién con el
 //   evento `load` de la ventana, y nunca con ahorro de datos o con
 //   prefers-reduced-motion (ahí queda solo el poster).
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import WhatsAppButton from "@/app/components/shared/WhatsAppButton";
 
@@ -24,14 +28,18 @@ const LOGO_NEGRO = "/marca/logo-negro.png";
 const NEGOCIO = "INVITACIONES DIGITALES";
 const SERIF = "'Playfair Display', Georgia, 'Times New Roman', serif";
 
-export const MENU = [
-  { href: "#catalogo", label: "Catálogo" },
-  { href: "#como-funciona", label: "Cómo funciona" },
-  { href: "#contacto", label: "Contacto" },
+export type PaginaActual = "catalogo" | "nosotros";
+
+export const MENU: { href: string; label: string; pagina?: PaginaActual }[] = [
+  { href: "/#catalogo", label: "Catálogo", pagina: "catalogo" },
+  { href: "/nosotros", label: "Nosotros", pagina: "nosotros" },
+  { href: "/#como-funciona", label: "Cómo funciona" },
+  { href: "/#faq", label: "Preguntas frecuentes" },
+  { href: "/#contacto", label: "Contacto" },
 ];
 
 /** true cuando la imagen existe y cargó; false mientras carga o si falla. */
-function useImageExists(src: string) {
+export function useImageExists(src: string) {
   const [ok, setOk] = useState(false);
   useEffect(() => {
     const img = new Image();
@@ -50,14 +58,24 @@ function useImageExists(src: string) {
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
-export function CatalogHeader({ waHref, heroRef }: { waHref: string; heroRef: React.RefObject<HTMLElement | null> }) {
-  const [solid, setSolid] = useState(false);
+export function CatalogHeader({
+  waHref,
+  heroRef,
+  actual,
+}: {
+  waHref: string;
+  /** Sin hero (p. ej. /nosotros) el header es blanco desde el inicio. */
+  heroRef?: React.RefObject<HTMLElement | null>;
+  actual: PaginaActual;
+}) {
+  const [solid, setSolid] = useState(!heroRef);
   const [menuOpen, setMenuOpen] = useState(false);
   const logoBlanco = useImageExists(LOGO_BLANCO);
   const logoNegro = useImageExists(LOGO_NEGRO);
 
   // Blanco en cuanto el borde inferior del hero pasa por debajo del header
   useEffect(() => {
+    if (!heroRef) return;
     const onScroll = () => {
       const hero = heroRef.current;
       const limite = hero ? hero.offsetHeight - 72 : window.innerHeight - 72;
@@ -86,15 +104,15 @@ export function CatalogHeader({ waHref, heroRef }: { waHref: string; heroRef: Re
   return (
     <header className={`hero-header${claro ? " solid" : ""}`}>
       <div className="hero-header-inner">
-        <a href="#top" className="hero-brand" aria-label={NEGOCIO} onClick={() => setMenuOpen(false)}>
+        <Link href="/" className="hero-brand" aria-label={NEGOCIO} onClick={() => setMenuOpen(false)}>
           {logo ? <img src={logo} alt={NEGOCIO} className="hero-brand-logo" /> : NEGOCIO}
-        </a>
+        </Link>
 
         <nav className="hero-nav" aria-label="Principal">
           {MENU.map((m) => (
-            <a key={m.href} href={m.href}>
+            <Link key={m.href} href={m.href} aria-current={m.pagina === actual ? "page" : undefined}>
               {m.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -121,9 +139,14 @@ export function CatalogHeader({ waHref, heroRef }: { waHref: string; heroRef: Re
         inert={!menuOpen}
       >
         {MENU.map((m) => (
-          <a key={m.href} href={m.href} onClick={() => setMenuOpen(false)}>
+          <Link
+            key={m.href}
+            href={m.href}
+            aria-current={m.pagina === actual ? "page" : undefined}
+            onClick={() => setMenuOpen(false)}
+          >
             {m.label}
-          </a>
+          </Link>
         ))}
       </nav>
     </header>
@@ -257,9 +280,14 @@ export const HERO_CSS = `
   }
   @media (max-width: 520px) { .hero-brand { font-size: 12px; letter-spacing: 0.06em; overflow: hidden; text-overflow: ellipsis; } .hero-brand-logo { height: 32px; } }
   .hero-brand-logo { height: 38px; width: auto; display: block; }
-  .hero-nav { display: none; gap: 32px; }
-  .hero-nav a { color: inherit; text-decoration: none; font-size: 14px; letter-spacing: 0.04em; opacity: 0.9; transition: opacity 0.2s ease; }
-  .hero-nav a:hover { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
+  .hero-nav { display: none; gap: 28px; }
+  .hero-nav a {
+    color: inherit; text-decoration: none; font-size: 14px; letter-spacing: 0.04em; opacity: 0.85;
+    white-space: nowrap; padding: 6px 0; border-bottom: 1px solid transparent;
+    transition: opacity 0.2s ease, border-color 0.2s ease;
+  }
+  .hero-nav a:hover { opacity: 1; border-bottom-color: currentColor; }
+  .hero-nav a[aria-current="page"] { opacity: 1; font-weight: 600; border-bottom-color: currentColor; }
   .hero-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .hero-menu-btn {
     background: none; border: 0; color: inherit; cursor: pointer; padding: 6px;
@@ -273,11 +301,13 @@ export const HERO_CSS = `
     display: flex; flex-direction: column; background: #fff; color: #111;
     max-height: 0; overflow: hidden; transition: max-height 0.3s ease, box-shadow 0.3s ease;
   }
-  .hero-mobile-menu.open { max-height: 260px; box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12); }
+  .hero-mobile-menu.open { max-height: 360px; box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12); }
   .hero-mobile-menu a {
     color: #111; text-decoration: none; font-size: 16px; padding: 16px; border-top: 1px solid #ececec;
+    border-left: 3px solid transparent;
   }
+  .hero-mobile-menu a[aria-current="page"] { font-weight: 600; border-left-color: #111; background: #f6f6f6; }
   @media (min-width: 900px) { .hero-mobile-menu { display: none; } }
 
-  #catalogo, #como-funciona, #contacto { scroll-margin-top: 80px; }
+  #catalogo, #como-funciona, #faq, #contacto { scroll-margin-top: 80px; }
 `;

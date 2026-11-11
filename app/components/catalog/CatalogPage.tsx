@@ -3,32 +3,30 @@
 // Catálogo (/) con estilo de tienda (rediseño 19 oct 2026, inspirado en
 // dariwithlove.ru): fondo gris claro, filtros por categoría, tarjetas blancas
 // con un celular que muestra la portada de cada diseño y un panel lateral de
-// "Solicitar" que arma el mensaje de WhatsApp.
+// "Solicitar" que arma el mensaje de WhatsApp. Debajo del grid: qué incluye,
+// cómo funciona, por qué elegirnos, reseñas, preguntas frecuentes y footer.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import WhatsAppButton from "@/app/components/shared/WhatsAppButton";
 import { CatalogHeader, CatalogHero, HERO_CSS } from "@/app/components/catalog/CatalogHero";
+import { FaqSection, PorQueSection, ResenasSection, SECTIONS_CSS } from "@/app/components/catalog/CatalogSections";
+import {
+  BLACK,
+  CARD_BG,
+  FONT,
+  SERIF,
+  LINE,
+  LINK,
+  MUTED,
+  SITE_CSS,
+  SiteFooter,
+  TEXT,
+  usePlazoBar,
+  WA_CATALOGO,
+  WA_NUMBER,
+} from "@/app/components/catalog/site";
 import { Camera, Clock, MapPin, MessageCircle, Music, Smartphone } from "lucide-react";
 import { designs, PRECIOS, type Categoria, type Design } from "@/lib/designs";
-
-const NEGOCIO = "Invitaciones Digitales";
-const WA_NUMBER = "51993092110";
-
-const WA_CATALOGO = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(
-  "¡Hola! Vi el catálogo de Invitaciones Digitales y me gustaría más información."
-)}`;
-
-// Paleta de la tienda
-const PAGE_BG = "#f8f8f8";
-const CARD_BG = "#ffffff";
-const BLACK = "#111111";
-const TEXT = "#222222";
-const MUTED = "#6b6b6b";
-const LINE = "#e4e4e4";
-const LINK = "#3a5f8f"; // nombre del diseño, azulado como un enlace
-
-const FONT = "'DM Sans', 'Segoe UI', Arial, sans-serif";
 
 type Filtro = "todas" | Categoria;
 
@@ -323,6 +321,15 @@ export default function CatalogPage() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [elegido, setElegido] = useState<Design | null>(null);
   const heroRef = useRef<HTMLElement>(null);
+  const plazo = usePlazoBar();
+
+  // Los enlaces del footer desde otras páginas llegan como /?categoria=boda#catalogo.
+  // Se lee después de hidratar (el HTML del servidor siempre trae "todas").
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get("categoria");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (c === "boda" || c === "cumpleanos") setFiltro(c);
+  }, []);
 
   const visibles = filtro === "todas" ? designs : designs.filter((d) => d.categoria === filtro);
   const contar = (c: Filtro) => (c === "todas" ? designs.length : designs.filter((d) => d.categoria === c).length);
@@ -336,15 +343,11 @@ export default function CatalogPage() {
   };
 
   return (
-    <div className="shop-root">
+    <div className={`shop-root${plazo.visible ? " con-plazo" : ""}`}>
       <style>{`
-        html { scroll-behavior: smooth; }
-        body { background: ${PAGE_BG}; display: block; }
-        .shop-root { width: 100%; min-height: 100vh; background: ${PAGE_BG}; color: ${TEXT}; font-family: ${FONT}; }
-        .shop-inner { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
-        @media (min-width: 768px) { .shop-inner { padding: 0 32px; } }
-
+        ${SITE_CSS}
         ${HERO_CSS}
+        ${SECTIONS_CSS}
 
         .shop-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; }
         .shop-pills::-webkit-scrollbar { display: none; }
@@ -404,7 +407,6 @@ export default function CatalogPage() {
 
         .shop-empty { grid-column: 1 / -1; text-align: center; color: ${MUTED}; padding: 60px 0; }
 
-        .shop-section-title { font-size: clamp(20px, 3vw, 26px); font-weight: 700; text-align: center; color: ${BLACK}; }
         .shop-features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 28px; }
         @media (min-width: 900px) { .shop-features { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } }
         .shop-feature { background: #fff; border-radius: 12px; padding: 18px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
@@ -438,16 +440,17 @@ export default function CatalogPage() {
         }
         .panel-field input:focus, .panel-field textarea:focus { outline: none; border-color: ${BLACK}; }
 
-        .shop-footer { background: #151515; color: #e8e8e8; text-align: center; padding: 48px 16px 36px; margin-top: 70px; }
       `}</style>
 
       {/* ── Header fijo + hero a pantalla completa ── */}
-      <CatalogHeader waHref={WA_CATALOGO} heroRef={heroRef} />
+      <CatalogHeader waHref={WA_CATALOGO} heroRef={heroRef} actual="catalogo" />
       <CatalogHero heroRef={heroRef} />
 
       <main className="shop-inner">
         <div id="catalogo" style={{ padding: "48px 0 20px" }}>
-          <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 700, color: BLACK }}>Nuestros diseños</h2>
+          <h2 style={{ fontFamily: SERIF, fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 500, color: BLACK }}>
+            Nuestros diseños
+          </h2>
           <p style={{ color: MUTED, fontSize: 15, marginTop: 8 }}>
             Diseños con música, cuenta regresiva, mapa y confirmación por WhatsApp.
           </p>
@@ -527,15 +530,14 @@ export default function CatalogPage() {
             ))}
           </div>
         </section>
+
+        <PorQueSection />
+        <ResenasSection />
+        <FaqSection />
       </main>
 
-      {/* ── Footer ── */}
-      <footer id="contacto" className="shop-footer">
-        <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: "0.14em", textTransform: "uppercase" }}>{NEGOCIO}</div>
-        <p style={{ marginTop: 14, color: "#bdbdbd", fontSize: 15 }}>¿Tienes dudas? Contáctanos</p>
-        <WhatsAppButton href={WA_CATALOGO} style={{ marginTop: 18 }} />
-        <div style={{ marginTop: 34, fontSize: 12, color: "#8a8a8a" }}>© 2026 Invitaciones Digitales</div>
-      </footer>
+      <SiteFooter onFiltrar={setFiltro} />
+      {plazo.bar}
 
       <SolicitudPanel
         design={elegido}

@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 // Botón verde de WhatsApp: solo el logo y el texto "WhatsApp", nunca el número
 // visible. `href` permite mandar un mensaje prearmado (?text=); `compact` lo
-// achica para barras angostas como el banner de demo.
+// achica para barras angostas como el banner de demo; `label` cambia el texto.
 
 export const WA_BUSINESS = "https://wa.me/51993092110";
 
@@ -17,10 +17,12 @@ export function WhatsAppLogo({ size = 20 }: { size?: number }) {
 export default function WhatsAppButton({
   href = WA_BUSINESS,
   compact = false,
+  label = "WhatsApp",
   style,
 }: {
   href?: string;
   compact?: boolean;
+  label?: string;
   style?: CSSProperties;
 }) {
   return (
@@ -45,7 +47,7 @@ export default function WhatsAppButton({
       }}
     >
       <WhatsAppLogo size={compact ? 16 : 20} />
-      WhatsApp
+      {label}
     </a>
   );
 }
