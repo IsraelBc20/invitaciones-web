@@ -248,7 +248,7 @@ function PortadaSection({ demo, photosPath }: { demo: boolean; photosPath: strin
             position: "absolute",
             zIndex: 2,
             bottom: 0,
-            left: "50%",
+            left: "35%",
             transform: "translateX(-50%)",
             width: "60%",
             maxWidth: 260,
@@ -326,7 +326,7 @@ function PortadaSection({ demo, photosPath }: { demo: boolean; photosPath: strin
         </p>
       </div>
 
-      {/* La última fila de portada-casita.png es casi blanca y dejaba una línea
+      {/* La última fila de portada-casita.png es casi transparente y dejaba una línea
           clara contra "¡Estás invitado!": se recortan 2px. */}
       <div style={{ overflow: "hidden" }}>
         <GardenImg
@@ -414,6 +414,7 @@ function InvitadoSection({ demo }: { demo: boolean }) {
             color: "#000000",
             fontFamily: CALM_FONT,
             fontSize: 16,
+            fontWeight: "bold",
             borderRadius: 50,
             padding: "12px 32px",
             textDecoration: "none",
