@@ -32,11 +32,11 @@ export const designs: Design[] = [
     id: "oliva",
     nombre: "Oliva Elegante",
     descripcion:
-      "Invitación sofisticada en tonos oliva y perla con flores decorativas, música de fondo, cuenta regresiva y galería de fotos para invitados.",
+      "Invitación ilustrada de jardín: arco florido, casita entre el pasto, itinerario con luces, código de vestimenta por colores, reserva por WhatsApp y música de fondo.",
     ruta: "/oliva",
     galeriaRuta: "/oliva/galeria",
     disponible: true,
-    colores: ["#6b7c5c", "#f5f0e8", "#d4af37"],
+    colores: ["#2d5a1b", "#f5e6c8", "#c4714a"],
     tags: ["Boda Civil", "Romántico", "Con música"],
     categoria: "boda",
   },

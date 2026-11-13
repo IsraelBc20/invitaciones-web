@@ -46,9 +46,12 @@ export const VENUE_REAL = venue(
   "-11.489522,-77.206264",
 );
 
-/** Placeholder de las demos. Los mapas apuntan a la Plaza de Armas de Lima. */
+/**
+ * Local de las demos: la Plaza de Armas de Lima, en el texto y en los mapas
+ * (12 nov 2026; antes el texto era el placeholder "Av. Sin Nombre 123").
+ */
 export const VENUE_DEMO = venue(
-  "Av. Sin Nombre 123",
+  "Plaza de Armas",
   "Lima",
   "-12.045833,-77.030278",
 );

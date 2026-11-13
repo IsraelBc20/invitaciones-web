@@ -1,8 +1,9 @@
 // Nombres de los novios.
 //
-// Misma regla que lib/venue.ts (9 sep 2026): las DEMOS no muestran datos reales.
-// Las 3 invitaciones demo y sus 3 galerías usan una pareja ficticia; las rutas
-// de cliente conservan los nombres reales.
+// Desde el 12 nov 2026 las demos de boda (oliva, playa, tortuga-tropical,
+// cabo-azul) también muestran "Israel & Marisol" (antes, la pareja ficticia
+// "Julian & Isabela"). Se conserva coupleFor(demo) por si vuelven a separarse.
+// La dirección sigue la regla de lib/venue.ts: las demos NO llevan la real.
 
 import { venueFor } from "@/lib/venue";
 
@@ -16,7 +17,7 @@ export interface Couple {
   /**
    * "Israel y Marisol": forma en prosa del mensaje de WhatsApp. Se guarda
    * literal en vez de armarla con "y", porque en español la conjunción cambia
-   * a "e" delante de un sonido /i/: "Julian e Isabela".
+   * a "e" delante de un sonido /i/ (p. ej. "Julian e Isabela").
    */
   prose: string;
 }
@@ -29,12 +30,12 @@ export const COUPLE_REAL: Couple = {
   prose: "Israel y Marisol",
 };
 
-/** Pareja ficticia de las demos. */
+/** Nombres de las demos (12 nov 2026: los mismos que el cliente). */
 export const COUPLE_DEMO: Couple = {
-  first: "Julian",
-  second: "Isabela",
-  amp: "Julian & Isabela",
-  prose: "Julian e Isabela",
+  first: "Israel",
+  second: "Marisol",
+  amp: "Israel & Marisol",
+  prose: "Israel y Marisol",
 };
 
 export function coupleFor(demo: boolean): Couple {

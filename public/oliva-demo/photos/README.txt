@@ -1,13 +1,21 @@
-Fotos del DEMO oliva (/oliva). Las rutas de clientes usan su propia carpeta
-public/oliva/<cliente>/photos/ con estos mismos nombres fijos (mientras un
-archivo no exista se muestra un placeholder con el nombre esperado):
+Imagenes del DEMO oliva (diseno jardin, 12 nov 2026). Las rutas de clientes
+usan public/oliva/<cliente>/photos/ con estos mismos nombres; si un archivo no
+existe ahi, la invitacion carga el de esta carpeta.
 
-  foto-pareja-hero.jpg      Hero principal          4:5  (720x900)
-  foto-colegio.jpg          Historia bloque 1       3:4  (748x998)
-  foto-juntos.jpg           Historia bloque 2 izq.  3:4  (362x482)
-  foto-momento.jpg          Historia bloque 2 der.  3:4  (362x482)
-  foto-pareja-circular.jpg  Historia circular       1:1  (748x748)
-  foto-full-bleed.jpg       Foto edge-to-edge       4:5  (860x1075)
-  foto-collage-grande.jpg   Collage principal       3:4  (486x648)
-  foto-collage-chica-1.jpg  Collage chica superior  1:1  (242x242)
-  foto-collage-chica-2.jpg  Collage chica inferior  1:1  (242x242)
+  portada-fondo.png      Portada: arco con arboles y luces (ancho completo)
+  portada-pareja.png     Portada: pareja sobre el borde inferior del arco
+  portada-casita.png     Detalles del evento (fecha, hora, lugar)
+  fondo-grass.png        Pasto (se repite dos veces)
+  separador-flores.png   Sobre la union de los dos pastos
+  itinerario-luces.png   Guirnalda sobre el titulo "Itinerario"
+  icono-anillos.png      Itinerario: Ceremonia (60x60)
+  icono-copas.png        Itinerario: Brindis       (falta: se ve un icono lucide)
+  icono-plato.png        Itinerario: Comida        (falta: se ve un icono lucide)
+  icono-baile.png        Itinerario: Baile         (falta: se ve un icono lucide)
+  fondo-cielo-1.png      Fondo del codigo de vestimenta
+  vestimenta.png         Vestido y traje de ejemplo
+  fondo-cielo-2.png      Fondo de reserva y cierre
+  cierre-pareja.png      Ultima imagen de la invitacion
+
+La musica va en public/oliva-demo/music.mp3 (cliente: public/oliva/<cliente>/music.mp3).
+Si no existe, no aparece el boton flotante de musica.

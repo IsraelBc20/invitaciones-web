@@ -1,197 +1,110 @@
 "use client";
 
+// Diseño Oliva — jardín / hobbit (rediseño 12 nov 2026).
+// Lo usan /oliva (demo, con banner) y /oliva/israel-y-marisol (cliente).
+// Todo con estilos inline; las imágenes salen de `photosPath` y, si el archivo
+// no existe ahí (la carpeta del cliente arranca vacía), caen a las del demo.
+
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useMediaUpload } from "@/app/components/shared/useMediaUpload";
-import { DEMO_INVITATION } from "@/lib/media";
-import { useUploadGate, type UploadGate } from "@/app/components/shared/uploadGate";
-import { UploadLimitModal } from "@/app/components/shared/UploadLimitModal";
-import UploadPreview from "@/app/components/shared/UploadPreview";
+import { CalendarDays, Clock, MapPin, Music, Sparkles, UtensilsCrossed, Wine } from "lucide-react";
 import { useMusic } from "@/app/components/shared/useMusic";
-import { ACCEPT_ATTR } from "@/lib/media";
 import { venueFor } from "@/lib/venue";
-import { coupleFor, signatureFor } from "@/lib/couple";
-import { Hourglass, Lock, Sparkles } from "lucide-react";
+import { coupleFor } from "@/lib/couple";
 import WhatsAppButton from "@/app/components/shared/WhatsAppButton";
 
 const DESIGN_ID = "oliva";
 
-// Assets del DEMO (/oliva). Las rutas de clientes pasan sus propias rutas vía
-// props `musicSrc` y `photosPath` (sus assets viven en
-// public/oliva/<cliente>/). La galería importa MUSIC_SRC como default para
-// que el mismo audio siga sonando al navegar entre invitación y galería.
+// Assets del DEMO (/oliva). La galería importa MUSIC_SRC y MusicFab para que
+// la misma canción siga sonando al navegar entre invitación y galería.
 export const MUSIC_SRC = "/oliva-demo/music.mp3";
 export const DEMO_PHOTOS_PATH = "/oliva-demo/photos";
 
-// ─── Paleta floral (SVG) ──────────────────────────────────────────────────────
+// ─── Paleta y fuentes ────────────────────────────────────────────────────────
 
-interface FlowerColors {
-  outer: string;
-  mid: string;
-  inner: string;
-  core: string;
-}
+const BG = "#f5e6c8";
+const GREEN_DARK = "#2d5a1b";
+const GREEN = "#4a7c35";
+const TERRACOTA = "#c4714a";
+const TEXT = "#3a2a1a";
+// Azul plano de fondo-cielo-2.png (muestreado), para que no se vea la costura
+// entre el cielo y la foto de cierre.
+const SKY = "#108dfb";
 
-interface EucalyptusColors {
-  leaf: string;
-  leaf2: string;
-  stem: string;
-}
+const TITLE_FONT = "'Perandory', 'Playfair Display', serif";
+const SUB_FONT = "'Playfair Display', Georgia, serif";
+const BODY_FONT = "'DM Sans', system-ui, sans-serif";
 
-const FLOWER: FlowerColors = {
-  outer: "#E8D3BC",
-  mid: "#D3B295",
-  inner: "#C8A489",
-  core: "#8E6F55",
-};
-const FLOWER_ALT: FlowerColors = {
-  outer: "#F6ECDD",
-  mid: "#E8D8C0",
-  inner: "#CBB292",
-  core: "#9A7E62",
-};
-const OLIVE: EucalyptusColors = {
-  leaf: "#7f9a87",
-  leaf2: "#5d7a66",
-  stem: "#46604f",
-};
+// Datos del evento. Por ahora el demo y el cliente comparten fecha y horarios;
+// la dirección sí cambia (venueFor: las demos muestran la Plaza de Armas de
+// Lima, solo la ruta de cliente lleva el local real).
+const FECHA = "Septiembre 12, 2026";
+const HORA = "4:00 PM";
+const WHATSAPP = "51993092110";
 
-// ─── SVG helpers ─────────────────────────────────────────────────────────────
+const ITINERARIO = [
+  { file: "icono-anillos.png", hora: "4:00pm", nombre: "Ceremonia", Icon: Sparkles },
+  { file: "icono-copas.png", hora: "4:30pm", nombre: "Brindis", Icon: Wine },
+  { file: "icono-plato.png", hora: "5:00pm", nombre: "Hora de la comida", Icon: UtensilsCrossed },
+  { file: "icono-baile.png", hora: "6:00pm", nombre: "Baile", Icon: Music },
+];
 
-const pa = (len: number, w: number) =>
-  `M 0,0 Q ${-w},${-len * 0.45} 0,${-len} Q ${w},${-len * 0.45} 0,0 Z`;
+const COLORES = [
+  { hex: "#1a2744", nombre: "Midnight Navy" },
+  { hex: "#c4714a", nombre: "Terracota" },
+  { hex: "#f0ede8", nombre: "Immaculata", borde: true },
+  { hex: "#4a5e3a", nombre: "Olive Green" },
+  { hex: "#c9a84c", nombre: "Antique Gold" },
+];
 
-function Peony({ size = 70, palette: c }: { size?: number; palette: FlowerColors }) {
-  return (
-    <svg
-      viewBox="-50 -50 100 100"
-      width={size}
-      height={size}
-      style={{ display: "block", overflow: "visible" }}
-    >
-      {Array.from({ length: 12 }).map((_, i) => (
-        <ellipse
-          key={"o" + i}
-          cx={0}
-          cy={-30}
-          rx={14}
-          ry={18}
-          fill={c.outer}
-          stroke={c.mid}
-          strokeWidth={0.4}
-          strokeOpacity={0.3}
-          opacity={0.95}
-          transform={`rotate(${(i / 12) * 360})`}
-        />
-      ))}
-      {Array.from({ length: 10 }).map((_, i) => (
-        <ellipse
-          key={"m" + i}
-          cx={0}
-          cy={-20}
-          rx={11}
-          ry={15}
-          fill={c.mid}
-          opacity={0.95}
-          transform={`rotate(${(i / 10) * 360 + 18})`}
-        />
-      ))}
-      {Array.from({ length: 8 }).map((_, i) => (
-        <ellipse
-          key={"i" + i}
-          cx={0}
-          cy={-11}
-          rx={8}
-          ry={11}
-          fill={c.inner}
-          transform={`rotate(${(i / 8) * 360})`}
-        />
-      ))}
-      {[0, 72, 144, 216, 288].map((a) => (
-        <path key={"b" + a} d={pa(11, 6)} fill={c.core} transform={`rotate(${a})`} />
-      ))}
-      <circle cx={0} cy={0} r={3} fill={c.core} opacity={0.7} />
-    </svg>
-  );
-}
+// ─── Imagen con respaldo ─────────────────────────────────────────────────────
+// Prueba `photosPath/<file>` y, si falla, la misma del demo. Si tampoco existe
+// muestra `fallback` (o nada).
 
-function Eucalyptus({
-  size = 90,
-  palette: c,
-  rotate = 0,
+function GardenImg({
+  photosPath,
+  file,
+  alt = "",
+  style,
+  fallback = null,
+  loading = "lazy",
 }: {
-  size?: number;
-  palette: EucalyptusColors;
-  rotate?: number;
+  photosPath: string;
+  file: string;
+  alt?: string;
+  style?: React.CSSProperties;
+  fallback?: React.ReactNode;
+  loading?: "lazy" | "eager";
 }) {
-  const ys = [12, 28, 44, 60, 76, 92];
+  const sources = [`${photosPath}/${file}`];
+  if (photosPath !== DEMO_PHOTOS_PATH) sources.push(`${DEMO_PHOTOS_PATH}/${file}`);
+  const [idx, setIdx] = useState(0);
+  const ref = useRef<HTMLImageElement>(null);
+
+  // Si la imagen falló antes de que React hidratara, onError ya no dispara:
+  // se revisa al montar.
+  useEffect(() => {
+    const img = ref.current;
+    if (img && img.complete && img.naturalWidth === 0) setIdx((i) => i + 1);
+  }, [idx]);
+
+  if (idx >= sources.length) return <>{fallback}</>;
   return (
-    <svg
-      viewBox="0 0 100 110"
-      width={size}
-      height={size * 1.1}
-      style={{ display: "block", transform: `rotate(${rotate}deg)`, overflow: "visible" }}
-    >
-      <path
-        d="M 50 5 Q 48 50 50 105"
-        stroke={c.stem}
-        strokeWidth={1.4}
-        fill="none"
-        strokeLinecap="round"
-      />
-      {ys.map((y, i) => {
-        const g = 1 - i * 0.05;
-        const lw = 16 * g;
-        const ll = 10 * g;
-        const L = `M 50 ${y} C ${50 - lw * 0.4} ${y - ll * 0.6}, ${50 - lw} ${y - ll * 0.2}, ${50 - lw - 2} ${y + ll * 0.4} C ${50 - lw * 0.7} ${y + ll * 0.8}, ${50 - lw * 0.3} ${y + ll * 0.5}, 50 ${y + 1} Z`;
-        const R = `M 50 ${y} C ${50 + lw * 0.4} ${y - ll * 0.6}, ${50 + lw} ${y - ll * 0.2}, ${50 + lw + 2} ${y + ll * 0.4} C ${50 + lw * 0.7} ${y + ll * 0.8}, ${50 + lw * 0.3} ${y + ll * 0.5}, 50 ${y + 1} Z`;
-        const cL = i % 2 ? c.leaf : c.leaf2;
-        const cR = i % 2 ? c.leaf2 : c.leaf;
-        return (
-          <g key={i}>
-            <path d={L} fill={cL} stroke={c.stem} strokeWidth={0.4} strokeOpacity={0.4} />
-            <path d={R} fill={cR} stroke={c.stem} strokeWidth={0.4} strokeOpacity={0.4} />
-          </g>
-        );
-      })}
-      <ellipse cx={50} cy={6} rx={4} ry={7} fill={c.leaf2} transform="rotate(-10 50 6)" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      ref={ref}
+      src={sources[idx]}
+      alt={alt}
+      loading={loading}
+      draggable={false}
+      onError={() => setIdx((i) => i + 1)}
+      style={{ display: "block", ...style }}
+    />
   );
 }
 
-/** Ornamento central: rama de olivo + peonía, como los divisores de orquídea */
-function Ornament({ size = 80 }: { size?: number }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 0,
-        pointerEvents: "none",
-      }}
-    >
-      <Eucalyptus size={size} palette={OLIVE} rotate={-115} />
-      <Peony size={size * 0.75} palette={FLOWER} />
-      <Eucalyptus size={size} palette={OLIVE} rotate={115} />
-    </div>
-  );
-}
+// ─── Reveal (clases .reveal de globals.css) ──────────────────────────────────
 
-/** Anillos entrelazados */
-function Rings({ size = 54 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 100 70" width={size} height={size * 0.7} style={{ display: "block" }}>
-      <circle cx={38} cy={38} r={24} fill="none" stroke="#d7c07a" strokeWidth={4} />
-      <circle cx={62} cy={38} r={24} fill="none" stroke="#c8a489" strokeWidth={4} />
-      <path d="M 34 12 L 38 6 L 42 12 Z" fill="#d7c07a" />
-    </svg>
-  );
-}
-
-// ─── useInView / Reveal ──────────────────────────────────────────────────────
-
-function useInView() {
+function Reveal({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   useEffect(() => {
@@ -204,151 +117,37 @@ function useInView() {
           io.disconnect();
         }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -60px 0px" }
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  return [ref, inView] as const;
-}
-
-function Reveal({
-  children,
-  delay = 0,
-  kind = "reveal",
-  style,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  kind?: string;
-  style?: React.CSSProperties;
-}) {
-  const [ref, inView] = useInView();
   return (
-    <div
-      ref={ref}
-      className={`${kind}${delay ? " delay-" + delay : ""} ${inView ? "in" : ""}`}
-      style={style}
-    >
+    <div ref={ref} className={`reveal ${inView ? "in" : ""}`} style={style}>
       {children}
     </div>
   );
 }
 
-// ─── Photo (real desde `base` con placeholder elegante de respaldo) ──────────
-// Cada hueco espera un archivo con nombre fijo dentro de `base` (la carpeta
-// photosPath de la invitación: /oliva-demo/photos en el demo, la del cliente
-// en sus rutas). Si el archivo existe se muestra la foto real; si no, un
-// placeholder en tonos oliva con ícono de cámara y el nombre esperado.
-// Basta con copiar las fotos reales con esos nombres para que se reemplacen.
+// ─── Hoja (para el "&" de la portada) ────────────────────────────────────────
 
-function CameraIcon({ size = 34 }: { size?: number }) {
+function Leaf({ flip = false }: { flip?: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" aria-hidden="true">
-      <path
-        d="M4 8h2.2l1.2-2h9.2l1.2 2H20a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"
-        stroke="rgba(246,242,238,0.85)"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="13" r="3.4" stroke="rgba(246,242,238,0.85)" strokeWidth="1.3" />
+    <svg
+      width="40"
+      height="22"
+      viewBox="0 0 40 22"
+      aria-hidden="true"
+      style={{ display: "block", transform: flip ? "scaleX(-1)" : undefined }}
+    >
+      <path d="M1 11 H8" stroke={GREEN_DARK} strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M7 11 C 14 1, 29 0, 39 11 C 29 22, 14 21, 7 11 Z" fill={GREEN} />
+      <path d="M9 11 C 18 9, 27 9, 35 11" stroke={GREEN_DARK} strokeWidth="1" fill="none" />
     </svg>
   );
 }
 
-function Photo({
-  file,
-  base,
-  ratio = "4 / 5",
-  rounded = "14px",
-  style,
-  frame = true,
-}: {
-  file: string;
-  base: string;
-  ratio?: string;
-  rounded?: string;
-  style?: React.CSSProperties;
-  frame?: boolean;
-}) {
-  const [loaded, setLoaded] = useState(false);
-  const [missing, setMissing] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  // Si la imagen del HTML SSR terminó de cargar (o falló) antes de que React
-  // hidratara, los eventos onLoad/onError ya pasaron y no se capturan: al
-  // montar se lee el estado real del <img>.
-  useEffect(() => {
-    const img = imgRef.current;
-    if (!img || !img.complete) return;
-    if (img.naturalWidth > 0) setLoaded(true);
-    else setMissing(true);
-  }, []);
-
-  return (
-    <div
-      style={{
-        width: "100%",
-        aspectRatio: ratio,
-        borderRadius: rounded,
-        overflow: "hidden",
-        position: "relative",
-        boxShadow: frame ? "var(--shadow)" : "none",
-        ...style,
-      }}
-    >
-      {!loaded && (
-        <div
-          className="photo-placeholder"
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-          }}
-        >
-          <CameraIcon />
-          <span style={{ fontSize: 10, letterSpacing: "0.14em" }}>{file}</span>
-        </div>
-      )}
-      {!missing && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          ref={imgRef}
-          src={`${base}/${file}`}
-          alt="Israel y Marisol"
-          onLoad={() => setLoaded(true)}
-          onError={() => setMissing(true)}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: loaded ? 1 : 0,
-            transition: "opacity 0.4s ease",
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── Gif icon ─────────────────────────────────────────────────────────────────
-
-function Gif({ src, alt, size = 110 }: { src: string; alt: string; size?: number }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "center" }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} width={size} height={size} style={{ display: "block" }} />
-    </div>
-  );
-}
-
-// ─── MusicFab ─────────────────────────────────────────────────────────────────
+// ─── Botón flotante de música (lo importa también la galería) ────────────────
 
 export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
   return (
@@ -372,414 +171,474 @@ export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: ()
   );
 }
 
-// ─── IntroGate ────────────────────────────────────────────────────────────────
+/** true si el archivo de música existe; sin canción no se muestra el FAB. */
+function useFileExists(src: string) {
+  const [exists, setExists] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch(src, { method: "HEAD" })
+      .then((r) => {
+        const type = r.headers.get("content-type") ?? "";
+        if (alive) setExists(r.ok && !type.includes("text/html"));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [src]);
+  return exists;
+}
 
-function IntroGate({ onOpen, demo }: { onOpen: () => void; demo: boolean }) {
+// ─── Botones ─────────────────────────────────────────────────────────────────
+
+const pillStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  background: TERRACOTA,
+  color: "#ffffff",
+  border: 0,
+  borderRadius: 50,
+  padding: "13px 28px",
+  fontFamily: BODY_FONT,
+  fontSize: 15,
+  fontWeight: 600,
+  letterSpacing: "0.02em",
+  textDecoration: "none",
+  cursor: "pointer",
+  boxShadow: "0 6px 16px rgba(196, 113, 74, 0.3)",
+};
+
+// ─── 1. Portada (cover gate) ─────────────────────────────────────────────────
+
+function CoverGate({
+  onOpen,
+  demo,
+  photosPath,
+}: {
+  onOpen: () => void;
+  demo: boolean;
+  photosPath: string;
+}) {
+  const couple = coupleFor(demo);
+  const venue = venueFor(demo);
+  const nameStyle: React.CSSProperties = {
+    fontFamily: TITLE_FONT,
+    fontSize: "clamp(42px, 12vw, 64px)",
+    color: GREEN_DARK,
+    lineHeight: 1,
+    margin: 0,
+    fontWeight: "normal",
+  };
+
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        margin: "auto",
+        margin: "0 auto",
         maxWidth: 430,
         zIndex: 100,
-        background: "linear-gradient(180deg, #faf7f4 0%, #f6f2ee 60%, #ece6df 100%)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        padding: 24,
-        textAlign: "center",
+        background: BG,
+        overflowY: "auto",
+        overflowX: "hidden",
       }}
     >
-      {/* Rama de olivo superior */}
-      <div style={{ position: "absolute", top: -46, left: "50%", transform: "translateX(-50%)" }}>
-        <div style={{ display: "flex", alignItems: "flex-start" }}>
-          <Eucalyptus size={130} palette={OLIVE} rotate={-140} />
-          <Eucalyptus size={130} palette={OLIVE} rotate={140} />
-        </div>
-      </div>
-
-      {/* Flores inferiores */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: -40,
-          left: -40,
-          animation: "drift 9s ease-in-out infinite",
-        }}
-      >
-        <Peony size={160} palette={FLOWER} />
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          bottom: 30,
-          left: 70,
-          opacity: 0.85,
-          animation: "drift 11s ease-in-out infinite reverse",
-        }}
-      >
-        <Peony size={90} palette={FLOWER_ALT} />
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          bottom: -30,
-          right: -35,
-          animation: "drift 8s ease-in-out infinite reverse",
-        }}
-      >
-        <Peony size={140} palette={FLOWER_ALT} />
-      </div>
-      <div style={{ position: "absolute", bottom: 80, right: -45, opacity: 0.6 }}>
-        <Eucalyptus size={120} palette={OLIVE} rotate={200} />
-      </div>
-      <div style={{ position: "absolute", top: "34%", left: -50, opacity: 0.5 }}>
-        <Eucalyptus size={120} palette={OLIVE} rotate={-20} />
-      </div>
-
-      {/* Contenido */}
-      <div
-        style={{
-          position: "relative",
-          zIndex: 2,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 14,
-        }}
-      >
+      <div style={{ position: "relative" }}>
+        <GardenImg
+          photosPath={photosPath}
+          file="portada-fondo.png"
+          loading="eager"
+          style={{ width: "100%" }}
+        />
+        <GardenImg
+          photosPath={photosPath}
+          file="portada-pareja.png"
+          alt={couple.amp}
+          loading="eager"
+          style={{
+            position: "absolute",
+            zIndex: 2,
+            bottom: 0,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "70%",
+            maxWidth: 300,
+          }}
+        />
+        {/* Funde la arena del dibujo con el beige del fondo. */}
         <div
-          className="small-caps"
-          style={{ fontSize: 11, letterSpacing: "0.45em", animation: "shimmer 3s ease-in-out infinite" }}
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 60,
+            background: `linear-gradient(to bottom, rgba(245,230,200,0), ${BG})`,
+            zIndex: 1,
+          }}
+        />
+      </div>
+
+      <div style={{ textAlign: "center", padding: "22px 24px 56px" }}>
+        <p
+          style={{
+            fontFamily: TITLE_FONT,
+            fontSize: "clamp(28px, 8vw, 42px)",
+            color: GREEN_DARK,
+            margin: "0 0 14px",
+          }}
         >
-          Nuestra boda
-        </div>
-
-        <div className="script" style={{ fontSize: 72 }}>
-          {coupleFor(demo).first}
-          <div style={{ fontSize: 46, color: "var(--tan)", margin: "-6px 0" }}>&amp;</div>
-          {coupleFor(demo).second}
-        </div>
-
+          ¡Nos casamos!
+        </p>
+        <h1 style={nameStyle}>{couple.first}</h1>
         <div
-          className="display-title"
-          style={{ fontSize: 16, letterSpacing: "0.35em", color: "var(--tan)" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            margin: "6px 0",
+          }}
         >
-          12 · 09 · 2026
+          <Leaf flip />
+          <span
+            style={{
+              fontFamily: TITLE_FONT,
+              fontSize: "clamp(30px, 8vw, 44px)",
+              color: GREEN_DARK,
+              lineHeight: 1,
+            }}
+          >
+            &amp;
+          </span>
+          <Leaf />
         </div>
+        <h1 style={nameStyle}>{couple.second}</h1>
 
-        {/* Indicador animado */}
-        <div style={{ animation: "bounce-down 1.6s ease-in-out infinite", marginTop: 8 }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M6 9l6 6 6-6"
-              stroke="#848767"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-
-        <button
-          onClick={onOpen}
-          className="btn btn-olive"
-          style={{ marginTop: 8, animation: "pulse-soft 2.4s ease-in-out infinite" }}
+        <p
+          style={{
+            fontFamily: SUB_FONT,
+            fontSize: "clamp(14px, 4vw, 18px)",
+            color: TEXT,
+            margin: "22px 0 0",
+            lineHeight: 1.5,
+          }}
         >
-          Ingresar a mi invitación
+          {FECHA} · {HORA}
+          <br />
+          {venue.line}
+        </p>
+
+        <p
+          style={{
+            fontFamily: TITLE_FONT,
+            fontSize: "clamp(22px, 6vw, 32px)",
+            color: GREEN_DARK,
+            margin: "26px 0 18px",
+          }}
+        >
+          ¡Estás invitado!
+        </p>
+
+        <button type="button" onClick={onOpen} style={pillStyle}>
+          Abrir invitación
         </button>
-        <div className="small-caps" style={{ fontSize: 10, marginTop: 2 }}>
-          Sube el volumen para vivirla mejor
-        </div>
       </div>
     </div>
   );
 }
 
-// ─── Nombres + ¡Nos casamos! ─────────────────────────────────────────────────
+// ─── 2. Detalles del evento (casita) ─────────────────────────────────────────
 
-function NamesSection({ photosPath, demo }: { photosPath: string; demo: boolean }) {
+function DetallesSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
+  const venue = venueFor(demo);
+  const rows = [
+    { Icon: CalendarDays, text: FECHA },
+    { Icon: Clock, text: HORA },
+    { Icon: MapPin, text: venue.line },
+  ];
+  const linkStyle: React.CSSProperties = {
+    ...pillStyle,
+    flex: 1,
+    padding: "11px 12px",
+    fontSize: 14,
+    boxShadow: "none",
+  };
+
   return (
-    <section
-      className="s"
-      style={{ paddingTop: 90, paddingBottom: 40, textAlign: "center", overflow: "hidden" }}
-    >
-      <div style={{ position: "absolute", top: -50, left: "50%", transform: "translateX(-50%)" }}>
-        <div style={{ display: "flex", alignItems: "flex-start" }}>
-          <Eucalyptus size={120} palette={OLIVE} rotate={-140} />
-          <Eucalyptus size={120} palette={OLIVE} rotate={140} />
-        </div>
+    <section style={{ position: "relative", background: "#396125" }}>
+      <GardenImg photosPath={photosPath} file="portada-casita.png" style={{ width: "100%" }} />
+      <div
+        style={{
+          position: "absolute",
+          left: 16,
+          right: 16,
+          bottom: 16,
+        }}
+      >
+        <Reveal>
+          <div
+            style={{
+              background: "rgba(245, 230, 200, 0.94)",
+              borderRadius: 16,
+              padding: "20px 18px",
+              boxShadow: "0 10px 24px rgba(0, 0, 0, 0.18)",
+              fontFamily: BODY_FONT,
+              color: TEXT,
+            }}
+          >
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 10 }}>
+              {rows.map(({ Icon, text }) => (
+                <li
+                  key={text}
+                  style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15 }}
+                >
+                  <Icon size={20} color={GREEN_DARK} aria-hidden="true" style={{ flexShrink: 0 }} />
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <a href={venue.mapsUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>
+                Ver en maps
+              </a>
+              <a
+                href={venue.directionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...linkStyle, background: GREEN }}
+              >
+                Cómo llegar
+              </a>
+            </div>
+          </div>
+        </Reveal>
       </div>
+    </section>
+  );
+}
 
-      <Reveal kind="reveal-scale">
-        <div className="script" style={{ fontSize: 64, marginTop: 30 }}>
-          {coupleFor(demo).first}
-          <div style={{ fontSize: 42, color: "var(--tan)", margin: "-4px 0" }}>&amp;</div>
-          {coupleFor(demo).second}
-        </div>
-      </Reveal>
+// ─── 3. Pasto + separador de flores ──────────────────────────────────────────
 
-      <Reveal delay={2}>
+function GrassSection({ photosPath }: { photosPath: string }) {
+  return (
+    <section aria-hidden="true" style={{ position: "relative", background: "#3c6028" }}>
+      <GardenImg photosPath={photosPath} file="fondo-grass.png" style={{ width: "100%" }} />
+      <GardenImg photosPath={photosPath} file="fondo-grass.png" style={{ width: "100%" }} />
+      {/* El separador va sobre la unión de los dos pastos. */}
+      <GardenImg
+        photosPath={photosPath}
+        file="separador-flores.png"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: "50%",
+          transform: "translateY(-50%)",
+          width: "100%",
+          zIndex: 1,
+        }}
+      />
+    </section>
+  );
+}
+
+// ─── 4. Itinerario ───────────────────────────────────────────────────────────
+
+function ItinerarioSection({ photosPath }: { photosPath: string }) {
+  return (
+    <section style={{ position: "relative", background: BG, padding: "8px 24px 56px" }}>
+      {/* Borde ondulado sobre el pasto. */}
+      <svg
+        viewBox="0 0 1200 60"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: -39,
+          width: "100%",
+          height: 40,
+          display: "block",
+        }}
+      >
+        <path
+          d="M0,30 Q150,0 300,30 Q450,60 600,30 Q750,0 900,30 Q1050,60 1200,30 L1200,60 L0,60 Z"
+          fill={BG}
+        />
+      </svg>
+
+      <Reveal style={{ textAlign: "center" }}>
+        <GardenImg
+          photosPath={photosPath}
+          file="itinerario-luces.png"
+          style={{ width: "80%", maxWidth: 320, margin: "0 auto" }}
+        />
         <h2
-          className="display-title"
-          style={{ fontSize: 22, marginTop: 26, letterSpacing: "0.3em" }}
+          style={{
+            fontFamily: TITLE_FONT,
+            fontSize: "clamp(32px, 9vw, 48px)",
+            color: GREEN_DARK,
+            fontWeight: "normal",
+            margin: "4px 0 20px",
+          }}
         >
-          ¡Nos casamos!
+          Itinerario
         </h2>
       </Reveal>
 
-      <Reveal kind="reveal-scale" delay={3}>
-        <div style={{ marginTop: 34 }}>
-          <Photo file="foto-pareja-hero.jpg" base={photosPath} ratio="4 / 5" rounded="200px 200px 14px 14px" />
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Frase ────────────────────────────────────────────────────────────────────
-
-function QuoteSection() {
-  return (
-    <section className="s" style={{ paddingTop: 40, paddingBottom: 50, textAlign: "center" }}>
-      <Reveal kind="reveal-left">
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 20,
-            lineHeight: 1.65,
-            fontStyle: "italic",
-            color: "var(--ink)",
-            maxWidth: 320,
-            margin: "0 auto",
-          }}
-        >
-          El amor nos encontró en el colegio hace 16 años,
-          <br />
-          el destino nos volvió a unir hace cuatro,
-          <br />
-          y hoy, con el corazón lleno de gratitud,
-          <br />
-          decidimos unir nuestras vidas para siempre.
-        </p>
-      </Reveal>
-      <Reveal kind="reveal-scale" delay={2}>
-        <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
-          <Rings size={64} />
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Fecha ────────────────────────────────────────────────────────────────────
-
-function DateSection({ demo }: { demo: boolean }) {
-  return (
-    <section className="s" style={{ paddingTop: 20, paddingBottom: 50 }}>
-      <Reveal>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto 1fr",
-            alignItems: "center",
-            gap: 14,
-            maxWidth: 340,
-            margin: "0 auto",
-          }}
-        >
-          <div>
-            <div className="hline" />
-            <div
-              className="display-title"
-              style={{ fontSize: 14, textAlign: "center", padding: "12px 0" }}
-            >
-              Sábado
-            </div>
-            <div className="hline" />
-          </div>
-
-          <div style={{ textAlign: "center", padding: "0 6px" }}>
-            <div className="small-caps" style={{ fontSize: 11 }}>
-              {venueFor(demo).city}
-            </div>
-            <div
+      <ol style={{ listStyle: "none", margin: "0 auto", padding: 0, maxWidth: 340 }}>
+        {ITINERARIO.map(({ file, hora, nombre, Icon }, i) => (
+          <li
+            key={file}
+            style={{
+              borderTop: i === 0 ? "none" : `2px dotted ${GREEN}`,
+              padding: "16px 0",
+            }}
+          >
+            <Reveal
               style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 54,
-                lineHeight: 1.1,
-                color: "var(--brown)",
+                display: "grid",
+                gridTemplateColumns: "1fr 60px 1fr",
+                alignItems: "center",
+                gap: 16,
               }}
             >
-              12
-            </div>
-            <div className="small-caps" style={{ fontSize: 11 }}>
-              2026
-            </div>
-          </div>
-
-          <div>
-            <div className="hline" />
-            <div
-              className="display-title"
-              style={{ fontSize: 14, textAlign: "center", padding: "12px 0" }}
-            >
-              Septiembre
-            </div>
-            <div className="hline" />
-          </div>
-        </div>
-      </Reveal>
+              <span
+                style={{
+                  fontFamily: TITLE_FONT,
+                  fontSize: "clamp(22px, 6vw, 28px)",
+                  color: GREEN_DARK,
+                  textAlign: "right",
+                }}
+              >
+                {hora}
+              </span>
+              <GardenImg
+                photosPath={photosPath}
+                file={file}
+                alt=""
+                style={{ width: 60, height: 60, objectFit: "contain" }}
+                fallback={
+                  <span
+                    style={{
+                      width: 60,
+                      height: 60,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Icon size={40} color={GREEN_DARK} strokeWidth={1.6} aria-hidden="true" />
+                  </span>
+                }
+              />
+              <span style={{ fontFamily: BODY_FONT, fontSize: 15, color: TEXT, lineHeight: 1.3 }}>
+                {nombre}
+              </span>
+            </Reveal>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
 
-// ─── Countdown ───────────────────────────────────────────────────────────────
+// ─── 5. Código de vestimenta ─────────────────────────────────────────────────
 
-function CountdownSection() {
-  const target = new Date("2026-09-12T16:00:00").getTime();
-  const [diff, setDiff] = useState<number | null>(null);
-
-  useEffect(() => {
-    const tick = () => setDiff(Math.max(0, target - Date.now()));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [target]);
-
-  const days = diff !== null ? Math.floor(diff / 86400000) : 0;
-  const hours = diff !== null ? Math.floor((diff / 3600000) % 24) : 0;
-  const mins = diff !== null ? Math.floor((diff / 60000) % 60) : 0;
-  const secs = diff !== null ? Math.floor((diff / 1000) % 60) : 0;
-
-  const cells = [
-    { v: days, l: "Día" },
-    { v: hours, l: "Hrs" },
-    { v: mins, l: "Min" },
-    { v: secs, l: "Seg" },
-  ];
-
+function VestimentaSection({ photosPath }: { photosPath: string }) {
   return (
-    <section className="s" style={{ paddingTop: 10, paddingBottom: 60, textAlign: "center" }}>
-      <Reveal>
+    <section style={{ position: "relative", padding: "56px 18px", background: SKY }}>
+      <GardenImg
+        photosPath={photosPath}
+        file="fondo-cielo-1.png"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+        }}
+      />
+      <Reveal style={{ position: "relative" }}>
         <div
-          className="script"
-          style={{ fontSize: 40, color: "var(--brown)", marginBottom: 20 }}
+          style={{
+            background: BG,
+            borderRadius: 16,
+            padding: 24,
+            textAlign: "center",
+            boxShadow: "0 12px 30px rgba(0, 40, 90, 0.2)",
+          }}
         >
-          Solo faltan
-        </div>
-      </Reveal>
-      <Reveal kind="reveal-scale" delay={1}>
-        <div className="countdown-box" style={{ maxWidth: 340, margin: "0 auto" }}>
-          {cells.map(({ v, l }, i) => (
-            <div key={l} style={{ display: "contents" }}>
-              {i > 0 && <div className="sep">:</div>}
-              <div style={{ minWidth: 56 }}>
-                <div className="value">{String(v).padStart(2, "0")}</div>
-                <div className="label">{l}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Reveal>
-      <Reveal delay={2}>
-        <div style={{ marginTop: 36 }}>
-          <Ornament size={84} />
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Lugar ────────────────────────────────────────────────────────────────────
-
-function VenueSection({ demo }: { demo: boolean }) {
-  // La demo muestra una dirección genérica y mapas a la Plaza de Armas de Lima;
-  // la real solo va en rutas de cliente (ver lib/venue.ts).
-  const venue = venueFor(demo);
-  const mapsLink = venue.mapsUrl;
-  const directionsLink = venue.directionsUrl;
-  const embed = venue.embedUrl;
-
-  return (
-    <section className="s" style={{ paddingTop: 60, paddingBottom: 60, textAlign: "center" }}>
-      <Reveal kind="reveal-scale">
-        <div className="info-card">
-          <Gif src="/iglesia.gif" alt="Ceremonia civil" />
-          <div
-            className="display-title"
-            style={{ fontSize: 17, marginTop: 14, letterSpacing: "0.28em" }}
-          >
-            Ceremonia civil
-          </div>
-          <div
+          <h2
             style={{
-              fontFamily: "var(--font-serif)",
-              fontStyle: "italic",
-              fontSize: 22,
-              color: "var(--brown)",
-              marginTop: 10,
+              fontFamily: TITLE_FONT,
+              fontSize: "clamp(26px, 7vw, 36px)",
+              color: GREEN_DARK,
+              fontWeight: "normal",
+              margin: "0 0 10px",
             }}
           >
-            4:00 p.m.
-          </div>
-          <p
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: 18,
-              color: "var(--ink-soft)",
-              marginTop: 10,
-            }}
-          >
-            {venue.street}
-            <br />
-            {venue.city}
+            Código de vestimenta
+          </h2>
+          <p style={{ fontFamily: BODY_FONT, fontSize: 15, color: TEXT, margin: "0 0 20px", lineHeight: 1.5 }}>
+            Nos encantaría verte con cualquiera de estos colores
           </p>
-          <div
+
+          <ul
             style={{
-              marginTop: 22,
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
               display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
+              flexWrap: "wrap",
+              justifyContent: "center",
               gap: 12,
             }}
           >
-            <a href={mapsLink} target="_blank" rel="noopener noreferrer" className="btn btn-olive">
-              Ver en Google Maps
-            </a>
-            <a
-              href={directionsLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-outline"
-            >
-              Cómo llegar
-            </a>
-          </div>
-        </div>
-      </Reveal>
+            {COLORES.map(({ hex, nombre, borde }) => (
+              <li
+                key={hex}
+                style={{
+                  width: 48,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    background: hex,
+                    border: borde ? "1px solid #ccc" : "none",
+                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.12)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: BODY_FONT,
+                    fontSize: 10,
+                    color: TEXT,
+                    textAlign: "center",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {nombre}
+                </span>
+              </li>
+            ))}
+          </ul>
 
-      <Reveal kind="reveal-scale" delay={2}>
-        <div
-          style={{
-            marginTop: 26,
-            borderRadius: 16,
-            overflow: "hidden",
-            border: "1px solid rgba(140,110,80,0.2)",
-            boxShadow: "var(--shadow)",
-          }}
-        >
-          <iframe
-            title="Mapa"
-            src={embed}
-            width="100%"
-            height="220"
-            style={{ border: 0, display: "block" }}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
+          <GardenImg
+            photosPath={photosPath}
+            file="vestimenta.png"
+            alt="Vestido y traje de ejemplo"
+            style={{ width: "80%", maxWidth: 320, margin: "22px auto 0" }}
           />
         </div>
       </Reveal>
@@ -787,798 +646,249 @@ function VenueSection({ demo }: { demo: boolean }) {
   );
 }
 
-// ─── Itinerario ───────────────────────────────────────────────────────────────
+// ─── 6. Reserva (RSVP por WhatsApp) ──────────────────────────────────────────
 
-function ItinerarySection() {
-  const items = [
-    { time: "4:00 p.m.", label: "Ceremonia civil", img: "/it-ceremonia.gif" },
-    { time: "5:00 p.m.", label: "Brindis", img: "/it-brindis.gif" },
-    { time: "6:00 p.m.", label: "Comida", img: "/it-comida.gif" },
-    { time: "7:00 p.m.", label: "Celebración", img: "/it-celebracion.gif" },
-  ];
+type Asistencia = "" | "si" | "no";
 
-  return (
-    <section
-      className="s"
-      style={{ paddingTop: 30, paddingBottom: 70, background: "var(--bg-2)", overflow: "hidden" }}
-    >
-      <Reveal>
-        <div className="script" style={{ fontSize: 44, textAlign: "center", color: "var(--brown)" }}>
-          Itinerario
-        </div>
-      </Reveal>
+function ReservaSection() {
+  const [nombre, setNombre] = useState("");
+  const [rsvp, setRsvp] = useState<Asistencia>("");
+  const [dieta, setDieta] = useState("");
+  const [cancion, setCancion] = useState("");
+  const [errors, setErrors] = useState<{ nombre?: string; rsvp?: string }>({});
 
-      <div className="timeline" style={{ marginTop: 36 }}>
-        {items.map((item, i) => {
-          const left = i % 2 === 0;
-          return (
-            <Reveal key={i} kind={left ? "reveal-left" : "reveal-right"} delay={1}>
-              <div className="timeline-item">
-                <div>
-                  {left && (
-                    <div className="timeline-card left-card">
-                      <Gif src={item.img} alt={item.label} size={72} />
-                      <div className="tl-title">{item.label}</div>
-                      <div className="tl-time">{item.time}</div>
-                    </div>
-                  )}
-                </div>
-                <div className="timeline-dot" />
-                <div>
-                  {!left && (
-                    <div className="timeline-card right-card">
-                      <Gif src={item.img} alt={item.label} size={72} />
-                      <div className="tl-title">{item.label}</div>
-                      <div className="tl-time">{item.time}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Reveal>
-          );
-        })}
-      </div>
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = nombre.trim();
+    const next: typeof errors = {};
+    if (!n) next.nombre = "Por favor escribe tu nombre y apellido";
+    if (!rsvp) next.rsvp = "Cuéntanos si nos acompañarás";
+    setErrors(next);
+    if (next.nombre || next.rsvp) return;
 
-      <div style={{ position: "absolute", bottom: -10, right: -35, opacity: 0.5 }}>
-        <Eucalyptus size={120} palette={OLIVE} rotate={160} />
-      </div>
-      <div style={{ position: "absolute", top: 10, left: -35, opacity: 0.5 }}>
-        <Eucalyptus size={120} palette={OLIVE} rotate={-20} />
-      </div>
-    </section>
-  );
-}
-
-// ─── Código de vestimenta ────────────────────────────────────────────────────
-
-function DressCode() {
-  return (
-    <section className="s" style={{ paddingTop: 60, paddingBottom: 60, textAlign: "center" }}>
-      <Reveal>
-        <Gif src="/dresscode.gif" alt="Código de vestimenta" />
-      </Reveal>
-      <Reveal delay={1}>
-        <div className="display-title" style={{ fontSize: 17, marginTop: 14, letterSpacing: "0.28em" }}>
-          Código de vestimenta
-        </div>
-      </Reveal>
-      <Reveal delay={2}>
-        <h3
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontWeight: 600,
-            fontSize: 26,
-            color: "var(--brown)",
-            marginTop: 14,
-          }}
-        >
-          Casual elegante
-        </h3>
-      </Reveal>
-      <Reveal delay={3}>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 18,
-            fontStyle: "italic",
-            color: "var(--ink-soft)",
-            marginTop: 14,
-            maxWidth: 300,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          Ven cómodo, ven elegante.
-          <br />
-          Lo importante es que estés.
-        </p>
-      </Reveal>
-      <Reveal delay={4}>
-        <div
-          className="small-caps"
-          style={{
-            marginTop: 22,
-            display: "flex",
-            justifyContent: "center",
-            gap: 20,
-            fontSize: 11,
-            color: "var(--brown)",
-          }}
-        >
-          <span>• Sin blanco</span>
-          <span>• Sin jeans</span>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Nosotros ─────────────────────────────────────────────────────────────────
-
-function NosotrosSection({ photosPath }: { photosPath: string }) {
-  return (
-    <section
-      className="s"
-      style={{ paddingTop: 50, paddingBottom: 60, background: "var(--bg-2)", overflow: "hidden" }}
-    >
-      <Reveal kind="reveal-left">
-        <div className="script" style={{ fontSize: 44, textAlign: "center", color: "var(--brown)" }}>
-          Nosotros
-        </div>
-      </Reveal>
-
-      <Reveal kind="reveal-scale" delay={1}>
-        <div style={{ marginTop: 30, position: "relative" }}>
-          <Photo file="foto-colegio.jpg" base={photosPath} ratio="3 / 4" />
-          <div
-            style={{
-              position: "absolute",
-              top: -22,
-              right: -12,
-              animation: "drift 8s ease-in-out infinite",
-            }}
-          >
-            <Peony size={70} palette={FLOWER_ALT} />
-          </div>
-          <div
-            style={{
-              position: "absolute",
-              bottom: -20,
-              left: -20,
-              animation: "drift 10s ease-in-out infinite reverse",
-            }}
-          >
-            <Peony size={60} palette={FLOWER} />
-          </div>
-        </div>
-      </Reveal>
-
-      <Reveal delay={2}>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: 19,
-            lineHeight: 1.6,
-            marginTop: 34,
-            color: "var(--ink)",
-            textAlign: "center",
-          }}
-        >
-          Nos cruzamos por primera vez en 2009, quizás demasiado jóvenes para entender lo que
-          significaba. El tiempo siguió su camino, y nosotros el nuestro. Pero el universo tenía
-          otros planes, y en 2022 volvimos a encontrarnos... esta vez,{" "}
-          <em style={{ color: "var(--brown)" }}>para quedarnos</em>.
-        </p>
-      </Reveal>
-
-      <Reveal kind="reveal-scale" delay={3}>
-        <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Photo file="foto-juntos.jpg" base={photosPath} ratio="3 / 4" />
-          <div style={{ paddingTop: 26 }}>
-            <Photo file="foto-momento.jpg" base={photosPath} ratio="3 / 4" />
-          </div>
-        </div>
-      </Reveal>
-
-      <Reveal kind="reveal-scale" delay={2}>
-        <div style={{ marginTop: 40, display: "flex", justifyContent: "center" }}>
-          <div style={{ width: "72%" }}>
-            <Photo file="foto-pareja-circular.jpg" base={photosPath} ratio="1 / 1" rounded="50%" />
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Foto a página completa (edge-to-edge) ───────────────────────────────────
-
-function FullBleedSection({ photosPath }: { photosPath: string }) {
-  return (
-    <section style={{ position: "relative" }}>
-      <Reveal kind="reveal-scale">
-        <Photo file="foto-full-bleed.jpg" base={photosPath} ratio="4 / 5" rounded="0" frame={false} />
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Collage / galería de recuerdos ──────────────────────────────────────────
-
-function CollageSection({ photosPath }: { photosPath: string }) {
-  return (
-    <section className="s" style={{ paddingTop: 40, paddingBottom: 30 }}>
-      <Reveal kind="reveal-scale">
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
-          <Photo file="foto-collage-grande.jpg" base={photosPath} ratio="3 / 4" />
-          <div style={{ display: "grid", gridTemplateRows: "1fr 1fr", gap: 10 }}>
-            <Photo file="foto-collage-chica-1.jpg" base={photosPath} ratio="1 / 1" />
-            <Photo file="foto-collage-chica-2.jpg" base={photosPath} ratio="1 / 1" />
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Agradecimiento ───────────────────────────────────────────────────────────
-
-function ThanksSection() {
-  return (
-    <section className="s" style={{ paddingTop: 40, paddingBottom: 50, textAlign: "center" }}>
-      <Reveal>
-        <div style={{ marginBottom: 10 }}>
-          <Gif src="/agradecimiento.gif" alt="Agradecimiento" />
-        </div>
-      </Reveal>
-      <Reveal delay={1}>
-        <div className="script" style={{ fontSize: 40, color: "var(--brown)" }}>
-          Agradecimiento
-        </div>
-      </Reveal>
-      <Reveal delay={2}>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: 18,
-            lineHeight: 1.6,
-            color: "var(--ink-soft)",
-            marginTop: 16,
-            maxWidth: 310,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          A Dios y a nuestras familias por su amor, guía y apoyo incondicional. Gracias a cada
-          persona que nos acompaña en este día tan especial.
-        </p>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Sugerencia de regalo ─────────────────────────────────────────────────────
-
-function GiftSection() {
-  return (
-    <section
-      className="s"
-      style={{ paddingTop: 50, paddingBottom: 60, textAlign: "center", background: "var(--bg-2)" }}
-    >
-      <Reveal>
-        <Gif src="/regalo.gif" alt="Sugerencia de regalo" />
-      </Reveal>
-      <Reveal delay={1}>
-        <div className="script" style={{ fontSize: 40, color: "var(--brown)", marginTop: 8 }}>
-          Sugerencia de regalo
-        </div>
-      </Reveal>
-      <Reveal delay={2}>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: 18,
-            lineHeight: 1.6,
-            color: "var(--ink-soft)",
-            marginTop: 16,
-            maxWidth: 310,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          Lo más valioso para nosotros es tenerte presente en este día. Pero si deseas hacernos
-          un regalo, con mucho cariño lo recibiremos a través de:
-        </p>
-      </Reveal>
-      <Reveal delay={3}>
-        <div
-          style={{
-            marginTop: 20,
-            marginLeft: "auto",
-            marginRight: "auto",
-            maxWidth: 310,
-            padding: "18px 20px",
-            border: "1px solid var(--brown)",
-            borderRadius: 12,
-            display: "grid",
-            gap: 14,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: 12,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                color: "var(--brown)",
-              }}
-            >
-              Cuenta Simple Soles Interbank
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 18,
-                color: "var(--ink)",
-                marginTop: 4,
-              }}
-            >
-              8983327160054
-            </div>
-          </div>
-          <div>
-            <div
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: 12,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                color: "var(--brown)",
-              }}
-            >
-              Cuenta Interbancaria Interbank
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 18,
-                color: "var(--ink)",
-                marginTop: 4,
-              }}
-            >
-              00389801332716005445
-            </div>
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Comparte tus fotos y videos (Supabase) ──────────────────────────────────
-
-// Panel que reemplaza al formulario cuando la subida está bloqueada (demo, o
-// invitación de cliente antes del día de la boda). Ver useUploadGate.
-function UploadBlockedCard({ gate }: { gate: Extract<UploadGate, { blocked: true }> }) {
-  return (
-    <Reveal delay={2}>
-      <div className="upload-card" style={{ marginTop: 26 }}>
-        <div style={{ lineHeight: 1, color: "var(--brown)" }}>
-          {gate.kind === "demo" ? <Lock size={32} strokeWidth={1.6} /> : <Hourglass size={32} strokeWidth={1.6} />}
-        </div>
-        <h3 className="script" style={{ fontSize: 34, color: "var(--brown)", marginTop: 10 }}>
-          {gate.title}
-        </h3>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: 16.5,
-            lineHeight: 1.6,
-            color: "var(--ink)",
-            marginTop: 12,
-          }}
-        >
-          {gate.message}
-        </p>
-        {gate.whatsapp && (
-          <a
-            href={gate.whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-olive"
-            style={{ marginTop: 20, display: "inline-block", textDecoration: "none" }}
-          >
-            Escríbenos por WhatsApp
-          </a>
-        )}
-      </div>
-    </Reveal>
-  );
-}
-
-function PhotoUpload({
-  galeriaHref,
-  demo,
-  invitation,
-}: {
-  galeriaHref: string;
-  demo: boolean;
-  invitation: string;
-}) {
-  const {
-    uploaderName,
-    setUploaderName,
-    items,
-    addFiles,
-    removeItem,
-    reset,
-    uploadAll,
-    uploading,
-    uploadDone,
-    formError,
-    limitReached,
-    closeLimitModal,
-  } = useMediaUpload(DESIGN_ID, invitation);
-  const { ready, gate } = useUploadGate(demo);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) addFiles(e.target.files);
-    e.target.value = "";
+    const asistencia = rsvp === "si" ? "Sí, ahí estaré" : "Lo siento, no podré";
+    const lines = [`Hola, soy ${n}.`, `¿Nos acompañarás?: ${asistencia}`];
+    if (dieta.trim()) lines.push(`Requerimiento dietético: ${dieta.trim()}`);
+    if (cancion.trim()) lines.push(`Canción favorita: ${cancion.trim()}`);
+    window.open(
+      `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(lines.join("\n"))}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   };
 
-  const rejected = items.filter((it) => it.status === "error");
-  const selectable = items.filter((it) => it.status !== "error" || it.kind);
-
-  if (uploadDone) {
-    return (
-      <section className="s" style={{ paddingTop: 60, paddingBottom: 60, textAlign: "center" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-          <Peony size={64} palette={FLOWER} />
-        </div>
-        <h3 className="script" style={{ fontSize: 44, color: "var(--brown)" }}>
-          ¡Gracias!
-        </h3>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: 17,
-            color: "var(--ink-soft)",
-            marginTop: 12,
-          }}
-        >
-          Tus fotos y videos fueron subidos exitosamente.
-        </p>
-        <button onClick={reset} className="btn btn-olive" style={{ marginTop: 24 }}>
-          Subir más recuerdos
-        </button>
-      </section>
-    );
-  }
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontFamily: SUB_FONT,
+    fontSize: 15,
+    color: GREEN_DARK,
+    marginBottom: 8,
+    lineHeight: 1.35,
+  };
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    boxSizing: "border-box",
+    fontFamily: BODY_FONT,
+    fontSize: 16,
+    color: TEXT,
+    background: "#ffffff",
+    border: `1px solid rgba(74, 124, 53, 0.45)`,
+    borderRadius: 10,
+    padding: "11px 12px",
+    outline: "none",
+  };
+  const errorStyle: React.CSSProperties = {
+    fontFamily: BODY_FONT,
+    fontSize: 13,
+    color: "#b5523a",
+    margin: "6px 0 0",
+  };
+  const radioRow: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    fontFamily: BODY_FONT,
+    fontSize: 15,
+    color: TEXT,
+    cursor: "pointer",
+    padding: "4px 0",
+  };
 
   return (
-    <section className="s" style={{ paddingTop: 60, paddingBottom: 60 }}>
+    <section style={{ position: "relative", padding: "56px 18px 32px" }}>
       <Reveal>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/camara.gif"
-            alt="Cámara fotográfica"
-            width={110}
-            height={110}
-            style={{ display: "block" }}
-          />
-        </div>
-      </Reveal>
-      <Reveal delay={1}>
-        <p
+        <h2
           style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: 19,
-            lineHeight: 1.6,
-            color: "var(--ink)",
+            fontFamily: TITLE_FONT,
+            fontSize: "clamp(32px, 9vw, 48px)",
+            color: "#ffffff",
+            fontWeight: "normal",
             textAlign: "center",
-            marginTop: 14,
-            maxWidth: 320,
-            marginLeft: "auto",
-            marginRight: "auto",
+            margin: "0 0 20px",
+            textShadow: "0 2px 10px rgba(0, 40, 90, 0.25)",
           }}
         >
-          “Tu mirada es parte de nuestra historia. El 12 de septiembre, comparte tus fotos y
-          videos y ayúdanos a guardar la eternidad en imágenes.”
-        </p>
-      </Reveal>
+          Reserva
+        </h2>
 
-      {ready && !gate.blocked && (
-      <Reveal delay={2}>
-        <div className="upload-card" style={{ marginTop: 26 }}>
-          <div style={{ marginBottom: 20, textAlign: "left" }}>
-            <label
-              className="small-caps"
-              style={{ display: "block", fontSize: 10, marginBottom: 8 }}
-            >
-              Tu nombre *
+        <form
+          noValidate
+          onSubmit={handleSubmit}
+          style={{
+            background: "rgba(255, 255, 255, 0.85)",
+            borderRadius: 16,
+            padding: 24,
+            display: "grid",
+            gap: 20,
+          }}
+        >
+          <div>
+            <label htmlFor="rsvp-nombre" style={labelStyle}>
+              Tu nombre y apellido:
             </label>
             <input
+              id="rsvp-nombre"
               type="text"
-              value={uploaderName}
-              onChange={(e) => setUploaderName(e.target.value)}
-              placeholder="¿Cómo te llamas?"
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: "1px solid rgba(140,110,80,0.3)",
-                borderRadius: 8,
-                fontFamily: "var(--font-serif)",
-                fontSize: 16,
-                color: "var(--ink)",
-                background: "rgba(255,255,255,0.7)",
-                outline: "none",
-                boxSizing: "border-box",
+              required
+              autoComplete="name"
+              value={nombre}
+              onChange={(e) => {
+                setNombre(e.target.value);
+                if (errors.nombre) setErrors((x) => ({ ...x, nombre: undefined }));
               }}
+              aria-invalid={!!errors.nombre}
+              style={{ ...inputStyle, borderColor: errors.nombre ? "#b5523a" : inputStyle.borderColor }}
+            />
+            {errors.nombre && <p style={errorStyle}>{errors.nombre}</p>}
+          </div>
+
+          <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+            <legend style={{ ...labelStyle, padding: 0 }}>¿Nos acompañarás?</legend>
+            {(
+              [
+                ["si", "Sí claro, ahí estaré"],
+                ["no", "Lo siento, no podré"],
+              ] as const
+            ).map(([value, text]) => (
+              <label key={value} style={radioRow}>
+                <input
+                  type="radio"
+                  name="rsvp"
+                  value={value}
+                  required
+                  checked={rsvp === value}
+                  onChange={() => {
+                    setRsvp(value);
+                    setErrors((x) => ({ ...x, rsvp: undefined }));
+                  }}
+                  style={{ accentColor: TERRACOTA, width: 18, height: 18, margin: 0 }}
+                />
+                {text}
+              </label>
+            ))}
+            {errors.rsvp && <p style={errorStyle}>{errors.rsvp}</p>}
+          </fieldset>
+
+          <div>
+            <label htmlFor="rsvp-dieta" style={labelStyle}>
+              ¿Tienes algún requerimiento dietético o alergia?
+            </label>
+            <input
+              id="rsvp-dieta"
+              type="text"
+              value={dieta}
+              onChange={(e) => setDieta(e.target.value)}
+              style={inputStyle}
             />
           </div>
 
-          <div style={{ fontFamily: "var(--font-serif)", fontSize: 18, color: "var(--ink)" }}>
-            {selectable.length > 0
-              ? `${selectable.length} archivo${selectable.length > 1 ? "s" : ""} seleccionado${selectable.length > 1 ? "s" : ""}`
-              : "Sube tus fotos y videos del día"}
+          <div>
+            <label htmlFor="rsvp-cancion" style={labelStyle}>
+              ¿Qué canción es la que te hace salir a la pista de baile?
+            </label>
+            <input
+              id="rsvp-cancion"
+              type="text"
+              value={cancion}
+              onChange={(e) => setCancion(e.target.value)}
+              style={inputStyle}
+            />
           </div>
-          <div
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 10.5,
-              color: "var(--ink-soft)",
-              marginTop: 6,
-              letterSpacing: "0.04em",
-            }}
-          >
-            Fotos hasta 15MB · Videos hasta 500MB · 500MB por invitado
-          </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPT_ATTR}
-            multiple
-            onChange={handleFileChange}
-            style={{ display: "none" }}
-          />
-          <button
-            onClick={() => inputRef.current?.click()}
-            className="btn btn-outline"
-            style={{ marginTop: 14 }}
-            disabled={uploading}
-          >
-            {items.length > 0 ? "Agregar más" : "Elegir archivos"}
+
+          <button type="submit" style={{ ...pillStyle, width: "100%" }}>
+            Enviar datos
           </button>
-
-          {items.length > 0 && (
-            <div
-              style={{
-                marginTop: 16,
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 8,
-              }}
-            >
-              {items.map((it) => (
-                <UploadPreview
-                  key={it.id}
-                  item={it}
-                  uploading={uploading}
-                  onRemove={removeItem}
-                  accent="var(--olive)"
-                />
-              ))}
-            </div>
-          )}
-
-          {rejected.length > 0 && (
-            <div
-              style={{
-                marginTop: 12,
-                fontFamily: "var(--font-sans)",
-                fontSize: 11,
-                color: "#B33A2C",
-                textAlign: "left",
-              }}
-            >
-              {rejected.map((it) => (
-                <div key={it.id} style={{ padding: "2px 0" }}>
-                  · {it.file.name}: {it.error}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {formError && (
-            <div
-              style={{
-                marginTop: 12,
-                fontFamily: "var(--font-sans)",
-                fontSize: 12,
-                color: "#B33A2C",
-              }}
-            >
-              {formError}
-            </div>
-          )}
-
-          <button
-            onClick={uploadAll}
-            disabled={uploading}
-            className="btn btn-olive"
-            style={{ marginTop: 18, opacity: uploading ? 0.7 : 1 }}
-          >
-            {uploading ? "Subiendo..." : "Subir archivos"}
-          </button>
-        </div>
+        </form>
       </Reveal>
-      )}
+    </section>
+  );
+}
 
-      {ready && gate.blocked && <UploadBlockedCard gate={gate} />}
+// ─── 7. Cierre ───────────────────────────────────────────────────────────────
 
-      {limitReached && (
-        <UploadLimitModal
-          demo={demo}
-          onClose={closeLimitModal}
-          theme={{
-            card: "var(--paper)",
-            title: "var(--brown)",
-            text: "var(--olive)",
-            titleFont: "var(--font-display)",
-            bodyFont: "var(--font-serif)",
-            titleStyle: { fontWeight: 600 },
+function CierreSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
+  const couple = coupleFor(demo);
+  const white: React.CSSProperties = { color: "#ffffff", textShadow: "0 2px 10px rgba(0, 40, 90, 0.25)" };
+  return (
+    <section style={{ position: "relative", paddingTop: 32 }}>
+      <Reveal style={{ textAlign: "center", padding: "0 24px 28px" }}>
+        <h2
+          style={{
+            ...white,
+            fontFamily: TITLE_FONT,
+            fontSize: "clamp(32px, 9vw, 48px)",
+            fontWeight: "normal",
+            margin: "0 0 10px",
+          }}
+        >
+          ¡Muchas gracias!
+        </h2>
+        <p style={{ ...white, fontFamily: BODY_FONT, fontSize: 16, lineHeight: 1.5, margin: "0 0 18px" }}>
+          No podemos esperar para celebrar ese día contigo
+        </p>
+        <p
+          style={{
+            ...white,
+            fontFamily: TITLE_FONT,
+            fontSize: "clamp(36px, 10vw, 52px)",
+            margin: 0,
+          }}
+        >
+          {couple.first[0]} &amp; {couple.second[0]}
+        </p>
+      </Reveal>
+      <div style={{ position: "relative" }}>
+        <GardenImg
+          photosPath={photosPath}
+          file="cierre-pareja.png"
+          alt={couple.amp}
+          style={{ width: "100%" }}
+        />
+        {/* Disimula la costura entre el cielo y la foto. */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 80,
+            background: `linear-gradient(to bottom, ${SKY}, rgba(16, 141, 251, 0))`,
           }}
         />
-      )}
-
-      <Reveal delay={3}>
-        <div style={{ textAlign: "center", marginTop: 22 }}>
-          {/* Link (no <a>): la navegación client-side mantiene la música sonando */}
-          <Link
-            href={galeriaHref}
-            className="small-caps"
-            style={{ color: "var(--brown)", textDecoration: "none", fontSize: 11 }}
-          >
-            Ver galería de fotos →
-          </Link>
-        </div>
-      </Reveal>
+      </div>
     </section>
   );
 }
 
-// ─── Confirmar asistencia ────────────────────────────────────────────────────
-
-function RSVPSection({ demo }: { demo: boolean }) {
-  const phone = "993092110";
-  // El saludo lleva los nombres de la pareja: en las demos, los ficticios.
-  const msg = encodeURIComponent(
-    `¡Hola ${coupleFor(demo).prose}! Confirmo mi asistencia a su matrimonio civil del 12 de septiembre.`
-  );
-  const link = `https://wa.me/51${phone}?text=${msg}`;
-
-  return (
-    <section
-      className="s"
-      style={{ paddingTop: 60, paddingBottom: 70, textAlign: "center", background: "var(--olive)" }}
-    >
-      <Reveal>
-        <div className="script" style={{ fontSize: 44, color: "#f8f6f3" }}>
-          ¿Nos acompañas?
-        </div>
-      </Reveal>
-      <Reveal delay={1}>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: 18,
-            lineHeight: 1.6,
-            marginTop: 14,
-            color: "rgba(248,246,243,0.85)",
-            maxWidth: 300,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          Nos encantaría compartir este día tan especial contigo. Te agradeceríamos mucho si
-          pudieras confirmar antes del 25 de julio.
-        </p>
-      </Reveal>
-      <Reveal delay={2}>
-        <a
-          href={link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn"
-          style={{
-            marginTop: 28,
-            background: "#f8f6f3",
-            color: "var(--brown)",
-            border: "1px solid var(--gold)",
-            boxShadow: "0 12px 18px -6px rgba(0,0,0,0.3)",
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.8-.7-1.4-1.6-1.6-1.9-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-.7-1.8c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.7.3-.2.3-.9.9-.9 2.2 0 1.3.9 2.6 1 2.7.1.2 1.8 2.8 4.3 3.9.6.3 1.1.4 1.5.5.6.2 1.2.2 1.7.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3z M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 4.9L2 22l5.2-1.4c1.4.7 3 1.1 4.7 1.1 5.5 0 10-4.5 10-10S17.5 2 12 2z" />
-          </svg>
-          Confirmar asistencia
-        </a>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Te esperamos ────────────────────────────────────────────────────────────
-
-function TeEsperamos() {
-  return (
-    <section
-      className="s"
-      style={{ paddingTop: 70, paddingBottom: 40, textAlign: "center", overflow: "hidden" }}
-    >
-      <Reveal>
-        <div className="script" style={{ fontSize: 84, lineHeight: 1 }}>
-          I <span style={{ color: "var(--tan)", fontSize: 60 }}>&amp;</span> M
-        </div>
-      </Reveal>
-      <Reveal delay={1}>
-        <p
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontStyle: "italic",
-            fontSize: 18,
-            lineHeight: 1.6,
-            marginTop: 24,
-            color: "var(--ink-soft)",
-            maxWidth: 310,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          Con mucha ilusión queremos vivir este momento rodeados de personas que han formado
-          parte de nuestra historia. Será un honor contar con tu presencia.
-        </p>
-      </Reveal>
-      <Reveal delay={2}>
-        <h3
-          className="script"
-          style={{ fontSize: 48, marginTop: 26, color: "var(--brown)" }}
-        >
-          ¡Te esperamos!
-        </h3>
-      </Reveal>
-      <Reveal kind="reveal-scale" delay={3}>
-        <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <Peony size={70} palette={FLOWER_ALT} />
-            <Peony size={100} palette={FLOWER} />
-            <Peony size={70} palette={FLOWER_ALT} />
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-// ─── Banner de demo (solo en el catálogo, no en invitaciones de clientes) ────
+// ─── Banner de demo (solo /oliva) ────────────────────────────────────────────
 
 function DemoBanner() {
   const [visible, setVisible] = useState(true);
   if (!visible) return null;
 
-  const waLink = `https://wa.me/51993092110?text=${encodeURIComponent(
-    "¡Hola! Me gusta el diseño Oliva Elegante y quiero una invitación como esta."
+  const waLink = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
+    "¡Hola! Me gusta el diseño Oliva y quiero una invitación como esta."
   )}`;
 
   return (
@@ -1596,12 +906,12 @@ function DemoBanner() {
         justifyContent: "center",
         gap: 10,
         padding: "10px 40px 10px 14px",
-        background: "rgba(36, 57, 44, 0.92)",
+        background: "rgba(45, 90, 27, 0.92)",
         backdropFilter: "blur(8px)",
-        color: "#f8f6f3",
-        fontFamily: "var(--font-sans)",
+        color: "#fbf5e9",
+        fontFamily: BODY_FONT,
         fontSize: 12,
-        letterSpacing: "0.05em",
+        letterSpacing: "0.03em",
       }}
     >
       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -1619,7 +929,7 @@ function DemoBanner() {
           transform: "translateY(-50%)",
           background: "transparent",
           border: 0,
-          color: "#f8f6f3",
+          color: "#fbf5e9",
           fontSize: 18,
           lineHeight: 1,
           cursor: "pointer",
@@ -1636,79 +946,52 @@ function DemoBanner() {
 
 export default function InvitationOliva({
   demo = false,
-  galeriaHref = "/oliva/galeria",
-  invitation = DEMO_INVITATION,
   photosPath = DEMO_PHOTOS_PATH,
   musicSrc = MUSIC_SRC,
 }: {
   demo?: boolean;
-  // Slug de la invitación: 'demo' o el del cliente (p. ej. 'israel-y-marisol').
-  // Se guarda en cada foto para que la galería de cada boda vea solo las suyas.
-  invitation?: string;
-  // Las rutas de clientes pasan su propia galería (p. ej.
-  // /oliva/israel-y-marisol/galeria) para que el "Volver" cierre el círculo,
-  // y sus propios assets (public/oliva/<cliente>/photos y .../music.mp3).
-  // El demo usa los defaults de /oliva-demo/.
-  galeriaHref?: string;
+  // Rutas de cliente: /oliva/<cliente>/photos y /oliva/<cliente>/music.mp3.
   photosPath?: string;
   musicSrc?: string;
 }) {
   const [opened, setOpened] = useState(false);
   const { playing, play, toggle } = useMusic(musicSrc, DESIGN_ID);
+  const hasMusic = useFileExists(musicSrc);
 
   const handleOpen = () => {
     setOpened(true);
-    play();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (hasMusic) play();
+    window.scrollTo({ top: 0 });
   };
 
   return (
-    <div id="invitation-root">
+    <div id="invitation-root" style={{ background: BG }}>
       {demo && <DemoBanner />}
-      {!opened && <IntroGate onOpen={handleOpen} demo={demo} />}
-      {opened && <MusicFab playing={playing} onToggle={toggle} />}
+      {!opened && <CoverGate onOpen={handleOpen} demo={demo} photosPath={photosPath} />}
+      {opened && hasMusic && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        <NamesSection photosPath={photosPath} demo={demo} />
-        <QuoteSection />
-        <DateSection demo={demo} />
-        <CountdownSection />
-        <VenueSection demo={demo} />
-        <ItinerarySection />
-        <DressCode />
-        <NosotrosSection photosPath={photosPath} />
-        <FullBleedSection photosPath={photosPath} />
-        <CollageSection photosPath={photosPath} />
-        <ThanksSection />
-        <GiftSection />
-        <PhotoUpload galeriaHref={galeriaHref} demo={demo} invitation={invitation} />
-        <RSVPSection demo={demo} />
-        <TeEsperamos />
-
-        <footer
-          style={{
-            padding: "36px 28px 56px",
-            textAlign: "center",
-            background: "var(--bg-2)",
-          }}
-        >
-          <div className="small-caps" style={{ fontSize: 10 }}>
-            {signatureFor(demo)}
-          </div>
-          <Link
-            href={galeriaHref}
-            className="small-caps"
+        <DetallesSection demo={demo} photosPath={photosPath} />
+        <GrassSection photosPath={photosPath} />
+        <ItinerarioSection photosPath={photosPath} />
+        <VestimentaSection photosPath={photosPath} />
+        {/* Reserva y cierre comparten el mismo cielo. */}
+        <div style={{ position: "relative", background: SKY }}>
+          <GardenImg
+            photosPath={photosPath}
+            file="fondo-cielo-2.png"
             style={{
-              color: "var(--brown)",
-              textDecoration: "none",
-              fontSize: 10,
-              marginTop: 10,
-              display: "inline-block",
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "top",
             }}
-          >
-            Ver galería de fotos →
-          </Link>
-        </footer>
+          />
+          <ReservaSection />
+          <CierreSection demo={demo} photosPath={photosPath} />
+        </div>
       </main>
     </div>
   );
