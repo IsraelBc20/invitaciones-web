@@ -33,6 +33,8 @@ const SKY = "#108dfb";
 const TITLE_FONT = "'Perandory', 'Playfair Display', serif";
 const SUB_FONT = "'Playfair Display', Georgia, serif";
 const BODY_FONT = "'DM Sans', system-ui, sans-serif";
+// Portada y "¡Estás invitado!" (13 nov 2026; @font-face en globals.css).
+const CALM_FONT = "'CalmíusSans High', 'Playfair Display', serif";
 
 // Datos del evento. Por ahora el demo y el cliente comparten fecha y horarios;
 // la dirección sí cambia (venueFor: las demos muestran la Plaza de Armas de
@@ -134,15 +136,14 @@ function Reveal({ children, style }: { children: React.ReactNode; style?: React.
 function Leaf({ flip = false }: { flip?: boolean }) {
   return (
     <svg
-      width="40"
-      height="22"
+      width="24"
+      height="14"
       viewBox="0 0 40 22"
       aria-hidden="true"
-      style={{ display: "block", transform: flip ? "scaleX(-1)" : undefined }}
+      style={{ display: "block", margin: "0 8px", transform: flip ? "scaleX(-1)" : undefined }}
     >
-      <path d="M1 11 H8" stroke={GREEN_DARK} strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M1 11 H8" stroke={GREEN} strokeWidth="1.6" strokeLinecap="round" />
       <path d="M7 11 C 14 1, 29 0, 39 11 C 29 22, 14 21, 7 11 Z" fill={GREEN} />
-      <path d="M9 11 C 18 9, 27 9, 35 11" stroke={GREEN_DARK} strokeWidth="1" fill="none" />
     </svg>
   );
 }
@@ -210,41 +211,27 @@ const pillStyle: React.CSSProperties = {
   boxShadow: "0 6px 16px rgba(196, 113, 74, 0.3)",
 };
 
-// ─── 1. Portada (cover gate) ─────────────────────────────────────────────────
+// ─── 1. Portada ──────────────────────────────────────────────────────────────
+// Se ve directo al entrar, sin pantalla de "Abrir invitación" (13 nov 2026).
 
-function CoverGate({
-  onOpen,
-  demo,
-  photosPath,
-}: {
-  onOpen: () => void;
-  demo: boolean;
-  photosPath: string;
-}) {
+function PortadaSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const couple = coupleFor(demo);
   const venue = venueFor(demo);
+  // Cliente: "Huaral - Lima". Demo: la ciudad ya es Lima, no se repite.
+  const ciudad = venue.city === "Lima" ? "Lima" : `${venue.city} - Lima`;
   const nameStyle: React.CSSProperties = {
-    fontFamily: TITLE_FONT,
-    fontSize: "clamp(42px, 12vw, 64px)",
+    fontFamily: CALM_FONT,
+    fontSize: "clamp(44px, 12vw, 64px)",
     color: GREEN_DARK,
+    letterSpacing: 2,
+    textTransform: "uppercase",
     lineHeight: 1,
     margin: 0,
     fontWeight: "normal",
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        margin: "0 auto",
-        maxWidth: 430,
-        zIndex: 100,
-        background: BG,
-        overflowY: "auto",
-        overflowX: "hidden",
-      }}
-    >
+    <section style={{ background: BG }}>
       <div style={{ position: "relative" }}>
         <GardenImg
           photosPath={photosPath}
@@ -263,8 +250,8 @@ function CoverGate({
             bottom: 0,
             left: "50%",
             transform: "translateX(-50%)",
-            width: "70%",
-            maxWidth: 300,
+            width: "60%",
+            maxWidth: 260,
           }}
         />
         {/* Funde la arena del dibujo con el beige del fondo. */}
@@ -282,13 +269,13 @@ function CoverGate({
         />
       </div>
 
-      <div style={{ textAlign: "center", padding: "22px 24px 56px" }}>
+      <div style={{ textAlign: "center", padding: "0 24px 28px" }}>
         <p
           style={{
-            fontFamily: TITLE_FONT,
-            fontSize: "clamp(28px, 8vw, 42px)",
+            fontFamily: CALM_FONT,
+            fontSize: "clamp(20px, 5.5vw, 28px)",
             color: GREEN_DARK,
-            margin: "0 0 14px",
+            margin: "20px 0 12px",
           }}
         >
           ¡Nos casamos!
@@ -299,15 +286,14 @@ function CoverGate({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
             margin: "6px 0",
           }}
         >
           <Leaf flip />
           <span
             style={{
-              fontFamily: TITLE_FONT,
-              fontSize: "clamp(30px, 8vw, 44px)",
+              fontFamily: CALM_FONT,
+              fontSize: "clamp(32px, 8vw, 44px)",
               color: GREEN_DARK,
               lineHeight: 1,
             }}
@@ -320,103 +306,122 @@ function CoverGate({
 
         <p
           style={{
-            fontFamily: SUB_FONT,
+            fontFamily: CALM_FONT,
             fontSize: "clamp(14px, 4vw, 18px)",
             color: TEXT,
-            margin: "22px 0 0",
-            lineHeight: 1.5,
+            margin: "16px 0 0",
           }}
         >
-          {FECHA} · {HORA}
-          <br />
-          {venue.line}
+          {FECHA}
         </p>
-
         <p
           style={{
-            fontFamily: TITLE_FONT,
-            fontSize: "clamp(22px, 6vw, 32px)",
-            color: GREEN_DARK,
-            margin: "26px 0 18px",
+            fontFamily: CALM_FONT,
+            fontSize: "clamp(13px, 3.5vw, 16px)",
+            color: TEXT,
+            margin: "4px 0 0",
           }}
         >
-          ¡Estás invitado!
+          {ciudad}
         </p>
-
-        <button type="button" onClick={onOpen} style={pillStyle}>
-          Abrir invitación
-        </button>
       </div>
-    </div>
+
+      {/* La última fila de portada-casita.png es casi blanca y dejaba una línea
+          clara contra "¡Estás invitado!": se recortan 2px. */}
+      <div style={{ overflow: "hidden" }}>
+        <GardenImg
+          photosPath={photosPath}
+          file="portada-casita.png"
+          style={{ width: "100%", marginBottom: -2 }}
+        />
+      </div>
+    </section>
   );
 }
 
-// ─── 2. Detalles del evento (casita) ─────────────────────────────────────────
+// ─── 2. ¡Estás invitado! (detalles) ──────────────────────────────────────────
 
-function DetallesSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
+const CREAM = "#f1deb3";
+// Verde del borde inferior de portada-casita.png (muestreado): el fondo arranca
+// ahí y baja a GREEN_DARK para que no se vea la costura con la imagen.
+const CASITA_GREEN = "#396125";
+
+function InvitadoSection({ demo }: { demo: boolean }) {
   const venue = venueFor(demo);
   const rows = [
     { Icon: CalendarDays, text: FECHA },
     { Icon: Clock, text: HORA },
-    { Icon: MapPin, text: venue.line },
+    { Icon: MapPin, text: `${venue.street}, ${venue.city}` },
   ];
-  const linkStyle: React.CSSProperties = {
-    ...pillStyle,
-    flex: 1,
-    padding: "11px 12px",
-    fontSize: 14,
-    boxShadow: "none",
+  const line: React.CSSProperties = {
+    border: 0,
+    borderTop: `1px solid ${CREAM}`,
+    opacity: 0.5,
+    margin: 0,
   };
 
   return (
-    <section style={{ position: "relative", background: "#396125" }}>
-      <GardenImg photosPath={photosPath} file="portada-casita.png" style={{ width: "100%" }} />
-      <div
-        style={{
-          position: "absolute",
-          left: 16,
-          right: 16,
-          bottom: 16,
-        }}
-      >
-        <Reveal>
-          <div
-            style={{
-              background: "rgba(245, 230, 200, 0.94)",
-              borderRadius: 16,
-              padding: "20px 18px",
-              boxShadow: "0 10px 24px rgba(0, 0, 0, 0.18)",
-              fontFamily: BODY_FONT,
-              color: TEXT,
-            }}
-          >
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 10 }}>
-              {rows.map(({ Icon, text }) => (
-                <li
-                  key={text}
-                  style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15 }}
-                >
-                  <Icon size={20} color={GREEN_DARK} aria-hidden="true" style={{ flexShrink: 0 }} />
-                  <span>{text}</span>
-                </li>
-              ))}
-            </ul>
-            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <a href={venue.mapsUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>
-                Ver en maps
-              </a>
-              <a
-                href={venue.directionsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ ...linkStyle, background: GREEN }}
+    <section
+      style={{
+        background: `linear-gradient(to bottom, ${CASITA_GREEN}, ${GREEN_DARK} 140px)`,
+        padding: "32px 24px",
+        textAlign: "center",
+      }}
+    >
+      <Reveal>
+        <h2
+          style={{
+            fontFamily: CALM_FONT,
+            fontSize: "clamp(28px, 7.5vw, 40px)",
+            color: CREAM,
+            fontWeight: "normal",
+            margin: "0 0 24px",
+          }}
+        >
+          ¡Estás invitado!
+        </h2>
+        <div style={{ maxWidth: 360, margin: "0 auto" }}>
+          {rows.map(({ Icon, text }) => (
+            <div key={text}>
+              <hr style={line} />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  padding: "14px 0",
+                  fontFamily: CALM_FONT,
+                  fontSize: "clamp(14px, 4vw, 18px)",
+                  color: CREAM,
+                }}
               >
-                Cómo llegar
-              </a>
+                <Icon size={20} color={CREAM} aria-hidden="true" style={{ flexShrink: 0 }} />
+                <span>{text}</span>
+              </div>
             </div>
-          </div>
-        </Reveal>
-      </div>
+          ))}
+          <hr style={line} />
+        </div>
+        <a
+          href={venue.mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-block",
+            marginTop: 24,
+            background: "#f9a094",
+            color: "#000000",
+            fontFamily: CALM_FONT,
+            fontSize: 16,
+            borderRadius: 50,
+            padding: "12px 32px",
+            textDecoration: "none",
+          }}
+        >
+          Ver en mapa
+        </a>
+      </Reveal>
     </section>
   );
 }
@@ -954,24 +959,20 @@ export default function InvitationOliva({
   photosPath?: string;
   musicSrc?: string;
 }) {
-  const [opened, setOpened] = useState(false);
-  const { playing, play, toggle } = useMusic(musicSrc, DESIGN_ID);
+  // Sin pantalla de entrada (13 nov 2026): la invitación abre directo y la
+  // música no puede arrancar sola (el navegador exige un gesto), así que el
+  // FAB queda a la vista para que el invitado la active.
+  const { playing, toggle } = useMusic(musicSrc, DESIGN_ID);
   const hasMusic = useFileExists(musicSrc);
-
-  const handleOpen = () => {
-    setOpened(true);
-    if (hasMusic) play();
-    window.scrollTo({ top: 0 });
-  };
 
   return (
     <div id="invitation-root" style={{ background: BG }}>
       {demo && <DemoBanner />}
-      {!opened && <CoverGate onOpen={handleOpen} demo={demo} photosPath={photosPath} />}
-      {opened && hasMusic && <MusicFab playing={playing} onToggle={toggle} />}
+      {hasMusic && <MusicFab playing={playing} onToggle={toggle} />}
 
       <main style={{ position: "relative", zIndex: 1 }}>
-        <DetallesSection demo={demo} photosPath={photosPath} />
+        <PortadaSection demo={demo} photosPath={photosPath} />
+        <InvitadoSection demo={demo} />
         <GrassSection photosPath={photosPath} />
         <ItinerarioSection photosPath={photosPath} />
         <VestimentaSection photosPath={photosPath} />

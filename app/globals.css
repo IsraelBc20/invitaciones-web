@@ -14,6 +14,14 @@
    títulos de sección). Solo trae peso normal: no ponerle font-weight bold
    o el navegador la engrosa a mano. */
 @font-face {
+  font-family: 'CalmíusSans High';
+  src: url('/fonts/calmiussans-high.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Hunters K-Pop";
   src: url("/fonts/Hunters%20K-Pop.otf") format("opentype");
   font-weight: normal;
