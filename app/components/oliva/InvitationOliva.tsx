@@ -44,10 +44,10 @@ const HORA = "4:00 PM";
 const WHATSAPP = "51993092110";
 
 const ITINERARIO = [
-  { file: "icono-anillos.png", hora: "4:00PM", nombre: "Ceremonia", Icon: Sparkles },
-  { file: "icono-copas.png", hora: "4:30PM", nombre: "Brindis", Icon: Wine },
-  { file: "icono-plato.png", hora: "5:00PM", nombre: "Hora de la comida", Icon: UtensilsCrossed },
-  { file: "icono-baile.png", hora: "6:00PM", nombre: "Baile", Icon: Music },
+  { file: "icono-anillos.png", hora: "4:00pm", nombre: "Ceremonia", Icon: Sparkles },
+  { file: "icono-copas.png", hora: "4:30pm", nombre: "Hora del brindis", Icon: Wine },
+  { file: "icono-plato.png", hora: "5:00pm", nombre: "Hora de la comida", Icon: UtensilsCrossed },
+  { file: "icono-baile.png", hora: "6:00pm", nombre: "Baile", Icon: Music },
 ];
 
 const COLORES = [
@@ -364,7 +364,7 @@ function InvitadoSection({ demo }: { demo: boolean }) {
     <section
       style={{
         background: `linear-gradient(to bottom, ${CASITA_GREEN}, ${GREEN_DARK} 140px)`,
-        padding: "32px 24px",
+        padding: "32px 24px 8px",
         textAlign: "center",
       }}
     >
@@ -448,20 +448,20 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
         backgroundSize: "100% auto",
         backgroundRepeat: "repeat-y",
         backgroundColor: GREEN_DARK,
-        padding: "40px 0 60px 0",
+        padding: "8px 0 40px 0",
       }}
     >
       <Reveal>
-        <div style={{ position: "relative", width: "96%", maxWidth: 440, margin: "0 auto" }}>
+        <div style={{ position: "relative", width: "100%", margin: 0 }}>
           <GardenImg
             photosPath={photosPath}
             file="itinerario-fondo-luces.png"
-            style={{ width: "100%", margin: "0 auto" }}
+            style={{ width: "100%" }}
           />
           <h2
             style={{
               position: "absolute",
-              top: "26%",
+              top: "24.5%",
               left: "50%",
               transform: "translateX(-50%)",
               margin: 0,
@@ -480,10 +480,10 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
           <ol
             style={{
               position: "absolute",
-              top: "34%",
-              bottom: "12%",
-              left: "10%",
-              right: "10%",
+              top: "31%",
+              bottom: "10%",
+              left: "17%",
+              right: "8%",
               margin: 0,
               padding: 0,
               listStyle: "none",
@@ -491,57 +491,59 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
               flexDirection: "column",
             }}
           >
-            {ITINERARIO.map(({ file, hora, nombre, Icon }, i) => (
+            {ITINERARIO.map(({ file, hora, nombre, Icon }) => (
               <li
                 key={file}
                 style={{
                   flex: 1,
-                  display: "grid",
-                  gridTemplateColumns: "60px auto 1fr",
+                  display: "flex",
                   alignItems: "center",
-                  columnGap: 10,
-                  borderTop: i === 0 ? "none" : `1px dashed ${GREEN}`,
+                  gap: 16,
                 }}
               >
                 <GardenImg
                   photosPath={photosPath}
                   file={file}
                   alt=""
-                  style={{ width: 60, height: 60, objectFit: "contain" }}
+                  style={{ width: 70, height: 70, objectFit: "contain", flexShrink: 0 }}
                   fallback={
                     <span
                       style={{
-                        width: 60,
-                        height: 60,
+                        width: 70,
+                        height: 70,
+                        flexShrink: 0,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Icon size={38} color={GREEN_DARK} strokeWidth={1.6} aria-hidden="true" />
+                      <Icon size={44} color={GREEN_DARK} strokeWidth={1.6} aria-hidden="true" />
                     </span>
                   }
                 />
-                <span
-                  style={{
-                    fontFamily: CALM_FONT,
-                    fontSize: "clamp(22px, 5.5vw, 28px)",
-                    color: GREEN_DARK,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {hora}
-                </span>
-                <span
-                  style={{
-                    fontFamily: CALM_FONT,
-                    fontSize: "clamp(16px, 4vw, 20px)",
-                    color: TEXT,
-                    lineHeight: 1.25,
-                  }}
-                >
-                  {nombre}
-                </span>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span
+                    style={{
+                      fontFamily: CALM_FONT,
+                      fontSize: "clamp(24px, 6vw, 30px)",
+                      color: GREEN_DARK,
+                      lineHeight: 1.1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {hora}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: CALM_FONT,
+                      fontSize: "clamp(15px, 4vw, 18px)",
+                      color: TEXT,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {nombre}
+                  </span>
+                </div>
               </li>
             ))}
           </ol>
