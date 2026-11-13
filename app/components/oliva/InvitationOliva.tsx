@@ -44,10 +44,10 @@ const HORA = "4:00 PM";
 const WHATSAPP = "51993092110";
 
 const ITINERARIO = [
-  { file: "icono-anillos.png", hora: "4:00pm", nombre: "Ceremonia", Icon: Sparkles },
-  { file: "icono-copas.png", hora: "4:30pm", nombre: "Brindis", Icon: Wine },
-  { file: "icono-plato.png", hora: "5:00pm", nombre: "Hora de la comida", Icon: UtensilsCrossed },
-  { file: "icono-baile.png", hora: "6:00pm", nombre: "Baile", Icon: Music },
+  { file: "icono-anillos.png", hora: "4:00PM", nombre: "Ceremonia", Icon: Sparkles },
+  { file: "icono-copas.png", hora: "4:30PM", nombre: "Brindis", Icon: Wine },
+  { file: "icono-plato.png", hora: "5:00PM", nombre: "Hora de la comida", Icon: UtensilsCrossed },
+  { file: "icono-baile.png", hora: "6:00PM", nombre: "Baile", Icon: Music },
 ];
 
 const COLORES = [
@@ -427,127 +427,131 @@ function InvitadoSection({ demo }: { demo: boolean }) {
   );
 }
 
-// ─── 3. Pasto + separador de flores ──────────────────────────────────────────
+// ─── 3. Pasto (tres franjas seguidas) ────────────────────────────────────────
 
 function GrassSection({ photosPath }: { photosPath: string }) {
   return (
-    <section aria-hidden="true" style={{ position: "relative", background: "#3c6028" }}>
-      <GardenImg photosPath={photosPath} file="fondo-grass.png" style={{ width: "100%" }} />
-      <GardenImg photosPath={photosPath} file="fondo-grass.png" style={{ width: "100%" }} />
-      {/* El separador va sobre la unión de los dos pastos. */}
-      <GardenImg
-        photosPath={photosPath}
-        file="separador-flores.png"
-        style={{
-          position: "absolute",
-          left: 0,
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "100%",
-          zIndex: 1,
-        }}
-      />
+    <section aria-hidden="true" style={{ background: "#3c6028" }}>
+      {/* La última fila de fondo-grass.png es clara (#a1b398) y marcaba una
+          línea en cada unión: se recortan 2px de cada franja. */}
+      {[0, 1, 2].map((i) => (
+        <div key={i} style={{ overflow: "hidden" }}>
+          <GardenImg
+            photosPath={photosPath}
+            file="fondo-grass.png"
+            style={{ width: "100%", marginBottom: -2 }}
+          />
+        </div>
+      ))}
     </section>
   );
 }
 
 // ─── 4. Itinerario ───────────────────────────────────────────────────────────
+// itinerario-fondo-luces.png (425×873) es un óvalo beige con la guirnalda ya
+// dibujada. El óvalo va del ~12% al 100% del alto y las luces lo cruzan entre
+// el 11% y el 24%, por eso el título va debajo de ellas. Los porcentajes del
+// título y de la lista están medidos sobre ese PNG: si se cambia, reajustar.
 
 function ItinerarioSection({ photosPath }: { photosPath: string }) {
   return (
-    <section style={{ position: "relative", background: BG, padding: "8px 24px 56px" }}>
-      {/* Borde ondulado sobre el pasto. */}
-      <svg
-        viewBox="0 0 1200 60"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          left: 0,
-          top: -39,
-          width: "100%",
-          height: 40,
-          display: "block",
-        }}
-      >
-        <path
-          d="M0,30 Q150,0 300,30 Q450,60 600,30 Q750,0 900,30 Q1050,60 1200,30 L1200,60 L0,60 Z"
-          fill={BG}
-        />
-      </svg>
-
-      <Reveal style={{ textAlign: "center" }}>
-        <GardenImg
-          photosPath={photosPath}
-          file="itinerario-luces.png"
-          style={{ width: "80%", maxWidth: 320, margin: "0 auto" }}
-        />
-        <h2
-          style={{
-            fontFamily: TITLE_FONT,
-            fontSize: "clamp(32px, 9vw, 48px)",
-            color: GREEN_DARK,
-            fontWeight: "normal",
-            margin: "4px 0 20px",
-          }}
-        >
-          Itinerario
-        </h2>
-      </Reveal>
-
-      <ol style={{ listStyle: "none", margin: "0 auto", padding: 0, maxWidth: 340 }}>
-        {ITINERARIO.map(({ file, hora, nombre, Icon }, i) => (
-          <li
-            key={file}
+    <section style={{ background: GREEN_DARK, padding: "32px 0 48px" }}>
+      <Reveal>
+        <div style={{ position: "relative", width: "90%", maxWidth: 380, margin: "0 auto" }}>
+          <GardenImg
+            photosPath={photosPath}
+            file="itinerario-fondo-luces.png"
+            style={{ width: "100%", margin: "0 auto" }}
+          />
+          <h2
             style={{
-              borderTop: i === 0 ? "none" : `2px dotted ${GREEN}`,
-              padding: "16px 0",
+              position: "absolute",
+              top: "26%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              margin: 0,
+              fontFamily: CALM_FONT,
+              fontSize: "clamp(28px, 7vw, 40px)",
+              color: GREEN_DARK,
+              fontWeight: "normal",
+              textAlign: "center",
+              whiteSpace: "nowrap",
+              lineHeight: 1,
             }}
           >
-            <Reveal
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 60px 1fr",
-                alignItems: "center",
-                gap: 16,
-              }}
-            >
-              <span
+            Itinerario
+          </h2>
+
+          <ol
+            style={{
+              position: "absolute",
+              top: "34%",
+              bottom: "12%",
+              left: "13%",
+              right: "13%",
+              margin: 0,
+              padding: 0,
+              listStyle: "none",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {ITINERARIO.map(({ file, hora, nombre, Icon }, i) => (
+              <li
+                key={file}
                 style={{
-                  fontFamily: TITLE_FONT,
-                  fontSize: "clamp(22px, 6vw, 28px)",
-                  color: GREEN_DARK,
-                  textAlign: "right",
+                  flex: 1,
+                  display: "grid",
+                  gridTemplateColumns: "50px auto 1fr",
+                  alignItems: "center",
+                  columnGap: 10,
+                  borderTop: i === 0 ? "none" : `1px dashed ${GREEN}`,
                 }}
               >
-                {hora}
-              </span>
-              <GardenImg
-                photosPath={photosPath}
-                file={file}
-                alt=""
-                style={{ width: 60, height: 60, objectFit: "contain" }}
-                fallback={
-                  <span
-                    style={{
-                      width: 60,
-                      height: 60,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Icon size={40} color={GREEN_DARK} strokeWidth={1.6} aria-hidden="true" />
-                  </span>
-                }
-              />
-              <span style={{ fontFamily: BODY_FONT, fontSize: 15, color: TEXT, lineHeight: 1.3 }}>
-                {nombre}
-              </span>
-            </Reveal>
-          </li>
-        ))}
-      </ol>
+                <GardenImg
+                  photosPath={photosPath}
+                  file={file}
+                  alt=""
+                  style={{ width: 50, height: 50, objectFit: "contain" }}
+                  fallback={
+                    <span
+                      style={{
+                        width: 50,
+                        height: 50,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Icon size={32} color={GREEN_DARK} strokeWidth={1.6} aria-hidden="true" />
+                    </span>
+                  }
+                />
+                <span
+                  style={{
+                    fontFamily: CALM_FONT,
+                    fontSize: "clamp(18px, 4.5vw, 22px)",
+                    color: GREEN_DARK,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {hora}
+                </span>
+                <span
+                  style={{
+                    fontFamily: CALM_FONT,
+                    fontSize: "clamp(14px, 3.5vw, 17px)",
+                    color: TEXT,
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {nombre}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </Reveal>
     </section>
   );
 }
