@@ -5,7 +5,7 @@ existe ahi, la invitacion carga el de esta carpeta.
   portada-fondo.png      Portada: arco con arboles y luces (ancho completo)
   portada-pareja.png     Portada: pareja sobre el borde inferior del arco
   portada-casita.png     Detalles del evento (fecha, hora, lugar)
-  fondo-grass.png        Pasto (se repite tres veces)
+  fondo-grass.png        Pasto: fondo CSS (repeat-y) del itinerario
   separador-flores.png   Sin uso desde el 13 nov 2026
   itinerario-luces.png   Sin uso (reemplazado por itinerario-fondo-luces.png)
   itinerario-fondo-luces.png  Ovalo beige con guirnalda; fondo del itinerario

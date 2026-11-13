@@ -427,37 +427,32 @@ function InvitadoSection({ demo }: { demo: boolean }) {
   );
 }
 
-// ─── 3. Pasto (tres franjas seguidas) ────────────────────────────────────────
-
-function GrassSection({ photosPath }: { photosPath: string }) {
-  return (
-    <section aria-hidden="true" style={{ background: "#3c6028" }}>
-      {/* La última fila de fondo-grass.png es clara (#a1b398) y marcaba una
-          línea en cada unión: se recortan 2px de cada franja. */}
-      {[0, 1, 2].map((i) => (
-        <div key={i} style={{ overflow: "hidden" }}>
-          <GardenImg
-            photosPath={photosPath}
-            file="fondo-grass.png"
-            style={{ width: "100%", marginBottom: -2 }}
-          />
-        </div>
-      ))}
-    </section>
-  );
-}
-
-// ─── 4. Itinerario ───────────────────────────────────────────────────────────
+// ─── 3. Itinerario ───────────────────────────────────────────────────────────
 // itinerario-fondo-luces.png (425×873) es un óvalo beige con la guirnalda ya
 // dibujada. El óvalo va del ~12% al 100% del alto y las luces lo cruzan entre
 // el 11% y el 24%, por eso el título va debajo de ellas. Los porcentajes del
 // título y de la lista están medidos sobre ese PNG: si se cambia, reajustar.
 
+// El pasto es el fondo CSS de la sección (repeat-y, 13 nov 2026), no imágenes
+// apiladas. Si la carpeta del cliente no trae fondo-grass.png, la segunda capa
+// (la del demo) queda a la vista.
 function ItinerarioSection({ photosPath }: { photosPath: string }) {
+  const grass = [photosPath, DEMO_PHOTOS_PATH]
+    .filter((p, i, all) => all.indexOf(p) === i)
+    .map((p) => `url(${p}/fondo-grass.png)`)
+    .join(", ");
   return (
-    <section style={{ background: GREEN_DARK, padding: "32px 0 48px" }}>
+    <section
+      style={{
+        backgroundImage: grass,
+        backgroundSize: "100% auto",
+        backgroundRepeat: "repeat-y",
+        backgroundColor: GREEN_DARK,
+        padding: "40px 0 60px 0",
+      }}
+    >
       <Reveal>
-        <div style={{ position: "relative", width: "90%", maxWidth: 380, margin: "0 auto" }}>
+        <div style={{ position: "relative", width: "96%", maxWidth: 440, margin: "0 auto" }}>
           <GardenImg
             photosPath={photosPath}
             file="itinerario-fondo-luces.png"
@@ -471,7 +466,7 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
               transform: "translateX(-50%)",
               margin: 0,
               fontFamily: CALM_FONT,
-              fontSize: "clamp(28px, 7vw, 40px)",
+              fontSize: "clamp(32px, 8.5vw, 48px)",
               color: GREEN_DARK,
               fontWeight: "normal",
               textAlign: "center",
@@ -487,8 +482,8 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
               position: "absolute",
               top: "34%",
               bottom: "12%",
-              left: "13%",
-              right: "13%",
+              left: "10%",
+              right: "10%",
               margin: 0,
               padding: 0,
               listStyle: "none",
@@ -502,7 +497,7 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
                 style={{
                   flex: 1,
                   display: "grid",
-                  gridTemplateColumns: "50px auto 1fr",
+                  gridTemplateColumns: "60px auto 1fr",
                   alignItems: "center",
                   columnGap: 10,
                   borderTop: i === 0 ? "none" : `1px dashed ${GREEN}`,
@@ -512,25 +507,25 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
                   photosPath={photosPath}
                   file={file}
                   alt=""
-                  style={{ width: 50, height: 50, objectFit: "contain" }}
+                  style={{ width: 60, height: 60, objectFit: "contain" }}
                   fallback={
                     <span
                       style={{
-                        width: 50,
-                        height: 50,
+                        width: 60,
+                        height: 60,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Icon size={32} color={GREEN_DARK} strokeWidth={1.6} aria-hidden="true" />
+                      <Icon size={38} color={GREEN_DARK} strokeWidth={1.6} aria-hidden="true" />
                     </span>
                   }
                 />
                 <span
                   style={{
                     fontFamily: CALM_FONT,
-                    fontSize: "clamp(18px, 4.5vw, 22px)",
+                    fontSize: "clamp(22px, 5.5vw, 28px)",
                     color: GREEN_DARK,
                     whiteSpace: "nowrap",
                   }}
@@ -540,7 +535,7 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
                 <span
                   style={{
                     fontFamily: CALM_FONT,
-                    fontSize: "clamp(14px, 3.5vw, 17px)",
+                    fontSize: "clamp(16px, 4vw, 20px)",
                     color: TEXT,
                     lineHeight: 1.25,
                   }}
@@ -556,7 +551,7 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
   );
 }
 
-// ─── 5. Código de vestimenta ─────────────────────────────────────────────────
+// ─── 4. Código de vestimenta ─────────────────────────────────────────────────
 
 function VestimentaSection({ photosPath }: { photosPath: string }) {
   return (
@@ -656,7 +651,7 @@ function VestimentaSection({ photosPath }: { photosPath: string }) {
   );
 }
 
-// ─── 6. Reserva (RSVP por WhatsApp) ──────────────────────────────────────────
+// ─── 5. Reserva (RSVP por WhatsApp) ──────────────────────────────────────────
 
 type Asistencia = "" | "si" | "no";
 
@@ -834,7 +829,7 @@ function ReservaSection() {
   );
 }
 
-// ─── 7. Cierre ───────────────────────────────────────────────────────────────
+// ─── 6. Cierre ───────────────────────────────────────────────────────────────
 
 function CierreSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const couple = coupleFor(demo);
@@ -978,7 +973,6 @@ export default function InvitationOliva({
       <main style={{ position: "relative", zIndex: 1 }}>
         <PortadaSection demo={demo} photosPath={photosPath} />
         <InvitadoSection demo={demo} />
-        <GrassSection photosPath={photosPath} />
         <ItinerarioSection photosPath={photosPath} />
         <VestimentaSection photosPath={photosPath} />
         {/* Reserva y cierre comparten el mismo cielo. */}
