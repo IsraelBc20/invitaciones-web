@@ -342,11 +342,23 @@ function PortadaSection({ demo, photosPath }: { demo: boolean; photosPath: strin
 // ─── 2. ¡Estás invitado! (detalles) ──────────────────────────────────────────
 
 const CREAM = "#f1deb3";
-// Verde del borde inferior de portada-casita.png (muestreado): el fondo arranca
-// ahí y baja a GREEN_DARK para que no se vea la costura con la imagen.
-const CASITA_GREEN = "#396125";
 
-function InvitadoSection({ demo }: { demo: boolean }) {
+// Pasto como fondo CSS (repeat-y), compartido por "¡Estás invitado!" y el
+// itinerario (13 nov 2026) para que no haya cortes de verde plano. Si la
+// carpeta del cliente no trae fondo-grass.png, queda a la vista la capa del demo.
+function grassBackground(photosPath: string): React.CSSProperties {
+  return {
+    backgroundImage: [photosPath, DEMO_PHOTOS_PATH]
+      .filter((p, i, all) => all.indexOf(p) === i)
+      .map((p) => `url(${p}/fondo-grass.png)`)
+      .join(", "),
+    backgroundSize: "100% auto",
+    backgroundRepeat: "repeat-y",
+    backgroundColor: GREEN_DARK,
+  };
+}
+
+function InvitadoSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const venue = venueFor(demo);
   const rows = [
     { Icon: CalendarDays, text: FECHA },
@@ -363,8 +375,9 @@ function InvitadoSection({ demo }: { demo: boolean }) {
   return (
     <section
       style={{
-        background: `linear-gradient(to bottom, ${CASITA_GREEN}, ${GREEN_DARK} 140px)`,
-        padding: "32px 24px 8px",
+        ...grassBackground(photosPath),
+        // Abajo 8px y no 40: el itinerario va pegado al botón "Ver en mapa".
+        padding: "40px 24px 8px",
         textAlign: "center",
       }}
     >
@@ -372,9 +385,9 @@ function InvitadoSection({ demo }: { demo: boolean }) {
         <h2
           style={{
             fontFamily: CALM_FONT,
-            fontSize: "clamp(28px, 7.5vw, 40px)",
+            fontSize: "clamp(32px, 8.5vw, 44px)",
             color: CREAM,
-            fontWeight: "normal",
+            fontWeight: "bold",
             margin: "0 0 24px",
           }}
         >
@@ -392,11 +405,11 @@ function InvitadoSection({ demo }: { demo: boolean }) {
                   gap: 12,
                   padding: "14px 0",
                   fontFamily: CALM_FONT,
-                  fontSize: "clamp(14px, 4vw, 18px)",
+                  fontSize: "clamp(16px, 4.5vw, 20px)",
                   color: CREAM,
                 }}
               >
-                <Icon size={20} color={CREAM} aria-hidden="true" style={{ flexShrink: 0 }} />
+                <Icon size={24} color={CREAM} aria-hidden="true" style={{ flexShrink: 0 }} />
                 <span>{text}</span>
               </div>
             </div>
@@ -413,10 +426,10 @@ function InvitadoSection({ demo }: { demo: boolean }) {
             background: "#f9a094",
             color: "#000000",
             fontFamily: CALM_FONT,
-            fontSize: 16,
+            fontSize: "clamp(18px, 5vw, 22px)",
             fontWeight: "bold",
             borderRadius: 50,
-            padding: "12px 32px",
+            padding: "16px 40px",
             textDecoration: "none",
           }}
         >
@@ -433,21 +446,11 @@ function InvitadoSection({ demo }: { demo: boolean }) {
 // el 11% y el 24%, por eso el título va debajo de ellas. Los porcentajes del
 // título y de la lista están medidos sobre ese PNG: si se cambia, reajustar.
 
-// El pasto es el fondo CSS de la sección (repeat-y, 13 nov 2026), no imágenes
-// apiladas. Si la carpeta del cliente no trae fondo-grass.png, la segunda capa
-// (la del demo) queda a la vista.
 function ItinerarioSection({ photosPath }: { photosPath: string }) {
-  const grass = [photosPath, DEMO_PHOTOS_PATH]
-    .filter((p, i, all) => all.indexOf(p) === i)
-    .map((p) => `url(${p}/fondo-grass.png)`)
-    .join(", ");
   return (
     <section
       style={{
-        backgroundImage: grass,
-        backgroundSize: "100% auto",
-        backgroundRepeat: "repeat-y",
-        backgroundColor: GREEN_DARK,
+        ...grassBackground(photosPath),
         padding: "8px 0 40px 0",
       }}
     >
@@ -974,7 +977,7 @@ export default function InvitationOliva({
 
       <main style={{ position: "relative", zIndex: 1 }}>
         <PortadaSection demo={demo} photosPath={photosPath} />
-        <InvitadoSection demo={demo} />
+        <InvitadoSection demo={demo} photosPath={photosPath} />
         <ItinerarioSection photosPath={photosPath} />
         <VestimentaSection photosPath={photosPath} />
         {/* Reserva y cierre comparten el mismo cielo. */}
