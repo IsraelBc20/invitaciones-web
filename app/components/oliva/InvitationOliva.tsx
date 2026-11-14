@@ -31,7 +31,6 @@ const TEXT = "#3a2a1a";
 const SKY = "#108dfb";
 
 const TITLE_FONT = "'Perandory', 'Playfair Display', serif";
-const SUB_FONT = "'Playfair Display', Georgia, serif";
 const BODY_FONT = "'DM Sans', system-ui, sans-serif";
 // Portada y "¡Estás invitado!" (13 nov 2026; @font-face en globals.css).
 const CALM_FONT = "'CalmíusSans High', 'Playfair Display', serif";
@@ -557,30 +556,25 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
 }
 
 // ─── Separador de flores (itinerario → vestimenta) ───────────────────────────
-// separador-flores.png (425×238) es transparente: va sobre el mismo pasto del
-// itinerario y su franja inferior (solo pétalos sueltos, ~10% del ancho) se
-// monta sobre el cielo, así los arbustos quedan en el horizonte. zIndex 2 para
-// quedar encima de la sección de vestimenta, que es position: relative.
+// separador-flores.png (425×238) es transparente y solo en su fila ~125 los
+// arbustos cubren el 100% del ancho. Va solapado sobre las dos secciones sin
+// ocupar lugar propio: los márgenes (en % del ancho, así escalan con el PNG)
+// suman su alto exacto y ponen la unión verde/azul justo en esa fila, que la
+// tapa. Si se cambia el PNG, volver a medir esa fila.
 
 function SeparadorFlores({ photosPath }: { photosPath: string }) {
   return (
     <div
       aria-hidden="true"
       style={{
-        ...grassBackground(photosPath),
-        backgroundPosition: "bottom",
         position: "relative",
         zIndex: 2,
-        // Sin esto el margen negativo del <img> se colapsa con el del div y el
-        // pasto también taparía el cielo.
-        display: "flow-root",
+        marginTop: "-29.4%",
+        marginBottom: "-26.6%",
+        pointerEvents: "none",
       }}
     >
-      <GardenImg
-        photosPath={photosPath}
-        file="separador-flores.png"
-        style={{ width: "100%", margin: "0 0 -10%" }}
-      />
+      <GardenImg photosPath={photosPath} file="separador-flores.png" style={{ width: "100%" }} />
     </div>
   );
 }
@@ -720,6 +714,11 @@ function VestimentaSection({ photosPath }: { photosPath: string }) {
 
 // ─── 5. Reserva (RSVP por WhatsApp) ──────────────────────────────────────────
 
+// Textos claros directo sobre el cielo, sin tarjeta (13 nov 2026).
+const LIGHT = "#efefef";
+// Sombra suave para que el texto claro se lea sobre las nubes.
+const LIGHT_SHADOW = "0 1px 4px rgba(0, 40, 90, 0.35)";
+
 type Asistencia = "" | "si" | "no";
 
 function ReservaSection() {
@@ -751,9 +750,10 @@ function ReservaSection() {
 
   const labelStyle: React.CSSProperties = {
     display: "block",
-    fontFamily: SUB_FONT,
-    fontSize: 15,
-    color: GREEN_DARK,
+    fontFamily: CALM_FONT,
+    fontSize: "clamp(15px, 4vw, 18px)",
+    color: LIGHT,
+    textShadow: LIGHT_SHADOW,
     marginBottom: 8,
     lineHeight: 1.35,
   };
@@ -764,36 +764,39 @@ function ReservaSection() {
     fontSize: 16,
     color: TEXT,
     background: "#ffffff",
-    border: `1px solid rgba(74, 124, 53, 0.45)`,
-    borderRadius: 10,
-    padding: "11px 12px",
+    border: "1px solid rgba(0, 0, 0, 0.08)",
+    borderRadius: 25,
+    padding: "12px 16px",
     outline: "none",
   };
   const errorStyle: React.CSSProperties = {
     fontFamily: BODY_FONT,
     fontSize: 13,
-    color: "#b5523a",
+    color: "#ffe0d6",
+    textShadow: LIGHT_SHADOW,
     margin: "6px 0 0",
   };
   const radioRow: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    fontFamily: BODY_FONT,
-    fontSize: 15,
-    color: TEXT,
+    fontFamily: CALM_FONT,
+    fontSize: "clamp(15px, 4vw, 18px)",
+    color: LIGHT,
+    textShadow: LIGHT_SHADOW,
     cursor: "pointer",
     padding: "4px 0",
   };
 
   return (
-    <section style={{ position: "relative", padding: "56px 18px 32px" }}>
+    // El fondo-cielo-2.png lo pone el contenedor que comparte con el cierre.
+    <section style={{ position: "relative", padding: "40px 24px" }}>
       <Reveal>
         <h2
           style={{
-            fontFamily: TITLE_FONT,
-            fontSize: "clamp(32px, 9vw, 48px)",
-            color: "#ffffff",
+            fontFamily: CALM_FONT,
+            fontSize: "clamp(32px, 9vw, 46px)",
+            color: LIGHT,
             fontWeight: "normal",
             textAlign: "center",
             margin: "0 0 20px",
@@ -806,13 +809,7 @@ function ReservaSection() {
         <form
           noValidate
           onSubmit={handleSubmit}
-          style={{
-            background: "rgba(255, 255, 255, 0.85)",
-            borderRadius: 16,
-            padding: 24,
-            display: "grid",
-            gap: 20,
-          }}
+          style={{ display: "grid", gap: 20 }}
         >
           <div>
             <label htmlFor="rsvp-nombre" style={labelStyle}>
@@ -887,7 +884,20 @@ function ReservaSection() {
             />
           </div>
 
-          <button type="submit" style={{ ...pillStyle, width: "100%" }}>
+          <button
+            type="submit"
+            style={{
+              ...pillStyle,
+              justifySelf: "center",
+              background: "#f9a094",
+              color: "#000000",
+              padding: "14px 40px",
+              fontFamily: CALM_FONT,
+              fontSize: "clamp(17px, 4.5vw, 20px)",
+              fontWeight: "normal",
+              boxShadow: "0 6px 16px rgba(0, 40, 90, 0.2)",
+            }}
+          >
             Enviar datos
           </button>
         </form>
