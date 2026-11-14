@@ -63,11 +63,36 @@ function formatDate(iso: string) {
   });
 }
 
+// Ilustración del demo (14 nov 2026) para la galería vacía o con error.
+// fotos.png es 1366×768 con el dibujo al centro y mucho margen crema (del mismo
+// tono que --bg): se recorta a un cuadrado centrado para que el dibujo no
+// quede diminuto a 280px de ancho.
+const DEMO_EMPTY_IMAGE = "/tortuga-tropical-demo/photos/fotos.png";
+
+function GalleryArt({ src }: { src: string }) {
+  const crop = src === DEMO_EMPTY_IMAGE;
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      style={{
+        display: "block",
+        width: "100%",
+        maxWidth: crop ? 280 : 500,
+        margin: "0 auto 16px",
+        ...(crop ? { aspectRatio: "1 / 1", objectFit: "cover" as const } : {}),
+      }}
+    />
+  );
+}
+
 export default function GalleryTortuga({
   backHref = "/tortuga-tropical",
   invitation = DEMO_INVITATION,
   musicSrc = MUSIC_SRC,
-  emptyImage = "/tortuga-tropical-demo/photos/tortuga-galeria.png",
+  emptyImage = DEMO_EMPTY_IMAGE,
 }: {
   backHref?: string;
   // Slug de la invitación: 'demo' o el del cliente (p. ej. 'israel-y-marisol').
@@ -76,8 +101,9 @@ export default function GalleryTortuga({
   // La galería de un cliente pasa la misma canción que su invitación
   // (p. ej. /tortuga-tropical/israel-y-marisol/music.mp3) para que el audio continúe.
   musicSrc?: string;
-  // Imagen del estado vacío ("Aún no hay recuerdos"). El demo usa la tortuga
-  // del diseño; cada cliente puede pasar la suya (p. ej. foto-galeria.png).
+  // Imagen de la galería vacía ("Aún no hay recuerdos", que también cubre el
+  // antes del 12 de septiembre) y de la de error. El demo usa fotos.png; cada
+  // cliente puede pasar la suya (p. ej. foto-galeria.png).
   emptyImage?: string;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
@@ -237,9 +263,10 @@ export default function GalleryTortuga({
             Cargando recuerdos...
           </div>
         ) : error ? (
-          <div style={{ textAlign: "center", padding: "80px 28px" }}>
-            <div style={{ marginBottom: 14 }}>
-              <WifiOff size={46} strokeWidth={1.4} color="var(--ink)" />
+          <div style={{ textAlign: "center", padding: "48px 28px 80px" }}>
+            <GalleryArt src={emptyImage} />
+            <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
+              <WifiOff size={28} strokeWidth={1.4} color="var(--ink)" />
             </div>
             <h3
               style={{
@@ -287,15 +314,10 @@ export default function GalleryTortuga({
               alignItems: "center",
               justifyContent: "center",
               textAlign: "center",
-              padding: "80px 28px",
+              padding: "48px 28px 80px",
             }}
           >
-            <img
-              src={emptyImage}
-              alt="Sin fotos aún"
-              draggable={false}
-              style={{ width: 500, marginBottom: 16, margin: "0 auto 16px", display: "block" }}
-            />
+            <GalleryArt src={emptyImage} />
             <h3
               style={{
                 fontFamily: DISPLAY,
