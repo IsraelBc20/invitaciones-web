@@ -15,6 +15,7 @@ existe ahi, la invitacion carga el de esta carpeta.
   icono-plato.png        Itinerario: Comida        (falta: se ve un icono lucide)
   icono-baile.png        Itinerario: Baile         (falta: se ve un icono lucide)
   fondo-cielo-1.png      Fondo del codigo de vestimenta
+  vestimenta-fondo.png   Pildora beige detras del codigo de vestimenta
   vestimenta.png         Vestido y traje de ejemplo
   fondo-cielo-2.png      Fondo de reserva y cierre
   cierre-pareja.png      Ultima imagen de la invitacion

@@ -52,9 +52,9 @@ const ITINERARIO = [
 
 const COLORES = [
   { hex: "#1a2744", nombre: "Midnight Navy" },
-  { hex: "#c4714a", nombre: "Terracota" },
-  { hex: "#f0ede8", nombre: "Immaculata", borde: true },
-  { hex: "#4a5e3a", nombre: "Olive Green" },
+  { hex: "#7a9cb5", nombre: "Fresco Blue" },
+  { hex: "#c08457", nombre: "Terracotta" },
+  { hex: "#6b7348", nombre: "Olive Green" },
   { hex: "#c9a84c", nombre: "Antique Gold" },
 ];
 
@@ -557,99 +557,130 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
 }
 
 // ─── 4. Código de vestimenta ─────────────────────────────────────────────────
+// Tres capas (13 nov 2026): fondo-cielo-1.png como fondo CSS de la sección →
+// vestimenta-fondo.png (píldora beige, 389×806) → contenido centrado encima.
+
+const GRIS = "#545454";
 
 function VestimentaSection({ photosPath }: { photosPath: string }) {
-  return (
-    <section style={{ position: "relative", padding: "56px 18px", background: SKY }}>
-      <GardenImg
-        photosPath={photosPath}
-        file="fondo-cielo-1.png"
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-        }}
-      />
-      <Reveal style={{ position: "relative" }}>
-        <div
-          style={{
-            background: BG,
-            borderRadius: 16,
-            padding: 24,
-            textAlign: "center",
-            boxShadow: "0 12px 30px rgba(0, 40, 90, 0.2)",
-          }}
-        >
-          <h2
-            style={{
-              fontFamily: TITLE_FONT,
-              fontSize: "clamp(26px, 7vw, 36px)",
-              color: GREEN_DARK,
-              fontWeight: "normal",
-              margin: "0 0 10px",
-            }}
-          >
-            Código de vestimenta
-          </h2>
-          <p style={{ fontFamily: BODY_FONT, fontSize: 15, color: TEXT, margin: "0 0 20px", lineHeight: 1.5 }}>
-            Nos encantaría verte con cualquiera de estos colores
-          </p>
+  const cielo = [photosPath, DEMO_PHOTOS_PATH]
+    .filter((p, i, all) => all.indexOf(p) === i)
+    .map((p) => `url(${p}/fondo-cielo-1.png)`)
+    .join(", ");
 
-          <ul
+  return (
+    <section
+      style={{
+        position: "relative",
+        backgroundImage: cielo,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundColor: SKY,
+        padding: "40px 0",
+      }}
+    >
+      <Reveal>
+        <div style={{ position: "relative", width: "90%", maxWidth: 400, margin: "0 auto" }}>
+          <GardenImg photosPath={photosPath} file="vestimenta-fondo.png" style={{ width: "100%" }} />
+
+          <div
             style={{
-              listStyle: "none",
-              margin: 0,
-              padding: 0,
+              position: "absolute",
+              inset: 0,
               display: "flex",
-              flexWrap: "wrap",
+              flexDirection: "column",
+              alignItems: "center",
               justifyContent: "center",
-              gap: 12,
+              padding: 24,
+              textAlign: "center",
             }}
           >
-            {COLORES.map(({ hex, nombre, borde }) => (
-              <li
-                key={hex}
-                style={{
-                  width: 48,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <span
+            <h2
+              style={{
+                fontFamily: CALM_FONT,
+                fontSize: "clamp(26px, 7vw, 38px)",
+                color: "#000000",
+                fontWeight: "bold",
+                lineHeight: 1.1,
+                margin: "0 0 14px",
+              }}
+            >
+              Código
+              <br />
+              de vestimenta
+            </h2>
+            <p
+              style={{
+                fontFamily: CALM_FONT,
+                fontSize: "clamp(13px, 3.8vw, 16px)",
+                color: GRIS,
+                lineHeight: 1.35,
+                margin: "0 0 22px",
+              }}
+            >
+              Nos encantaría verte
+              <br />
+              con cualquiera de
+              <br />
+              estos colores
+            </p>
+
+            <ul
+              style={{
+                listStyle: "none",
+                margin: 0,
+                padding: 0,
+                display: "flex",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              {COLORES.map(({ hex, nombre }) => (
+                <li
+                  key={hex}
                   style={{
                     width: 48,
-                    height: 48,
-                    borderRadius: "50%",
-                    background: hex,
-                    border: borde ? "1px solid #ccc" : "none",
-                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.12)",
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: BODY_FONT,
-                    fontSize: 10,
-                    color: TEXT,
-                    textAlign: "center",
-                    lineHeight: 1.2,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  {nombre}
-                </span>
-              </li>
-            ))}
-          </ul>
+                  <span
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      background: hex,
+                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.12)",
+                    }}
+                  />
+                  {/* "Midnight Navy" → "Midnight" / "Navy" */}
+                  <span
+                    style={{
+                      fontFamily: CALM_FONT,
+                      fontSize: 9,
+                      color: GRIS,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {nombre.split(" ").map((w, i) => (
+                      <span key={i} style={{ display: "block" }}>
+                        {w}
+                      </span>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
 
-          <GardenImg
-            photosPath={photosPath}
-            file="vestimenta.png"
-            alt="Vestido y traje de ejemplo"
-            style={{ width: "80%", maxWidth: 320, margin: "22px auto 0" }}
-          />
+            <GardenImg
+              photosPath={photosPath}
+              file="vestimenta.png"
+              alt="Vestido y traje de ejemplo"
+              style={{ width: "80%", maxWidth: 300, margin: "22px auto 0" }}
+            />
+          </div>
         </div>
       </Reveal>
     </section>
