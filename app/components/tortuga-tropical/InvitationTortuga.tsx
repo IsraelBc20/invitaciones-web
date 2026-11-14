@@ -405,6 +405,17 @@ function IntroGate({
   photosPath: string;
   demo: boolean;
 }) {
+  // Demo (14 nov 2026): entrada.png opcional a pantalla completa, como intro.png
+  // en el cliente. Arranca oculta y solo se muestra (con su capa oscura) si
+  // carga; si no existe queda el degradado. naturalWidth se revisa al montar
+  // porque si carga antes de hidratar, onLoad nunca llega a React.
+  const [entradaOk, setEntradaOk] = useState(false);
+  const entradaRef = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    const img = entradaRef.current;
+    if (img?.complete && img.naturalWidth > 0) setEntradaOk(true);
+  }, []);
+
   return (
     <div
       style={{
@@ -434,18 +445,43 @@ function IntroGate({
               background: `radial-gradient(120% 90% at 50% 0%, ${TEAL_DARK} 0%, ${INK} 62%, #01374a 100%)`,
             }}
           />
-          <Deco
-            file="deco-tortuga.png"
-            width={90}
-            opacity={0.9}
-            style={{ position: "absolute", top: 46, right: 30 }}
+          <img
+            ref={entradaRef}
+            src={`${DEMO_PHOTOS_PATH}/entrada.png`}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            onLoad={() => setEntradaOk(true)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: entradaOk ? "block" : "none",
+            }}
           />
-          <Deco
-            file="deco-hoja.png"
-            width={210}
-            opacity={0.18}
-            style={{ position: "absolute", bottom: -40, left: -60 }}
-          />
+          {entradaOk ? (
+            <div
+              aria-hidden="true"
+              style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }}
+            />
+          ) : (
+            <>
+              <Deco
+                file="deco-tortuga.png"
+                width={90}
+                opacity={0.9}
+                style={{ position: "absolute", top: 46, right: 30 }}
+              />
+              <Deco
+                file="deco-hoja.png"
+                width={210}
+                opacity={0.18}
+                style={{ position: "absolute", bottom: -40, left: -60 }}
+              />
+            </>
+          )}
         </>
       ) : (
         <>
