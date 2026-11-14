@@ -556,6 +556,35 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
   );
 }
 
+// ─── Separador de flores (itinerario → vestimenta) ───────────────────────────
+// separador-flores.png (425×238) es transparente: va sobre el mismo pasto del
+// itinerario y su franja inferior (solo pétalos sueltos, ~10% del ancho) se
+// monta sobre el cielo, así los arbustos quedan en el horizonte. zIndex 2 para
+// quedar encima de la sección de vestimenta, que es position: relative.
+
+function SeparadorFlores({ photosPath }: { photosPath: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        ...grassBackground(photosPath),
+        backgroundPosition: "bottom",
+        position: "relative",
+        zIndex: 2,
+        // Sin esto el margen negativo del <img> se colapsa con el del div y el
+        // pasto también taparía el cielo.
+        display: "flow-root",
+      }}
+    >
+      <GardenImg
+        photosPath={photosPath}
+        file="separador-flores.png"
+        style={{ width: "100%", margin: "0 0 -10%" }}
+      />
+    </div>
+  );
+}
+
 // ─── 4. Código de vestimenta ─────────────────────────────────────────────────
 // Tres capas (13 nov 2026): fondo-cielo-1.png como fondo CSS de la sección →
 // vestimenta-fondo.png (píldora beige, 389×806) → contenido centrado encima.
@@ -598,9 +627,9 @@ function VestimentaSection({ photosPath }: { photosPath: string }) {
             <h2
               style={{
                 fontFamily: CALM_FONT,
-                fontSize: "clamp(26px, 7vw, 38px)",
+                fontSize: "clamp(32px, 8.5vw, 46px)",
                 color: "#000000",
-                fontWeight: "bold",
+                fontWeight: "normal",
                 lineHeight: 1.1,
                 margin: "0 0 14px",
               }}
@@ -612,8 +641,9 @@ function VestimentaSection({ photosPath }: { photosPath: string }) {
             <p
               style={{
                 fontFamily: CALM_FONT,
-                fontSize: "clamp(13px, 3.8vw, 16px)",
+                fontSize: "clamp(16px, 4.5vw, 20px)",
                 color: GRIS,
+                fontWeight: "normal",
                 lineHeight: 1.35,
                 margin: "0 0 22px",
               }}
@@ -639,7 +669,7 @@ function VestimentaSection({ photosPath }: { photosPath: string }) {
                 <li
                   key={hex}
                   style={{
-                    width: 48,
+                    width: 52,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -648,8 +678,8 @@ function VestimentaSection({ photosPath }: { photosPath: string }) {
                 >
                   <span
                     style={{
-                      width: 44,
-                      height: 44,
+                      width: 52,
+                      height: 52,
                       borderRadius: "50%",
                       background: hex,
                       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.12)",
@@ -659,8 +689,9 @@ function VestimentaSection({ photosPath }: { photosPath: string }) {
                   <span
                     style={{
                       fontFamily: CALM_FONT,
-                      fontSize: 9,
+                      fontSize: "clamp(11px, 3vw, 13px)",
                       color: GRIS,
+                      fontWeight: "normal",
                       lineHeight: 1.2,
                     }}
                   >
@@ -1010,6 +1041,7 @@ export default function InvitationOliva({
         <PortadaSection demo={demo} photosPath={photosPath} />
         <InvitadoSection demo={demo} photosPath={photosPath} />
         <ItinerarioSection photosPath={photosPath} />
+        <SeparadorFlores photosPath={photosPath} />
         <VestimentaSection photosPath={photosPath} />
         {/* Reserva y cierre comparten el mismo cielo. */}
         <div style={{ position: "relative", background: SKY }}>
