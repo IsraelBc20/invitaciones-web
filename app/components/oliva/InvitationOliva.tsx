@@ -43,11 +43,17 @@ const HORA = "4:00 PM";
 const WHATSAPP = "51993092110";
 
 const ITINERARIO = [
-  { file: "icono-anillos.png", hora: "4:00pm", nombre: "Ceremonia", Icon: Sparkles },
-  { file: "icono-copas.png", hora: "4:30pm", nombre: "Hora del brindis", Icon: Wine },
-  { file: "icono-plato.png", hora: "5:00pm", nombre: "Hora de la comida", Icon: UtensilsCrossed },
-  { file: "icono-baile.png", hora: "6:00pm", nombre: "Baile", Icon: Music },
+  { file: "icono-anillos.png", hora: "4:00pm", nombre: "Ceremonia", Icon: Sparkles, gif: false },
+  { file: "it-brindis.gif", hora: "4:30pm", nombre: "Hora del brindis", Icon: Wine, gif: true },
+  { file: "it-comida.gif", hora: "5:00pm", nombre: "Hora de la comida", Icon: UtensilsCrossed, gif: true },
+  { file: "it-celebracion.gif", hora: "6:00pm", nombre: "Baile", Icon: Music, gif: true },
 ];
+
+// Tiñe los GIF del itinerario de #456b3e. Los GIF tienen trazo gris, no negro:
+// brightness(0) los lleva primero a negro, que es de donde parte el resto del
+// filtro. icono-anillos.png ya viene verde y no lo lleva.
+const GIF_FILTER =
+  "brightness(0) saturate(100%) invert(37%) sepia(28%) saturate(534%) hue-rotate(74deg) brightness(89%) contrast(89%)";
 
 const COLORES = [
   { hex: "#1a2744", nombre: "Midnight Navy" },
@@ -247,7 +253,7 @@ function PortadaSection({ demo, photosPath }: { demo: boolean; photosPath: strin
             position: "absolute",
             zIndex: 2,
             bottom: 0,
-            left: "35%",
+            left: "45%",
             transform: "translateX(-50%)",
             width: "60%",
             maxWidth: 260,
@@ -493,7 +499,7 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
               flexDirection: "column",
             }}
           >
-            {ITINERARIO.map(({ file, hora, nombre, Icon }) => (
+            {ITINERARIO.map(({ file, hora, nombre, Icon, gif }) => (
               <li
                 key={file}
                 style={{
@@ -507,7 +513,13 @@ function ItinerarioSection({ photosPath }: { photosPath: string }) {
                   photosPath={photosPath}
                   file={file}
                   alt=""
-                  style={{ width: 70, height: 70, objectFit: "contain", flexShrink: 0 }}
+                  style={{
+                    width: 70,
+                    height: 70,
+                    objectFit: "contain",
+                    flexShrink: 0,
+                    filter: gif ? GIF_FILTER : undefined,
+                  }}
                   fallback={
                     <span
                       style={{
