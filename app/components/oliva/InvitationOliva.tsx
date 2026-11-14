@@ -6,7 +6,7 @@
 // no existe ahí (la carpeta del cliente arranca vacía), caen a las del demo.
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, Clock, MapPin, Music, Sparkles, UtensilsCrossed, Wine } from "lucide-react";
+import { CalendarDays, Check, Clock, MapPin, Music, Sparkles, UtensilsCrossed, Wine } from "lucide-react";
 import { useMusic } from "@/app/components/shared/useMusic";
 import { venueFor } from "@/lib/venue";
 import { coupleFor } from "@/lib/couple";
@@ -774,15 +774,48 @@ const LIGHT_SHADOW = "0 1px 4px rgba(0, 40, 90, 0.35)";
 
 type Asistencia = "" | "si" | "no";
 
-function ReservaSection() {
+// Al enviar (14 nov 2026): el formulario se desvanece (0,4s) y en su lugar
+// aparece la confirmación. En la demo no se manda nada; en la ruta cliente,
+// 600ms después de que aparece el mensaje se abre WhatsApp con los datos.
+const FADE_MS = 400;
+const WA_DELAY_MS = 600;
+// Para la confirmación: "Septiembre 12, 2026" → "Septiembre 12 de 2026".
+const FECHA_TEXTO = FECHA.replace(", ", " de ");
+
+type Fase = "form" | "saliendo" | "enviado";
+
+function ReservaSection({ demo }: { demo: boolean }) {
   const [nombre, setNombre] = useState("");
   const [rsvp, setRsvp] = useState<Asistencia>("");
   const [dieta, setDieta] = useState("");
   const [cancion, setCancion] = useState("");
   const [errors, setErrors] = useState<{ nombre?: string; rsvp?: string }>({});
+  const [fase, setFase] = useState<Fase>("form");
+  // Enlace de WhatsApp si el navegador bloqueó la ventana (se abre fuera del
+  // gesto del clic, por el retraso): se ofrece como botón en el mensaje.
+  const [waBloqueado, setWaBloqueado] = useState<string | null>(null);
+  const timers = useRef<number[]>([]);
+
+  useEffect(() => {
+    const pending = timers.current;
+    return () => pending.forEach((t) => window.clearTimeout(t));
+  }, []);
+
+  const waLink = (n: string) => {
+    const prose = coupleFor(demo).prose;
+    const lines = [
+      rsvp === "si"
+        ? `Hola, confirmo mi asistencia a la boda de ${prose} el 12 de septiembre. Mi nombre es ${n}.`
+        : `Hola, lamentablemente no podré asistir a la boda de ${prose}. Mi nombre es ${n}.`,
+    ];
+    if (dieta.trim()) lines.push(`Requerimiento dietético: ${dieta.trim()}`);
+    if (cancion.trim()) lines.push(`Canción favorita: ${cancion.trim()}`);
+    return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(lines.join("\n"))}`;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (fase !== "form") return;
     const n = nombre.trim();
     const next: typeof errors = {};
     if (!n) next.nombre = "Por favor escribe tu nombre y apellido";
@@ -790,14 +823,21 @@ function ReservaSection() {
     setErrors(next);
     if (next.nombre || next.rsvp) return;
 
-    const asistencia = rsvp === "si" ? "Sí, ahí estaré" : "Lo siento, no podré";
-    const lines = [`Hola, soy ${n}.`, `¿Nos acompañarás?: ${asistencia}`];
-    if (dieta.trim()) lines.push(`Requerimiento dietético: ${dieta.trim()}`);
-    if (cancion.trim()) lines.push(`Canción favorita: ${cancion.trim()}`);
-    window.open(
-      `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(lines.join("\n"))}`,
-      "_blank",
-      "noopener,noreferrer"
+    // La demo no envía nada a ningún lado.
+    const link = demo ? null : waLink(n);
+    setFase("saliendo");
+    timers.current.push(
+      window.setTimeout(() => {
+        setFase("enviado");
+        if (!link) return;
+        timers.current.push(
+          window.setTimeout(() => {
+            const w = window.open(link, "_blank");
+            if (w) w.opener = null;
+            else setWaBloqueado(link);
+          }, WA_DELAY_MS)
+        );
+      }, FADE_MS)
     );
   };
 
@@ -859,10 +899,23 @@ function ReservaSection() {
           Reserva
         </h2>
 
+        {/* Formulario y confirmación comparten la misma celda de la grilla:
+            el formulario queda invisible pero conserva su alto, y el mensaje
+            se centra en ese espacio. */}
+        <div style={{ display: "grid" }}>
         <form
           noValidate
           onSubmit={handleSubmit}
-          style={{ display: "grid", gap: 20 }}
+          aria-hidden={fase === "enviado"}
+          style={{
+            gridArea: "1 / 1",
+            display: "grid",
+            gap: 20,
+            opacity: fase === "form" ? 1 : 0,
+            transition: `opacity ${FADE_MS}ms ease`,
+            visibility: fase === "enviado" ? "hidden" : "visible",
+            pointerEvents: fase === "form" ? "auto" : "none",
+          }}
         >
           <div>
             <label htmlFor="rsvp-nombre" style={labelStyle}>
@@ -954,8 +1007,83 @@ function ReservaSection() {
             Enviar datos
           </button>
         </form>
+
+        {fase === "enviado" && <Confirmacion asiste={rsvp === "si"} waLink={waBloqueado} />}
+        </div>
       </Reveal>
     </section>
+  );
+}
+
+const RESERVA_CSS = `
+@keyframes oliva-fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes oliva-pop { from { transform: scale(0) } to { transform: scale(1) } }
+`;
+
+function Confirmacion({ asiste, waLink }: { asiste: boolean; waLink: string | null }) {
+  const texto: React.CSSProperties = {
+    fontFamily: CALM_FONT,
+    fontSize: "clamp(16px, 4vw, 20px)",
+    color: LIGHT,
+    textShadow: LIGHT_SHADOW,
+    lineHeight: 1.4,
+    margin: 0,
+  };
+  return (
+    <div
+      role="status"
+      style={{
+        gridArea: "1 / 1",
+        alignSelf: "center",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 12,
+        textAlign: "center",
+        animation: `oliva-fade-in ${FADE_MS}ms ease both`,
+      }}
+    >
+      <style>{RESERVA_CSS}</style>
+      <span style={{ display: "inline-flex", animation: "oliva-pop 0.3s ease-out both" }}>
+        <Check size={48} color={LIGHT} strokeWidth={2} aria-hidden="true" />
+      </span>
+      <h3
+        style={{
+          ...texto,
+          fontSize: "clamp(28px, 7vw, 36px)",
+          fontWeight: "normal",
+          lineHeight: 1.15,
+          textShadow: "0 2px 10px rgba(0, 40, 90, 0.25)",
+        }}
+      >
+        {asiste ? "¡Muchas gracias!" : "Gracias por confirmarnos"}
+      </h3>
+      <p style={texto}>
+        {asiste ? "Tu confirmación fue recibida." : "Lamentamos mucho que no puedas asistir."}
+      </p>
+      <p style={texto}>
+        {asiste ? `¡Te esperamos el ${FECHA_TEXTO}!` : "¡Te llevaremos en el corazón ese día!"}
+      </p>
+      {waLink && (
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            ...pillStyle,
+            marginTop: 8,
+            background: "#f9a094",
+            color: "#000000",
+            fontFamily: CALM_FONT,
+            fontSize: "clamp(16px, 4vw, 19px)",
+            fontWeight: "normal",
+            textDecoration: "none",
+          }}
+        >
+          Enviar por WhatsApp
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -1123,7 +1251,7 @@ export default function InvitationOliva({
               objectPosition: "top",
             }}
           />
-          <ReservaSection />
+          <ReservaSection demo={demo} />
           <CierreSection demo={demo} photosPath={photosPath} />
         </div>
       </main>
