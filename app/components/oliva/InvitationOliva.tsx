@@ -30,9 +30,8 @@ const TEXT = "#3a2a1a";
 // entre el cielo y la foto de cierre.
 const SKY = "#108dfb";
 
-const TITLE_FONT = "'Perandory', 'Playfair Display', serif";
-const BODY_FONT = "'DM Sans', system-ui, sans-serif";
-// Portada y "¡Estás invitado!" (13 nov 2026; @font-face en globals.css).
+// Toda la invitación va en CalmíusSans High (14 nov 2026; antes el cierre
+// usaba Perandory y los campos DM Sans). @font-face en globals.css.
 const CALM_FONT = "'CalmíusSans High', 'Playfair Display', serif";
 
 // Datos del evento. Por ahora el demo y el cliente comparten fecha y horarios;
@@ -177,22 +176,64 @@ export function MusicFab({ playing, onToggle }: { playing: boolean; onToggle: ()
   );
 }
 
-/** true si el archivo de música existe; sin canción no se muestra el FAB. */
-function useFileExists(src: string) {
-  const [exists, setExists] = useState(false);
+async function fileExists(src: string) {
+  try {
+    const r = await fetch(src, { method: "HEAD" });
+    const type = r.headers.get("content-type") ?? "";
+    return r.ok && !type.includes("text/html");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * La canción a usar: la de `src` si existe y, si no (la carpeta del cliente
+ * arranca vacía), la del demo. null mientras se comprueba o si no hay ninguna;
+ * sin canción no se muestra el FAB.
+ */
+function useMusicSrc(src: string) {
+  const [found, setFound] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    fetch(src, { method: "HEAD" })
-      .then((r) => {
-        const type = r.headers.get("content-type") ?? "";
-        if (alive) setExists(r.ok && !type.includes("text/html"));
-      })
-      .catch(() => {});
+    (async () => {
+      for (const s of src === MUSIC_SRC ? [src] : [src, MUSIC_SRC]) {
+        if (await fileExists(s)) {
+          if (alive) setFound(s);
+          return;
+        }
+      }
+    })();
     return () => {
       alive = false;
     };
   }, [src]);
-  return exists;
+  return found;
+}
+
+/**
+ * Sin pantalla de entrada no hay un botón que arranque la canción, y los
+ * navegadores no dejan sonar audio sin un gesto del usuario. Se intenta al
+ * cargar (algunos lo permiten) y, si no, con el primer toque, clic o tecla en
+ * cualquier parte. Una vez que sonó no se vuelve a forzar: si el invitado la
+ * pausa con el FAB, queda pausada. Los toques sobre el FAB se ignoran para
+ * que su propio toggle no la pause en el mismo gesto.
+ */
+function useAutoStartMusic(src: string | null, playing: boolean, play: () => void) {
+  const started = useRef(false);
+  useEffect(() => {
+    if (playing) started.current = true;
+    if (!src || started.current) return;
+    play();
+    const events = ["pointerdown", "touchend", "click", "keydown"] as const;
+    const onGesture = (e: Event) => {
+      if ((e.target as Element | null)?.closest?.(".music-fab")) return;
+      play();
+    };
+    events.forEach((ev) => window.addEventListener(ev, onGesture, { capture: true, passive: true }));
+    return () => events.forEach((ev) => window.removeEventListener(ev, onGesture, { capture: true }));
+    // play cambia en cada render; basta con re-armar al cambiar src o playing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, playing]);
 }
 
 // ─── Botones ─────────────────────────────────────────────────────────────────
@@ -207,7 +248,7 @@ const pillStyle: React.CSSProperties = {
   border: 0,
   borderRadius: 50,
   padding: "13px 28px",
-  fontFamily: BODY_FONT,
+  fontFamily: CALM_FONT,
   fontSize: 15,
   fontWeight: 600,
   letterSpacing: "0.02em",
@@ -772,7 +813,7 @@ function ReservaSection() {
   const inputStyle: React.CSSProperties = {
     width: "100%",
     boxSizing: "border-box",
-    fontFamily: BODY_FONT,
+    fontFamily: CALM_FONT,
     fontSize: 16,
     color: TEXT,
     background: "#ffffff",
@@ -782,7 +823,7 @@ function ReservaSection() {
     outline: "none",
   };
   const errorStyle: React.CSSProperties = {
-    fontFamily: BODY_FONT,
+    fontFamily: CALM_FONT,
     fontSize: 13,
     color: "#ffe0d6",
     textShadow: LIGHT_SHADOW,
@@ -929,7 +970,7 @@ function CierreSection({ demo, photosPath }: { demo: boolean; photosPath: string
         <h2
           style={{
             ...white,
-            fontFamily: TITLE_FONT,
+            fontFamily: CALM_FONT,
             fontSize: "clamp(32px, 9vw, 48px)",
             fontWeight: "normal",
             margin: "0 0 10px",
@@ -937,13 +978,13 @@ function CierreSection({ demo, photosPath }: { demo: boolean; photosPath: string
         >
           ¡Muchas gracias!
         </h2>
-        <p style={{ ...white, fontFamily: BODY_FONT, fontSize: 16, lineHeight: 1.5, margin: "0 0 18px" }}>
+        <p style={{ ...white, fontFamily: CALM_FONT, fontSize: 16, lineHeight: 1.5, margin: "0 0 18px" }}>
           No podemos esperar para celebrar ese día contigo
         </p>
         <p
           style={{
             ...white,
-            fontFamily: TITLE_FONT,
+            fontFamily: CALM_FONT,
             fontSize: "clamp(36px, 10vw, 52px)",
             margin: 0,
           }}
@@ -1003,7 +1044,7 @@ function DemoBanner() {
         background: "rgba(45, 90, 27, 0.92)",
         backdropFilter: "blur(8px)",
         color: "#fbf5e9",
-        fontFamily: BODY_FONT,
+        fontFamily: CALM_FONT,
         fontSize: 12,
         letterSpacing: "0.03em",
       }}
@@ -1048,11 +1089,12 @@ export default function InvitationOliva({
   photosPath?: string;
   musicSrc?: string;
 }) {
-  // Sin pantalla de entrada (13 nov 2026): la invitación abre directo y la
-  // música no puede arrancar sola (el navegador exige un gesto), así que el
-  // FAB queda a la vista para que el invitado la active.
-  const { playing, toggle } = useMusic(musicSrc, DESIGN_ID);
-  const hasMusic = useFileExists(musicSrc);
+  // Sin pantalla de entrada (13 nov 2026): la canción arranca con el primer
+  // gesto del invitado (useAutoStartMusic) y el FAB queda a la vista.
+  const src = useMusicSrc(musicSrc);
+  const { playing, play, toggle } = useMusic(src ?? musicSrc, DESIGN_ID);
+  const hasMusic = src !== null;
+  useAutoStartMusic(src, playing, play);
 
   return (
     <div id="invitation-root" style={{ background: BG }}>
