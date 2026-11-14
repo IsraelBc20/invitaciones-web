@@ -751,7 +751,7 @@ function ReservaSection() {
   const labelStyle: React.CSSProperties = {
     display: "block",
     fontFamily: CALM_FONT,
-    fontSize: "clamp(15px, 4vw, 18px)",
+    fontSize: "clamp(17px, 4.5vw, 21px)",
     color: LIGHT,
     textShadow: LIGHT_SHADOW,
     marginBottom: 8,
@@ -764,7 +764,7 @@ function ReservaSection() {
     fontSize: 16,
     color: TEXT,
     background: "#ffffff",
-    border: "1px solid rgba(0, 0, 0, 0.08)",
+    border: "2px solid #000000",
     borderRadius: 25,
     padding: "12px 16px",
     outline: "none",
@@ -781,7 +781,7 @@ function ReservaSection() {
     alignItems: "center",
     gap: 10,
     fontFamily: CALM_FONT,
-    fontSize: "clamp(15px, 4vw, 18px)",
+    fontSize: "clamp(16px, 4.2vw, 19px)",
     color: LIGHT,
     textShadow: LIGHT_SHADOW,
     cursor: "pointer",
@@ -795,7 +795,7 @@ function ReservaSection() {
         <h2
           style={{
             fontFamily: CALM_FONT,
-            fontSize: "clamp(32px, 9vw, 46px)",
+            fontSize: "clamp(36px, 10vw, 52px)",
             color: LIGHT,
             fontWeight: "normal",
             textAlign: "center",
@@ -1053,8 +1053,10 @@ export default function InvitationOliva({
         <ItinerarioSection photosPath={photosPath} />
         <SeparadorFlores photosPath={photosPath} />
         <VestimentaSection photosPath={photosPath} />
-        {/* Reserva y cierre comparten el mismo cielo. */}
-        <div style={{ position: "relative", background: SKY }}>
+        {/* Reserva y cierre comparten el mismo cielo. Sube 4px sobre la
+            vestimenta: la última fila de fondo-cielo-1.png es casi blanca y
+            dejaba una línea en la unión. */}
+        <div style={{ position: "relative", background: SKY, marginTop: -4 }}>
           <GardenImg
             photosPath={photosPath}
             file="fondo-cielo-2.png"
