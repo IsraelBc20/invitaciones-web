@@ -103,5 +103,16 @@ export const designs: Design[] = [
     tags: ["Bodas", "Cusco", "Andino"],
     categoria: "boda",
   },
+  {
+    id: "chosas",
+    nombre: "Chosas",
+    descripcion: "Invitación de boda estilo revista de lujo. Elegante, paginada y memorable.",
+    ruta: "/chosas",
+    galeriaRuta: "/chosas/galeria",
+    disponible: true,
+    colores: ["#1B3A6B", "#D4698A", "#B8963E", "#FAFAF8", "#1A1A1A"],
+    tags: ["Bodas", "Revista", "Lujo"],
+    categoria: "boda",
+  },
   // Futuros diseños se agregan aquí:
 ];
