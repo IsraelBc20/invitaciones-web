@@ -92,5 +92,16 @@ export const designs: Design[] = [
     tags: ["Cumpleaños", "Infantil", "K-pop"],
     categoria: "cumpleanos",
   },
+  {
+    id: "qori",
+    nombre: "Qori",
+    descripcion: "Invitación de boda con alma andina. Qori significa oro en quechua.",
+    ruta: "/qori",
+    galeriaRuta: "/qori/galeria",
+    disponible: true,
+    colores: ["#8B1A1A", "#C9A84C", "#2C4A1E", "#F5E6C8", "#1A0A00"],
+    tags: ["Bodas", "Cusco", "Andino"],
+    categoria: "boda",
+  },
   // Futuros diseños se agregan aquí:
 ];

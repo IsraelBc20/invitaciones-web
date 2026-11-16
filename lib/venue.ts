@@ -74,6 +74,17 @@ export const VENUE_EMILIA: Venue = {
 };
 
 /**
+ * Local del diseño Qori (16 nov 2026): la Plaza de Armas del Cusco. Es un lugar
+ * público, así que lo muestra también la demo /qori en vez de VENUE_DEMO (Lima):
+ * el diseño entero es de temática cusqueña.
+ */
+export const VENUE_CUSCO = venue(
+  "Plaza de Armas",
+  "Cusco",
+  "-13.516667,-71.978889",
+);
+
+/**
  * Elige la dirección según la prop `demo` de la invitación. `real` es el local
  * del cliente; por defecto el de la boda, los cumpleaños pasan el suyo.
  */
