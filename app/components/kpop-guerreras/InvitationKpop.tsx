@@ -128,7 +128,9 @@ const waConfirm = (demo: boolean) => {
   const f = festejadaFor(demo);
   const numero = demo ? WA_DEMO : WA_CLIENTE;
   return `https://wa.me/${numero}?text=${encodeURIComponent(
-    `Hola, quiero confirmar mi asistencia al cumpleaños de ${f.nombre} el ${diaYMes(f.iso)}. Mi nombre es [nombre] y asistiremos [N] personas.`
+    demo
+      ? `Hola, quiero confirmar mi asistencia al cumpleaños de ${f.nombre} el ${diaYMes(f.iso)}. Mi nombre es [nombre] y asistiremos [N] personas.`
+      : `Hola, quiero confirmar mi asistencia al cumpleaños de ${f.nombre} el ${diaYMes(f.iso)}.`
   )}`;
 };
 
@@ -1861,10 +1863,9 @@ const PLAIN_TEXT: React.CSSProperties = {
 
 function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
-  // En Emilia los textos van en blanco liso: sin glow, sin la animación
-  // kpop-glow del título y sin el pie bajo el botón
+  // En Emilia los párrafos van en blanco liso (sin glow) y sin el pie bajo el
+  // botón; el título es idéntico al de ¿QUÉ HAREMOS? (Titulo por defecto + Reveal)
   const texto = demo ? NEON_TEXT : PLAIN_TEXT;
-  const sinBrillo: React.CSSProperties = demo ? {} : { textShadow: "none", animation: "none", filter: "none" };
   // rsvp-fondo.png es un fondo CSS (no admite loading="lazy"): se pide recién
   // cuando la sección está cerca
   const sectionRef = useRef<HTMLElement>(null);
@@ -1886,9 +1887,15 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
 
       <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: BODY_FONT }}>
         {/* Mismo Titulo (glow magenta/morado) que el resto de las secciones */}
-        <Titulo size="clamp(28px, 8vw, 48px)" style={{ wordSpacing: "0.25em", marginBottom: 16, ...sinBrillo }}>
-          ¿VAS A VENIR?
-        </Titulo>
+        {demo ? (
+          <Titulo size="clamp(28px, 8vw, 48px)" style={{ wordSpacing: "0.25em", marginBottom: 16 }}>
+            ¿VAS A VENIR?
+          </Titulo>
+        ) : (
+          <Reveal>
+            <Titulo style={{ marginBottom: 16 }}>¿VAS A VENIR?</Titulo>
+          </Reveal>
+        )}
         <p style={{ ...texto, fontSize: "clamp(14px, 4vw, 18px)", marginBottom: 8 }}>
           ¡Prepara tus mejores pasos!
           <br />
