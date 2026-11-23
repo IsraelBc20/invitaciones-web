@@ -91,7 +91,7 @@ const FESTEJADA_CLIENTE: Festejada = {
   iso: "2026-11-27T16:00:00",
   hora: "4:00 PM",
   lugar: "Salón de fiestas",
-  rsvpHasta: "20 de noviembre",
+  rsvpHasta: "26 de noviembre",
 };
 
 const festejadaFor = (demo: boolean) => (demo ? FESTEJADA_DEMO : FESTEJADA_CLIENTE);
@@ -120,9 +120,14 @@ function diaYMes(iso: string) {
 // Mensaje prellenado: [nombre] y [N] quedan para que el invitado los complete.
 // El demo arma el mismo mensaje con su festejada (Arelis); quien quiere
 // comprar la invitación tiene el botón del banner de demo.
+// WhatsApp para confirmar: el demo usa el del negocio y Emilia el de su familia.
+const WA_DEMO = "51993092110";
+const WA_CLIENTE = "51950190463";
+
 const waConfirm = (demo: boolean) => {
   const f = festejadaFor(demo);
-  return `https://wa.me/51993092110?text=${encodeURIComponent(
+  const numero = demo ? WA_DEMO : WA_CLIENTE;
+  return `https://wa.me/${numero}?text=${encodeURIComponent(
     `Hola, quiero confirmar mi asistencia al cumpleaños de ${f.nombre} el ${diaYMes(f.iso)}. Mi nombre es [nombre] y asistiremos [N] personas.`
   )}`;
 };
@@ -1691,12 +1696,20 @@ function FiestaSection({ demo, photosPath }: { demo: boolean; photosPath: string
 
 // ─── 5. Programa ─────────────────────────────────────────────────────────────
 
-const PROGRAMA = [
+const PROGRAMA_DEMO = [
   { icon: PartyPopper, nombre: "Llegada y bienvenida", hora: "4:00 PM" },
   { icon: Gamepad2, nombre: "Juegos y actividades", hora: "4:30 PM" },
   { icon: Cake, nombre: "¡La torta y las velas!", hora: "5:30 PM" },
   { icon: Gift, nombre: "Apertura de regalos", hora: "6:00 PM" },
   { icon: Music2, nombre: "¡A bailar!", hora: "6:30 PM" },
+];
+
+// Programa de Emilia (23 nov 2026)
+const PROGRAMA_CLIENTE = [
+  { icon: PartyPopper, nombre: "Llegada y bienvenida", hora: "4:00 PM" },
+  { icon: Music2, nombre: "Inicio del show", hora: "4:30 PM" },
+  { icon: Gamepad2, nombre: "Juegos y actividades", hora: "5:30 PM" },
+  { icon: Cake, nombre: "Torta y sorpresitas", hora: "6:00 PM" },
 ];
 
 // Con `photosPath` (las 2 rutas) va en dos columnas: la lista a la izquierda
@@ -1706,7 +1719,8 @@ const PROGRAMA = [
 
 const PROGRAMA_PAD_X = 26;
 
-function ProgramaSection({ photosPath }: { photosPath?: string }) {
+function ProgramaSection({ photosPath, demo }: { photosPath?: string; demo: boolean }) {
+  const programa = demo ? PROGRAMA_DEMO : PROGRAMA_CLIENTE;
   const imgRef = useRef<HTMLImageElement>(null);
   // 1 = fuera por la derecha, 0 = en su lugar
   const [restante, setRestante] = useState(1);
@@ -1746,7 +1760,7 @@ function ProgramaSection({ photosPath }: { photosPath?: string }) {
         }}
       />
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-        {PROGRAMA.map((it, i) => (
+        {programa.map((it, i) => (
           <Reveal key={it.nombre} delay={Math.min(i + 1, 4)}>
             <div style={{ display: "flex", alignItems: "center", gap: photosPath ? 12 : 18 }}>
               <span
@@ -2139,7 +2153,7 @@ export default function InvitationKpop({
         <CountdownSection partyIso={festejadaFor(demo).iso} photosPath={photosPath} />
         <ChicasSection photosPath={photosPath} opened={opened} />
         <FiestaSection demo={demo} photosPath={photosPath} />
-        <ProgramaSection photosPath={photosPath} />
+        <ProgramaSection photosPath={photosPath} demo={demo} />
         <VideoLoopSection src={`${photosPath}/video-programa.mp4`} />
         <ConfirmarSection demo={demo} photosPath={photosPath} />
         {/* Corazones sobre la unión de ¿VAS A VENIR? y el video de cierre,
