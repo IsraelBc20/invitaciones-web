@@ -1842,7 +1842,7 @@ function ProgramaSection({ photosPath, demo }: { photosPath?: string; demo: bool
 // el botón de WhatsApp en el medio. El fondo (rsvp-fondo.png) ya viene
 // editado: sin overlay ni opacidad.
 
-// Textos de ¿VAS A VENIR? en blanco con glow neón
+// Textos de ¿VAS A VENIR? en blanco con glow neón (demo)
 const NEON_TEXT: React.CSSProperties = {
   fontFamily: "'Montserrat Arabic', sans-serif",
   color: "#ffffff",
@@ -1850,8 +1850,21 @@ const NEON_TEXT: React.CSSProperties = {
   textAlign: "center",
 };
 
+// Emilia (23 nov 2026): los mismos textos en blanco liso, sin brillo
+const PLAIN_TEXT: React.CSSProperties = {
+  fontFamily: "'Montserrat Arabic', sans-serif",
+  color: "#ffffff",
+  textShadow: "none",
+  filter: "none",
+  textAlign: "center",
+};
+
 function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: string }) {
   const f = festejadaFor(demo);
+  // En Emilia los textos van en blanco liso: sin glow, sin la animación
+  // kpop-glow del título y sin el pie bajo el botón
+  const texto = demo ? NEON_TEXT : PLAIN_TEXT;
+  const sinBrillo: React.CSSProperties = demo ? {} : { textShadow: "none", animation: "none", filter: "none" };
   // rsvp-fondo.png es un fondo CSS (no admite loading="lazy"): se pide recién
   // cuando la sección está cerca
   const sectionRef = useRef<HTMLElement>(null);
@@ -1873,16 +1886,16 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
 
       <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: BODY_FONT }}>
         {/* Mismo Titulo (glow magenta/morado) que el resto de las secciones */}
-        <Titulo size="clamp(28px, 8vw, 48px)" style={{ wordSpacing: "0.25em", marginBottom: 16 }}>
+        <Titulo size="clamp(28px, 8vw, 48px)" style={{ wordSpacing: "0.25em", marginBottom: 16, ...sinBrillo }}>
           ¿VAS A VENIR?
         </Titulo>
-        <p style={{ ...NEON_TEXT, fontSize: "clamp(14px, 4vw, 18px)", marginBottom: 8 }}>
+        <p style={{ ...texto, fontSize: "clamp(14px, 4vw, 18px)", marginBottom: 8 }}>
           ¡Prepara tus mejores pasos!
           <br />
           El escenario K-Pop está listo para una batalla inolvidable.
         </p>
         <p style={{ color: WHITE, marginBottom: 24, fontSize: 17 }}>
-          Confirma tu lugar en nuestro equipo antes del <strong style={{ color: GOLD }}>{f.rsvpHasta}</strong>:
+          Confirma tu lugar en nuestro equipo antes del <strong style={{ color: demo ? GOLD : WHITE }}>{f.rsvpHasta}</strong>:
         </p>
         <a
           href={waConfirm(demo)}
@@ -1907,7 +1920,9 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
           <MessageCircle size={20} color="#ffffff" aria-hidden="true" />
           Confirmar asistencia
         </a>
-        <p style={{ ...NEON_TEXT, fontSize: "clamp(12px, 3.5vw, 16px)", marginTop: 16 }}>indicando tu nombre y con cuántos ídolos vendrás.</p>
+        {demo && (
+          <p style={{ ...NEON_TEXT, fontSize: "clamp(12px, 3.5vw, 16px)", marginTop: 16 }}>indicando tu nombre y con cuántos ídolos vendrás.</p>
+        )}
       </div>
 
       <img src={`${photosPath}/rsvp-chicos.png`} loading="lazy" alt="" draggable={false} style={{ width: "100%", display: "block" }} />
