@@ -25,6 +25,7 @@ import {
   Mic,
   Music2,
   PartyPopper,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { getMusicAudio, useMusic } from "@/app/components/shared/useMusic";
@@ -1709,6 +1710,7 @@ const PROGRAMA_DEMO = [
 // Programa de Emilia (23 nov 2026)
 const PROGRAMA_CLIENTE = [
   { icon: PartyPopper, nombre: "Llegada y bienvenida", hora: "4:00 PM" },
+  { icon: Sparkles, nombre: "Caritas pintadas", hora: "4:15 PM" },
   { icon: Music2, nombre: "Inicio del show", hora: "4:30 PM" },
   { icon: Gamepad2, nombre: "Juegos y actividades", hora: "5:30 PM" },
   { icon: Cake, nombre: "Torta y sorpresitas", hora: "6:00 PM" },
@@ -1886,16 +1888,10 @@ function ConfirmarSection({ demo, photosPath }: { demo: boolean; photosPath: str
       <img src={`${photosPath}/rsvp-chicas.png`} loading="lazy" alt="" draggable={false} style={{ width: "100%", display: "block" }} />
 
       <div style={{ padding: "32px 24px", textAlign: "center", fontFamily: BODY_FONT }}>
-        {/* Mismo Titulo (glow magenta/morado) que el resto de las secciones */}
-        {demo ? (
-          <Titulo size="clamp(28px, 8vw, 48px)" style={{ wordSpacing: "0.25em", marginBottom: 16 }}>
-            ¿VAS A VENIR?
-          </Titulo>
-        ) : (
-          <Reveal>
-            <Titulo style={{ marginBottom: 16 }}>¿VAS A VENIR?</Titulo>
-          </Reveal>
-        )}
+        {/* Idéntico al título de ¿QUÉ HAREMOS? (Titulo por defecto + Reveal), en las 2 rutas */}
+        <Reveal>
+          <Titulo style={{ marginBottom: 16 }}>¿VAS A VENIR?</Titulo>
+        </Reveal>
         <p style={{ ...texto, fontSize: "clamp(14px, 4vw, 18px)", marginBottom: 8 }}>
           ¡Prepara tus mejores pasos!
           <br />
